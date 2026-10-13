@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>保罗书信的地理 · 使徒保罗在哪里写书信</title>
+<style>
+@@LEAFLET_CSS@@
+
+:root{
+  --bg:#f6f6f4;
+  --panel:#fbfbf9;
+  --ink:#1b1d20;
+  --ink-2:#565c64;
+  --ink-3:#989ea6;
+  --hair:#e7e7e1;
+  --hair-2:#f0f1ec;
+  --accent:#c2593f;
+  --accent-deep:#a34a33;
+  --accent-soft:#f6e9e4;
+  --land:#fdfdfb;
+  --border-land:#d8dad3;
+  --j1:#8fa3b8;
+  --j2:#8fa79a;
+  --j3:#b39c8a;
+  --j4:#a493b6;
+  --shadow:0 1px 2px rgba(20,20,18,.04),0 10px 30px rgba(20,20,18,.07);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --cjk-serif:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,SimSun,serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  overflow:hidden;
+}
+::selection{background:var(--accent-soft)}
+button{font-family:inherit;border:none;background:none}
+.hidden{display:none!important}
+
+.app{display:flex;height:100vh;height:100dvh;width:100vw}
+
+/* ============ 侧栏 ============ */
+.sidebar{
+  width:424px;flex:none;height:100%;background:var(--panel);
+  border-right:1px solid var(--hair);display:flex;flex-direction:column;z-index:10;
+}
+.hd{padding:30px 30px 22px;border-bottom:1px solid var(--hair)}
+.eyebrow{font-size:11px;letter-spacing:.14em;color:var(--ink-3);font-weight:600;margin-bottom:14px}
+.hd h1{font-size:27px;font-weight:700;letter-spacing:-.01em;line-height:1.15}
+.sub{margin-top:7px;font-size:12.5px;color:var(--ink-2);font-family:var(--serif);font-style:italic}
+.stats{display:flex;margin-top:20px;border:1px solid var(--hair);border-radius:12px;overflow:hidden;background:#fff}
+.stat{flex:1;padding:11px 6px 10px;text-align:center;border-left:1px solid var(--hair-2)}
+.stat:first-child{border-left:none}
+.stat b{display:block;font-size:18px;font-weight:700;letter-spacing:-.01em;font-feature-settings:"tnum"}
+.stat span{display:block;font-size:10.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.02em}
+
+.scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;min-height:0}
+.scroll::-webkit-scrollbar{width:8px}
+.scroll::-webkit-scrollbar-thumb{background:#dcdcd4;border-radius:4px;border:2px solid var(--panel)}
+.scroll::-webkit-scrollbar-track{background:transparent}
+
+.filterbar{display:flex;align-items:center;justify-content:space-between;margin:16px 24px 0;padding:8px 6px 8px 13px;background:var(--accent-soft);border-radius:10px;font-size:12.5px;color:var(--accent-deep)}
+.filterbar button{color:var(--accent-deep);cursor:pointer;font-size:12px;padding:3px 7px;border-radius:6px}
+.filterbar button:hover{background:rgba(194,89,63,.14)}
+
+.list{padding:10px 14px 16px}
+.ep{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;cursor:pointer;transition:background .18s;position:relative}
+.ep:hover{background:#f1f1ed}
+.ep.active{background:var(--accent-soft)}
+.ep + .ep::before{content:'';position:absolute;top:0;left:12px;right:12px;height:1px;background:var(--hair-2)}
+.ep-yr{flex:none;width:76px;font-size:11px;color:var(--ink-3);font-feature-settings:"tnum";letter-spacing:.01em}
+.ep-mid{flex:1;min-width:0}
+.ep-cn{font-size:14.5px;font-weight:600;letter-spacing:.01em}
+.ep-en{font-size:11.5px;color:var(--ink-3);font-family:var(--serif);font-style:italic;margin-top:1px}
+.ep-city{flex:none;font-size:11.5px;color:var(--ink-2);background:#fff;border:1px solid var(--hair);padding:3px 9px;border-radius:999px;transition:.18s}
+.ep:hover .ep-city,.ep.active .ep-city{border-color:var(--accent);color:var(--accent-deep)}
+
+.detail{padding:20px 26px 26px}
+.detail.in{animation:slidein .35s cubic-bezier(.2,.7,.3,1)}
+@keyframes slidein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.back{color:var(--ink-2);font-size:12.5px;cursor:pointer;padding:4px 0;margin-bottom:12px}
+.back:hover{color:var(--accent)}
+.d-cn{font-size:24px;font-weight:700;letter-spacing:-.01em}
+.d-en{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-3);margin-top:3px}
+.d-meta{margin:18px 0 6px;border-top:1px solid var(--hair)}
+.m-row{display:flex;gap:14px;padding:9px 2px;border-bottom:1px solid var(--hair-2);font-size:13px}
+.m-row span{flex:none;width:64px;color:var(--ink-3);font-size:12px;padding-top:1px}
+.m-row b{font-weight:600;color:var(--ink);line-height:1.5}
+.d-h{font-size:11px;letter-spacing:.12em;color:var(--ink-3);font-weight:600;margin:18px 0 8px}
+.d-bg{font-size:13.5px;line-height:1.9;color:#33383e}
+.d-note{margin-top:12px;font-size:12px;line-height:1.75;color:#8a5a48;background:#faf3f0;border-left:2px solid var(--accent);padding:9px 12px;border-radius:0 8px 8px 0}
+.d-verse{margin:18px 0 0;padding:16px 18px;background:#fff;border:1px solid var(--hair);border-radius:12px}
+.d-verse p{font-family:var(--cjk-serif);font-size:15px;line-height:2.0;color:#2a2e33}
+.d-verse cite{display:block;margin-top:10px;font-size:11.5px;color:var(--ink-3);font-style:normal;letter-spacing:.03em}
+.locate{margin-top:16px;width:100%;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:10px;padding:11px;font-size:13px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.locate:hover{background:#000;border-color:#000}
+
+.note{margin:8px 26px 26px;font-size:11px;line-height:1.85;color:var(--ink-3)}
+
+/* ============ 时间轴 ============ */
+.tl{border-top:1px solid var(--hair);padding:14px 26px 16px;background:var(--panel)}
+.tl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.tl-cap{font-size:11px;letter-spacing:.1em;color:var(--ink-3);font-weight:600}
+.tl-right{display:flex;align-items:center;gap:12px}
+.tl-count{font-size:11px;color:var(--ink-3);font-feature-settings:"tnum"}
+.tl-year{font-size:15px;font-weight:700;font-feature-settings:"tnum";letter-spacing:-.01em;min-width:58px;text-align:right}
+.play{display:flex;align-items:center;gap:6px;border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 13px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s}
+.play:hover{border-color:var(--ink-3);color:var(--ink)}
+.play.playing{background:var(--ink);border-color:var(--ink);color:#fff}
+.play .i-pause{display:none}
+.play.playing .i-play{display:none}
+.play.playing .i-pause{display:block}
+.tl-track{position:relative;height:36px;cursor:pointer;touch-action:none;margin-top:2px}
+.tl-rail{position:absolute;left:0;right:0;top:14px;height:2px;background:var(--hair);border-radius:2px}
+/* 旅程跨度带：与时间轴同尺度，显示四段旅程的起止，当前行进段高亮 */
+.tl-band{position:absolute;top:26px;height:3px;border-radius:1.5px;pointer-events:none;opacity:.34;transition:opacity .35s,filter .35s}
+.tl-band.on{opacity:1;filter:saturate(1.35) brightness(.88)}
+.tl-band.past{opacity:.62}
+.tl-band.future{opacity:.18}
+.tl-prog{position:absolute;left:0;top:14px;height:2px;background:var(--ink);border-radius:2px;width:100%}
+.tl-dot{position:absolute;top:9px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#fff;border:2px solid #c3c6bd;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .25s,border-color .25s;cursor:pointer;padding:0}
+.tl-dot:hover{transform:scale(1.35)}
+.tl-dot.on{background:var(--accent);border-color:var(--accent)}
+.tl-knob{position:absolute;top:4px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#fff;border:1px solid var(--hair);box-shadow:0 2px 10px rgba(20,20,18,.16);display:flex;align-items:center;justify-content:center;transition:transform .15s;pointer-events:none}
+.tl-track:active .tl-knob{transform:scale(1.12)}
+.tl-knob::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ink)}
+.tl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-feature-settings:"tnum";margin-top:2px}
+.tl-keys{margin-top:10px;font-size:10.5px;color:var(--ink-3);letter-spacing:.02em}
+
+/* ============ 地图 ============ */
+#map{flex:1;position:relative;background:radial-gradient(1100px 720px at 32% 18%,#eef0ec,#e5e8e2)}
+.leaflet-container{background:transparent;font-family:inherit}
+
+.chips{position:absolute;left:16px;top:16px;display:flex;gap:8px;z-index:1200;flex-wrap:wrap;max-width:calc(100% - 32px)}
+.chip{border:1px solid var(--hair);background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:7px 13px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s;display:flex;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(20,20,18,.04)}
+.chip:hover{border-color:#cfcfc6;color:var(--ink)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.ghost{background:rgba(255,255,255,.75)}
+
+.legend{position:absolute;left:16px;bottom:16px;z-index:1200;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:13px 15px 11px;box-shadow:var(--shadow);min-width:212px}
+.legend h4{font-size:10.5px;color:var(--ink-3);letter-spacing:.12em;margin-bottom:9px;font-weight:600}
+.lg-row{display:flex;align-items:center;gap:9px;padding:3px 0;color:var(--ink-2);font-size:12px}
+.dot-sw{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;margin:0 4.5px}
+.ring-sw{background:#fff;border:2px solid var(--accent);width:7px;height:7px}
+.lg-j{display:flex;align-items:center;gap:9px;padding:4px 7px;margin:1px -7px;color:var(--ink-2);font-size:12px;border-radius:8px;cursor:pointer;transition:.15s}
+.lg-j:hover{background:#f1f1ed;color:var(--ink)}
+.lg-j i{width:16px;height:3px;border-radius:2px;flex:none}
+.lg-j em{font-style:normal;color:var(--ink-3);font-size:10.5px;margin-left:auto;font-feature-settings:"tnum";padding-left:8px}
+.lg-j::after{content:'\25B6';font-size:7px;color:#c3c6bd;flex:none}
+.lg-j:hover::after{color:var(--accent)}
+.lg-j.on{background:var(--accent-soft);color:var(--accent-deep)}
+.lg-j.on::after{color:var(--accent)}
+.lg-j.on i{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.lg-j.past{opacity:.66}
+.lg-j.future{opacity:.38}
+.lg-hint{margin-top:9px;padding-top:9px;border-top:1px solid var(--hair-2);font-size:10.5px;color:var(--ink-3)}
+
+.now{position:absolute;left:50%;bottom:24px;transform:translate(-50%,16px);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:10px 18px;box-shadow:var(--shadow);opacity:0;transition:opacity .35s,transform .35s cubic-bezier(.2,.7,.3,1);pointer-events:none;z-index:1250;display:flex;gap:13px;align-items:center;max-width:min(560px,calc(100% - 40px))}
+.now.show{opacity:1;transform:translate(-50%,0)}
+.now .yr{font-size:19px;font-weight:700;letter-spacing:-.01em;font-feature-settings:"tnum";flex:none}
+.now .tx{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.now .tx b{color:var(--ink);font-weight:600}
+.attri{position:absolute;right:12px;bottom:10px;z-index:1200;font-size:10px;color:var(--ink-3);letter-spacing:.02em}
+
+/* Leaflet 控件样式覆盖 */
+.leaflet-top.leaflet-right{margin-top:14px;margin-right:14px}
+.leaflet-bar{border:1px solid var(--hair)!important;border-radius:10px!important;box-shadow:var(--shadow)!important;overflow:hidden}
+.leaflet-bar a{background:rgba(255,255,255,.94)!important;color:var(--ink-2)!important;border-bottom:1px solid var(--hair-2)!important;width:32px!important;height:32px!important;line-height:31px!important;font-size:17px!important}
+.leaflet-bar a:last-child{border-bottom:none!important}
+.leaflet-bar a:hover{background:#fff!important;color:var(--ink)!important}
+.leaflet-control-scale-line{border-color:#c3c6bd!important;color:var(--ink-2);background:rgba(255,255,255,.75);border-radius:2px;font-size:10px;padding:1px 5px}
+.leaflet-bottom.leaflet-right{margin-bottom:6px}
+
+.leaflet-tooltip.city-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink);font-size:12.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;pointer-events:none}
+.leaflet-tooltip.city-tip::before{display:none}
+.city-tip .en{display:block;font-size:10px;font-weight:500;color:var(--ink-3);letter-spacing:.05em;margin-top:1px}
+.city-tip .cnt{font-weight:500;color:var(--accent);font-size:11px;margin-left:6px;font-feature-settings:"tnum"}
+.leaflet-tooltip.ctx-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink-3);font-size:11px;font-weight:500;white-space:nowrap;pointer-events:none}
+.leaflet-tooltip.ctx-tip::before{display:none}
+.hide-labels .leaflet-tooltip{display:none}
+
+/* 城市标记 */
+.city-icon{pointer-events:none}
+.city{position:relative;width:160px;height:160px}
+.city .glow{position:absolute;left:80px;top:80px;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,rgba(194,89,63,.20),rgba(194,89,63,.06) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
+.city .ping{position:absolute;left:80px;top:80px;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid var(--accent);opacity:0;pointer-events:none;z-index:2}
+.city .core{position:absolute;left:80px;top:80px;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#fff;border:3.5px solid var(--accent);box-shadow:0 1px 5px rgba(20,20,18,.25);cursor:pointer;pointer-events:auto;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .3s;z-index:4}
+.city:hover .core,.city.hot .core{transform:scale(1.3)}
+.city .ring{position:absolute;left:80px;top:80px;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid var(--accent);animation:pulse 3s cubic-bezier(.2,.6,.4,1) infinite;pointer-events:none}
+@keyframes pulse{0%{transform:scale(1);opacity:.5}70%{transform:scale(3.4);opacity:0}100%{transform:scale(3.4);opacity:0}}
+
+/* 点亮：定位时该城市发光 + 雷达涟漪 */
+.city.lit .glow{opacity:1}
+.city.lit .core{background:var(--accent);transform:scale(1.32)}
+.city.lit .ping{animation:ping 2.1s cubic-bezier(.2,.6,.35,1) 3 both}
+.city.lit .ping.p2{animation-delay:.7s}
+.city.lit .ping.p3{animation-delay:1.4s}
+@keyframes ping{0%{transform:scale(1);opacity:.6}72%{transform:scale(9);opacity:0}100%{transform:scale(9);opacity:0}}
+.city.lit .pin.focus{animation:pinfocus 1.9s ease-in-out infinite}
+@keyframes pinfocus{0%,100%{box-shadow:0 0 0 4px var(--accent-soft),0 3px 12px rgba(194,89,63,.4)}50%{box-shadow:0 0 0 9px var(--accent-soft),0 3px 15px rgba(194,89,63,.55)}}
+.city .pin{position:absolute;transform:translate(-50%,-50%) scale(.2);opacity:0;pointer-events:none;border:1px solid var(--accent);background:rgba(255,255,255,.97);color:var(--accent-deep);font-size:11.5px;font-weight:600;letter-spacing:.02em;border-radius:999px;padding:4px 8px;line-height:1;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(20,20,18,.12);transition:opacity .3s,transform .45s cubic-bezier(.34,1.56,.64,1),background .2s,color .2s,box-shadow .2s;z-index:3}
+.city .pin.on{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+.city .pin.on:hover{background:var(--accent);color:#fff}
+.city .pin.hl{transform:translate(-50%,-50%) scale(1.16);box-shadow:0 0 0 4px var(--accent-soft)}
+.city .pin.pop{animation:pinpop .55s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pinpop{0%{transform:translate(-50%,-50%) scale(.2)}55%{transform:translate(-50%,-50%) scale(1.22)}100%{transform:translate(-50%,-50%) scale(1)}}
+.city .pin.focus{background:var(--accent);color:#fff;box-shadow:0 0 0 4px var(--accent-soft),0 3px 12px rgba(194,89,63,.4)}
+body.measuring .city .pin{transform:translate(-50%,-50%) scale(1)!important;transition:none!important}
+
+/* 上下文城市 */
+.ctx-icon{pointer-events:none}
+.ctx{width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #b9bdb4;box-shadow:0 1px 3px rgba(20,20,18,.15)}
+
+/* 旅程动画 */
+.travel-ic{pointer-events:none}
+.td{width:15px;height:15px;margin:-7.5px 0 0 -7.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 5px color-mix(in srgb,var(--c,#c2593f) 22%,transparent),0 0 16px color-mix(in srgb,var(--c,#c2593f) 55%,transparent);position:relative}
+.td::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.55;animation:pulse 1.7s ease-out infinite}
+.route-flow{animation:dashflow 2.6s linear infinite}
+@keyframes dashflow{to{stroke-dashoffset:-28}}
+/* 路线行进光点（时间轴推进时出现在路线最前端） */
+.rh-ic{pointer-events:none}
+.rh{width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#c2593f) 20%,transparent),0 0 14px color-mix(in srgb,var(--c,#c2593f) 65%,transparent);position:relative}
+.rh::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.5;animation:pulse 1.7s ease-out infinite}
+
+/* 响应式 */
+@media (max-width: 960px){
+  .app{flex-direction:column}
+  #map{height:56dvh;flex:none}
+  .sidebar{width:100%;height:auto;flex:1;min-height:0;border-right:none;border-top:1px solid var(--hair)}
+  .legend{display:none}
+  .hd{padding:20px 22px 16px}
+  .hd h1{font-size:23px}
+  .tl{padding:12px 22px 14px}
+  .chips{top:10px;left:10px;gap:6px}
+  .chip{padding:6px 11px;font-size:11.5px}
+  .now{bottom:14px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <header class="hd">
+      <div class="eyebrow">新约 · 使徒行传与保罗书信</div>
+      <h1>保罗书信的地理</h1>
+      <div class="sub">Where the Apostle Paul Wrote His Letters</div>
+      <div class="stats">
+        <div class="stat"><b>13</b><span>封书信</span></div>
+        <div class="stat"><b>6</b><span>个写作地点</span></div>
+        <div class="stat"><b>4</b><span>段传道旅程</span></div>
+        <div class="stat"><b>19</b><span>年 · AD 48–67</span></div>
+      </div>
+    </header>
+
+    <div class="scroll" id="scroll">
+      <div class="filterbar hidden" id="filterbar"></div>
+      <div class="list" id="list"></div>
+      <div class="detail hidden" id="detail"></div>
+      <p class="note" id="note">注：年代与写作地点采用学界主流推定（如《罗马书》约 AD 57 写于哥林多）；《加拉太书》《提多书》等的位置与年代存在争议，已在详情中标注。《希伯来书》因作者存疑，未列入保罗书信。地图数据 © Natural Earth。</p>
+    </div>
+
+    <footer class="tl">
+      <div class="tl-top">
+        <span class="tl-cap">时间轴 · 书信写成之时</span>
+        <div class="tl-right">
+          <span class="tl-count" id="tlCount">13 / 13 封</span>
+          <span class="tl-year" id="tlYear">AD 67</span>
+          <button class="play" id="playBtn" aria-label="播放时间轴">
+            <svg class="i-play" viewBox="0 0 12 12" width="9" height="9"><path d="M2.5 1.2 10 6l-7.5 4.8z" fill="currentColor"/></svg>
+            <svg class="i-pause" viewBox="0 0 12 12" width="9" height="9"><rect x="2" y="1.5" width="3" height="9" rx="1" fill="currentColor"/><rect x="7" y="1.5" width="3" height="9" rx="1" fill="currentColor"/></svg>
+            <span id="playLb">播放</span>
+          </button>
+        </div>
+      </div>
+      <div class="tl-track" id="tlTrack">
+        <div class="tl-rail"></div>
+        <div class="tl-prog" id="tlProg"></div>
+        <div class="tl-dots" id="tlDots"></div>
+        <div class="tl-knob" id="tlKnob"></div>
+      </div>
+      <div class="tl-scale"><span>AD 47</span><span>AD 57</span><span>AD 67</span></div>
+      <div class="tl-keys">空格 播放 / 暂停 · ← → 调整年代 · Esc 返回列表 · 点击地图标记查看详情</div>
+    </footer>
+  </aside>
+
+  <main id="map">
+    <div class="chips">
+      <button class="chip on" data-layer="routes">传道旅程</button>
+      <button class="chip on" data-layer="cities">写作地点</button>
+      <button class="chip on" data-layer="labels">城市名</button>
+      <button class="chip ghost" id="resetBtn">重置视图</button>
+    </div>
+    <div class="legend">
+      <h4>图例</h4>
+      <div class="lg-row"><span class="dot-sw"></span>写作地点（点击展开书信）</div>
+      <div class="lg-row"><span class="dot-sw ring-sw"></span>使徒行经之地</div>
+      <div class="lg-j" data-j="j1"><i style="background:var(--j1)"></i><span>第一次传道旅程</span><em>AD 46–48</em></div>
+      <div class="lg-j" data-j="j2"><i style="background:var(--j2)"></i><span>第二次传道旅程</span><em>AD 49–52</em></div>
+      <div class="lg-j" data-j="j3"><i style="background:var(--j3)"></i><span>第三次传道旅程</span><em>AD 52–57</em></div>
+      <div class="lg-j" data-j="j4"><i style="background:var(--j4)"></i><span>赴罗马航程</span><em>AD 59–60</em></div>
+      <div class="lg-hint">点击任意旅程，重播路线动画 · 时间轴推进会按年代自动点亮路径</div>
+    </div>
+    <div class="now" id="now"></div>
+    <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet</div>
+  </main>
+</div>
+
+<script>
+@@LEAFLET_JS@@
+</script>
+<script>
+(function () {
+'use strict';
+
+/* ================= 数据 ================= */
+var GEO = @@GEOJSON@@;
+
+var CITIES = {
+  antioch:   { cn:'安提阿',   en:'Antioch of Syria', ll:[36.2021,36.1606],
+               note:'叙利亚的安提阿。门徒称为"基督徒"是从这里起头（徒 11:26），保罗三次传道旅程皆由此出发。' },
+  ephesus:   { cn:'以弗所',   en:'Ephesus',          ll:[37.9394,27.3417],
+               note:'亚细亚都会。保罗第三次传道旅程在此驻留约三年，"叫一切住在亚细亚的都听见主的道"（徒 19:10）。' },
+  corinth:   { cn:'哥林多',   en:'Corinth',          ll:[37.9060,22.8797],
+               note:'亚该亚省会。保罗在此一年零六个月（徒 18:11），建立了犹太人与外邦人混杂的教会。' },
+  philippi:  { cn:'腓立比',   en:'Philippi',         ll:[41.0128,24.4189],
+               note:'马其顿的罗马殖民地，保罗在欧洲建立的第一间教会（徒 16 章）。' },
+  nicopolis: { cn:'尼哥波立', en:'Nicopolis',        ll:[39.0225,20.7290],
+               note:'希腊西岸的港口城市。保罗在信中邀请提多前来相见（多 3:12）。' },
+  rome:      { cn:'罗马',     en:'Rome',             ll:[41.9028,12.4964],
+               note:'帝国都城。保罗两度在此被囚（约 AD 60–62 与 AD 66–67）。' }
+};
+
+var EPISTLES = [
+  { id:'gal',  cn:'加拉太书',     en:'Galatians',      abbr:'加',   city:'antioch',  from:48, to:49, yr:'AD 48–49',
+    recv:'加拉太的各教会', carrier:'不详，或由保罗亲自送达',
+    bg:'保罗与巴拿巴于第一次传道旅程在加拉太地区建立了教会（徒 13–14）。听说有人搅扰教会、传"别的福音"，保罗在此信中为因信称义的福音急切辩护。此书一般推定写于耶路撒冷会议（AD 49）之后，是保罗现存最早的书信。',
+    note:'写作地点与年代学界有争议：主流推定写于叙利亚的安提阿，另有以弗所说、哥林多说。',
+    verse:'那并不是福音，不过有些人搅扰你们，要把基督的福音更改了。', ref:'加拉太书 1:7' },
+  { id:'1th',  cn:'帖撒罗尼迦前书', en:'1 Thessalonians', abbr:'帖前', city:'corinth', from:50, to:51, yr:'AD 50–51',
+    recv:'帖撒罗尼迦教会', carrier:'保罗与西拉、提摩太',
+    bg:'保罗在哥林多与西拉、提摩太同工期间，提摩太从帖撒罗尼迦带回教会的消息（帖前 3:6），保罗遂写此信——新约中最早的书信。信中充满对初信者的牧养：盼望主的再来，行事讨神喜悦。',
+    verse:'因为我们的福音传到你们那里，不独在乎言语，也在乎权能和圣灵，并充足的信心。', ref:'帖撒罗尼迦前书 1:5' },
+  { id:'2th',  cn:'帖撒罗尼迦后书', en:'2 Thessalonians', abbr:'帖后', city:'corinth', from:51, to:52, yr:'AD 51–52',
+    recv:'帖撒罗尼迦教会', carrier:'保罗与同工（推测）',
+    bg:'紧随前书数月之后，仍在哥林多写成。针对有人冒保罗的名散布"主的日子现在到了"，保罗澄清末世的次序，劝勉信徒坚守所领受的教训，并安静作工、不可灰心。',
+    verse:'所以弟兄们，你们要站立得稳，凡所领受的教训，不拘是我们口传的，是信上写的，都要坚守。', ref:'帖撒罗尼迦后书 2:15' },
+  { id:'1co',  cn:'哥林多前书',   en:'1 Corinthians',  abbr:'林前', city:'ephesus',  from:53, to:54, yr:'AD 53–54',
+    recv:'哥林多教会', carrier:'提摩太（林前 4:17）',
+    bg:'保罗在以弗所驻留约三年，从革来氏家人听闻哥林多教会的纷争，又收到他们的来信询问，遂写此信处理结党、淫乱、诉讼、祭偶像之物、属灵恩赐与复活等问题，并推动为耶路撒冷圣徒的捐项。',
+    verse:'但我要仍旧住在以弗所，直等到五旬节。', ref:'哥林多前书 16:8' },
+  { id:'2co',  cn:'哥林多后书',   en:'2 Corinthians',  abbr:'林后', city:'philippi', from:55, to:56, yr:'AD 55–56',
+    recv:'哥林多教会', carrier:'提多（林后 8:16–18）',
+    bg:'保罗在马其顿途中与提多相遇，得知哥林多教会已经悔改，写了这封情感最浓烈的信：为使徒的权柄与受苦的职分辩护，劝勉乐捐与宽宏，并说明其前往哥林多的计划。',
+    verse:'我们从前就是到了马其顿的时候，身体也不得安宁，周围遭患难，外有争战，内有惧怕。', ref:'哥林多后书 7:5' },
+  { id:'rom',  cn:'罗马书',       en:'Romans',         abbr:'罗',   city:'corinth',  from:56, to:57, yr:'AD 56–57',
+    recv:'罗马教会', carrier:'非比，坚革哩教会（罗 16:1–2）',
+    bg:'保罗在哥林多写下这封最系统的神学著作，托坚革哩教会的女执事非比带往罗马。此时他已完成东方的事工，计划经耶路撒冷与罗马前往西班牙（罗 15:23–24）。信中阐述世人的罪、因信称义与神的拣选。',
+    verse:'我不以福音为耻；这福音本是神的大能，要救一切相信的，先是犹太人，后是希腊人。', ref:'罗马书 1:16' },
+  { id:'eph',  cn:'以弗所书',     en:'Ephesians',      abbr:'弗',   city:'rome',     from:60, to:62, yr:'AD 60–62',
+    recv:'以弗所的众圣徒', carrier:'推基古（弗 6:21）',
+    bg:'保罗第一次在罗马被监禁时所写的"监狱书信"之一。信中较少处理地方性问题，重在讲论基督里的教会——外邦人与犹太人合而为一，以及恩典中的新生活。部分古抄本省略"以弗所"，可能是循环书信。',
+    verse:'你们得救是本乎恩，也因着信；这并不是出于自己，乃是神所赐的。', ref:'以弗所书 2:8' },
+  { id:'php',  cn:'腓立比书',     en:'Philippians',    abbr:'腓',   city:'rome',     from:60, to:62, yr:'AD 60–62',
+    recv:'腓立比教会', carrier:'以巴弗提（腓 2:25）',
+    bg:'罗马狱中写给最亲密的腓立比教会，感谢他们的馈送，劝勉在苦难中喜乐、以基督为至宝。信中"凯撒家里的人"（腓 4:22）印证写作地点在罗马。',
+    verse:'因我活着就是基督，我死了就有益处。', ref:'腓立比书 1:21' },
+  { id:'col',  cn:'歌罗西书',     en:'Colossians',     abbr:'西',   city:'rome',     from:60, to:62, yr:'AD 60–62',
+    recv:'歌罗西教会', carrier:'推基古（西 4:7–9）',
+    bg:'以巴弗从歌罗西来见保罗，报告当地的异端之风；保罗未见过歌罗西信徒，写信高举基督的超越性——万有是借着他造的，也是为他造的，他在凡事上居首位。',
+    verse:'他救了我们脱离黑暗的权势，把我们迁到他爱子的国里。', ref:'歌罗西书 1:13' },
+  { id:'phm',  cn:'腓利门书',     en:'Philemon',       abbr:'门',   city:'rome',     from:60, to:62, yr:'AD 60–62',
+    recv:'腓利门（歌罗西教会）', carrier:'阿尼西母本人',
+    bg:'保罗在狱中感化逃奴阿尼西母，把他送回主人腓利门家中，附上这封最短的私函，请求"收纳他，如同收纳我一样"——见证福音如何重塑罗马社会的人际关系。',
+    verse:'你若以我为同道的，就收纳他，如同收纳我一样。', ref:'腓利门书 1:17' },
+  { id:'1ti',  cn:'提摩太前书',   en:'1 Timothy',      abbr:'提前', city:'philippi', from:62, to:64, yr:'AD 62–64',
+    recv:'提摩太（留在以弗所）', carrier:'推测由同工转交',
+    bg:'按传统，保罗从罗马第一次监禁获释后，在马其顿写信给留任以弗所的青年同工提摩太：指导教会的治理、监督与执事的资格、合乎敬虔的教导，并警戒异端。',
+    note:'写作地点多推定为马其顿（可能为腓立比）；本书作者与年代亦有学者存疑。',
+    verse:'这家就是永生神的教会，真理的柱石和根基。', ref:'提摩太前书 3:15' },
+  { id:'tit',  cn:'提多书',       en:'Titus',          abbr:'提多', city:'nicopolis',from:62, to:64, yr:'AD 62–64',
+    recv:'提多（留在克里特）', carrier:'推测由同工转交',
+    bg:'与提摩太前书同期，写给在克里特"办完诸事"、选立长老的提多。信中吩咐提多往尼哥波立与保罗会面（多 3:12），因此推测本书写于尼哥波立。',
+    note:'写作地点系由多 3:12 推定，学界未有定论。',
+    verse:'他便救了我们，并不是因我们自己所行的义，乃是照他的怜悯。', ref:'提多书 3:5' },
+  { id:'2ti',  cn:'提摩太后书',   en:'2 Timothy',      abbr:'提后', city:'rome',     from:66, to:67, yr:'AD 66–67',
+    recv:'提摩太（留在以弗所）', carrier:'推基古（提后 4:12，推测）',
+    bg:'保罗第二次在罗马系狱，铁链之中自知"离世的时候到了"，写信嘱咐提摩太坚守所信的道、忠心传道——被视为使徒的绝笔之作。',
+    verse:'那美好的仗我已经打过了，当跑的路我已经跑尽了，所信的道我已经守住了。', ref:'提摩太后书 4:7' }
+];
+
+var JOURNEYS = [
+  { id:'j1', name:'第一次传道旅程', years:'AD 46–48', from:46, to:48, color:'#8fa3b8',
+    pts:[[36.2021,36.1606],[36.10,35.93],[35.1836,33.8978],[34.7571,32.4057],[36.9612,30.8536],[38.3047,31.1900],[37.8746,32.4932],[37.5833,32.4500],[37.3442,33.2772],[37.5833,32.4500],[37.8746,32.4932],[38.3047,31.1900],[36.8846,30.7050],[36.2021,36.1606]],
+    desc:'安提阿 → 居比路 → 彼西底的安提阿 → 以哥念 → 路司得 → 特庇 → 归回安提阿' },
+  { id:'j2', name:'第二次传道旅程', years:'AD 49–52', from:49, to:52, color:'#8fa79a',
+    pts:[[36.2021,36.1606],[36.9167,34.8833],[37.3442,33.2772],[37.5833,32.4500],[39.50,26.1667],[41.0128,24.4189],[40.6401,22.9444],[40.5244,22.2022],[37.9838,23.7275],[37.9060,22.8797],[37.9394,27.3417],[32.5000,34.8833],[31.7683,35.2137],[36.2021,36.1606]],
+    desc:'经特庇渡海入欧：腓立比 → 帖撒罗尼迦 → 庇哩亚 → 雅典 → 哥林多 → 以弗所 → 归回' },
+  { id:'j3', name:'第三次传道旅程', years:'AD 52–57', from:52, to:57, color:'#b39c8a',
+    pts:[[36.2021,36.1606],[37.8746,32.4932],[37.9394,27.3417],[39.50,26.1667],[41.0128,24.4189],[37.9060,22.8797],[41.0128,24.4189],[39.50,26.1667],[37.53,27.28],[33.2705,35.2038],[32.5000,34.8833],[31.7683,35.2137]],
+    desc:'以弗所三年 → 马其顿 → 哥林多 → 米利都 → 推罗 → 凯撒利亚 → 耶路撒冷' },
+  { id:'j4', name:'赴罗马航程', years:'AD 59–60', from:59, to:60, color:'#a493b6',
+    pts:[[32.5000,34.8833],[33.5633,35.3700],[36.2567,29.9833],[34.9333,24.8167],[35.90,14.40],[37.0755,15.2866],[38.1100,15.6500],[40.8217,14.1217],[41.9028,12.4964]],
+    desc:'凯撒利亚 → 每拉 → 克里特佳澳 → 马耳他（船难）→ 叙拉古 → 部丢利 → 罗马' }
+];
+
+var CTX = [
+  { cn:'耶路撒冷', ll:[31.7683,35.2137] },
+  { cn:'大马士革', ll:[33.5138,36.2769] },
+  { cn:'大数',     ll:[36.9167,34.8833] }
+];
+
+/* ================= 工具 ================= */
+function $(id){ return document.getElementById(id); }
+function el(tag, cls, html){ var d=document.createElement(tag); if(cls) d.className=cls; if(html!=null) d.innerHTML=html; return d; }
+var EP_BY = {}; EPISTLES.forEach(function(e){ EP_BY[e.id]=e; });
+var D0 = 47, D1 = 68;
+var FIT = [[27.6,-11.8],[47.8,44.2]];
+
+/* ================= 地图初始化 ================= */
+var map = L.map('map', {
+  zoomControl:false, attributionControl:false,
+  minZoom:3, maxZoom:9, zoomSnap:.5, wheelPxPerZoomLevel:140
+});
+map.fitBounds(FIT, {padding:[26,26], animate:false}); /* 先定初始视图，之后添加的标记才能立即拿到 DOM 元素 */
+L.control.zoom({ position:'topright' }).addTo(map);
+L.control.scale({ position:'bottomright', imperial:false, maxWidth:120 }).addTo(map);
+
+L.geoJSON(GEO, {
+  interactive:false,
+  style:{ color:'#d8dad3', weight:.9, opacity:.95, fillColor:'#fdfdfb', fillOpacity:1 }
+}).addTo(map);
+
+/* 经纬网 */
+var grat = L.layerGroup().addTo(map);
+[30,35,40,45].forEach(function(la){
+  L.polyline([[la,-13],[la,45]], {color:'#e0e3dc', weight:.7, opacity:.9, interactive:false}).addTo(grat);
+});
+for(var lo=-10; lo<=40; lo+=5){
+  L.polyline([[27,lo],[48.5,lo]], {color:'#e0e3dc', weight:.7, opacity:.9, interactive:false}).addTo(grat);
+}
+
+/* ================= 旅程路线 ================= */
+var routesLayer = L.layerGroup().addTo(map);
+var cityLayer = L.layerGroup().addTo(map);
+
+function smoothPath(pts, seg){
+  seg = seg || 16;
+  var out = [pts[0]];
+  for(var i=1;i<pts.length-1;i++){
+    var a=pts[i-1], b=pts[i], c=pts[i+1];
+    var m1=[(a[0]+b[0])/2,(a[1]+b[1])/2], m2=[(b[0]+c[0])/2,(b[1]+c[1])/2];
+    for(var s=1;s<=seg;s++){
+      var t=s/seg, u=1-t;
+      out.push([u*u*m1[0]+2*u*t*b[0]+t*t*m2[0], u*u*m1[1]+2*u*t*b[1]+t*t*m2[1]]);
+    }
+  }
+  out.push(pts[pts.length-1]);
+  return out;
+}
+
+var J_BY = {};
+JOURNEYS.forEach(function(j){ J_BY[j.id]=j; });
+
+/* 绘制旅程路线；完成后由 applyTime() 按时间轴年代控制逐段点亮 */
+function drawJourney(j){
+  if(j.drawn) return;
+  j.drawn = true;
+  var path = smoothPath(j.pts);
+  j.path = path;
+  /* 沿平滑路径的累计里程（用于按进度截取与途经点显隐） */
+  var cum = [0];
+  for(var i=1;i<path.length;i++){
+    var dx = path[i][1]-path[i-1][1], dy = path[i][0]-path[i-1][0];
+    cum.push(cum[cum.length-1] + Math.sqrt(dx*dx+dy*dy));
+  }
+  j.cum = cum;
+  j.total = cum[cum.length-1];
+  j.base = L.polyline(path, { color:j.color, weight:2.2, opacity:.85, lineCap:'round', interactive:false }).addTo(routesLayer);
+  j.flow = L.polyline(path, { color:j.color, weight:2.6, opacity:.45, dashArray:'2 12', lineCap:'round', interactive:false }).addTo(routesLayer);
+  j.baseEl = j.base.getElement();
+  j.flowEl = j.flow.getElement();
+  j.flowEl.classList.add('route-flow');
+  j.dots = []; j.dist = [];
+  j.pts.forEach(function(pt, i){
+    var end = (i===0 || i===j.pts.length-1);
+    j.dots.push(L.circleMarker(pt, { radius: end?3.4:2.2, color:j.color, weight: end?1.8:1.4, fillColor:'#fff', fillOpacity:1, interactive:false }).addTo(routesLayer));
+    /* 找到该途经点在平滑路径上的里程位置 */
+    var best = 0, bd = Infinity;
+    for(var s=0;s<path.length;s++){
+      var ddx = path[s][1]-pt[1], ddy = path[s][0]-pt[0], d2 = ddx*ddx+ddy*ddy;
+      if(d2 < bd){ bd = d2; best = s; }
+    }
+    j.dist.push(cum[best]);
+  });
+  /* 路线行进光点：出现在已点亮路段的最前端 */
+  j.head = L.marker(path[0], {
+    icon: L.divIcon({ className:'rh-ic', html:'<div class="rh" style="--c:'+j.color+'"></div>', iconSize:[13,13], iconAnchor:[6.5,6.5] }),
+    interactive:false, zIndexOffset:900
+  }).addTo(routesLayer);
+  j.headOn = true;
+  j.sig = '';
+  applyTime(state.year);
+}
+
+/* ================= 时间驱动：路线随年代逐段点亮 ================= */
+/* future：尚未出发（隐藏）  now：正在行进（全亮 + 流光 + 光点）  past：已完成（暗淡保留） */
+function applyTime(y){
+  JOURNEYS.forEach(function(j){
+    if(!j.drawn) return;
+    var st, p;
+    if(y < j.from){ st = 'future'; p = 0; }
+    else if(y > j.to){ st = 'past'; p = 1; }
+    else { st = 'now'; p = (y - j.from) / (j.to - j.from); }
+    var target = p * j.total, k = 0;
+    while(k < j.cum.length-1 && j.cum[k+1] <= target) k++;
+    var sig = st + '|' + k;
+    if(j.sig === sig) return; /* 年代变化但路段索引未变，无需重绘 */
+    j.sig = sig;
+    var show = st !== 'future';
+    var pts = show ? j.path.slice(0, k+1) : [j.path[0]];
+    j.base.setLatLngs(pts);
+    j.flow.setLatLngs(pts);
+    j.baseEl.style.opacity = st === 'now' ? .95 : st === 'past' ? .42 : .12;
+    j.flowEl.style.opacity = st === 'now' ? .5 : st === 'past' ? .26 : 0;
+    j.flowEl.style.animationPlayState = st === 'now' ? 'running' : 'paused';
+    for(var i=0;i<j.dots.length;i++){
+      var vis = show && j.dist[i] <= target + 1e-6;
+      j.dots[i].setStyle({ opacity: vis ? 1 : 0, fillOpacity: vis ? 1 : 0 });
+    }
+    if(st === 'now'){
+      if(!j.headOn){ j.head.addTo(routesLayer); j.headOn = true; }
+      j.head.setLatLng(j.path[k]);
+    }else if(j.headOn){ routesLayer.removeLayer(j.head); j.headOn = false; }
+    if(j.rowEl){
+      j.rowEl.classList.toggle('on', st === 'now');
+      j.rowEl.classList.toggle('past', st === 'past');
+      j.rowEl.classList.toggle('future', st === 'future');
+    }
+    if(j.bandEl){
+      j.bandEl.classList.toggle('on', st === 'now');
+      j.bandEl.classList.toggle('past', st === 'past');
+      j.bandEl.classList.toggle('future', st === 'future');
+    }
+  });
+}
+
+/* ================= 城市与书信标记 ================= */
+var PIN_R = 47;
+var PIN_LAYOUT = { antioch:[-90], ephesus:[-90], nicopolis:[-90], corinth:[-90,30,150], philippi:[-150,-30], rome:[-90,-18,54,126,198] };
+var pinEls = {}, cityEls = {}, cityMarkers = [];
+
+Object.keys(CITIES).forEach(function(key){
+  var c = CITIES[key];
+  var eps = EPISTLES.filter(function(e){ return e.city===key; });
+  var angles = PIN_LAYOUT[key] || [-90];
+  var html = '<div class="city" data-city="'+key+'"><span class="glow"></span><span class="ping"></span><span class="ping p2"></span><span class="ping p3"></span><span class="ring"></span><span class="core"></span>';
+  eps.forEach(function(ep, i){
+    var a = angles[i % angles.length] * Math.PI/180;
+    var x = 80 + PIN_R*Math.cos(a), y = 80 + PIN_R*Math.sin(a);
+    html += '<button class="pin" data-ep="'+ep.id+'" title="'+ep.cn+' · '+ep.yr+'" aria-label="'+ep.cn+'" style="left:'+x.toFixed(1)+'px;top:'+y.toFixed(1)+'px">'+ep.abbr+'</button>';
+  });
+  html += '</div>';
+  var icon = L.divIcon({ className:'city-icon', html:html, iconSize:[160,160], iconAnchor:[80,80] });
+  var m = L.marker(c.ll, { icon:icon, riseOnHover:true, keyboard:false }).addTo(cityLayer);
+  var tipHtml = '<div>'+c.cn+'<span class="cnt">'+eps.length+' 封</span></div><div class="en">'+c.en+'</div>';
+  m.bindTooltip(tipHtml, { permanent:true, direction:'right', offset:[14,0], className:'city-tip' });
+  cityMarkers.push({ key:key, marker:m, html:tipHtml });
+  var elc = m.getElement();
+  cityEls[key] = elc.querySelector('.city');
+  elc.querySelectorAll('.pin').forEach(function(p){
+    pinEls[p.getAttribute('data-ep')] = p;
+    p.addEventListener('click', function(ev){ ev.stopPropagation(); openDetail(p.getAttribute('data-ep')); });
+    p.addEventListener('mouseenter', function(){ hlRow(p.getAttribute('data-ep'), true); });
+    p.addEventListener('mouseleave', function(){ hlRow(p.getAttribute('data-ep'), false); });
+  });
+  elc.querySelector('.core').addEventListener('click', function(){
+    setFilter(state.filter===key ? null : key);
+  });
+});
+
+/* 上下文城市 */
+CTX.forEach(function(c){
+  var icon = L.divIcon({ className:'ctx-icon', html:'<div class="ctx"></div>', iconSize:[9,9], iconAnchor:[4.5,4.5] });
+  var m = L.marker(c.ll, { icon:icon, interactive:false, keyboard:false }).addTo(cityLayer);
+  m.bindTooltip(c.cn, { permanent:true, direction:'right', offset:[9,0], className:'ctx-tip' });
+});
+
+/* ================= 城市标签自动避位 ================= */
+/* 在候选方位中为每个城市标签选择与书信 chip / 其他标签零碰撞的位置 */
+var LABEL_CANDIDATES = [
+  ['right',[14,0]], ['right',[14,-12]],
+  ['left',[-14,0]], ['left',[-14,12]],
+  ['bottom',[0,14]], ['bottom',[0,22]],
+  ['top',[0,-14]], ['top',[0,-42]],
+  ['bottom',[0,66]]
+];
+function placeCityLabels(){
+  /* 测量时临时把未激活的 pin 恢复全尺寸，否则 scale(.2) 会把障碍物测成 6x4 小点 */
+  document.body.classList.add('measuring');
+  var obstacles = [];
+  document.querySelectorAll('.city .pin, .city .core').forEach(function(el){
+    var r = el.getBoundingClientRect();
+    if(r.width > 0) obstacles.push(r);
+  });
+  document.body.classList.remove('measuring');
+  var placed = [];
+  cityMarkers.forEach(function(cm){
+    var best = null;
+    LABEL_CANDIDATES.forEach(function(opt){
+      cm.marker.unbindTooltip();
+      cm.marker.bindTooltip(cm.html, { permanent:true, direction:opt[0], offset:opt[1], className:'city-tip' });
+      var r = cm.marker.getTooltip().getElement().getBoundingClientRect();
+      var score = 0;
+      for(var i = 0; i < obstacles.length; i++){
+        var o = obstacles[i];
+        var ox = Math.min(r.right, o.right) - Math.max(r.left, o.left);
+        var oy = Math.min(r.bottom, o.bottom) - Math.max(r.top, o.top);
+        if(ox > 0 && oy > 0) score += ox * oy;
+      }
+      for(var j = 0; j < placed.length; j++){
+        var p = placed[j];
+        var ox2 = Math.min(r.right, p.right) - Math.max(r.left, p.left);
+        var oy2 = Math.min(r.bottom, p.bottom) - Math.max(r.top, p.top);
+        if(ox2 > 0 && oy2 > 0) score += ox2 * oy2;
+      }
+      if(!best || score < best.score){ best = { score:score, dir:opt[0], off:opt[1], rect:r }; }
+    });
+    cm.marker.unbindTooltip();
+    cm.marker.bindTooltip(cm.html, { permanent:true, direction:best.dir, offset:best.off, className:'city-tip' });
+    placed.push(best.rect);
+  });
+}
+var labelTimer = null, lastLabelZoom = map.getZoom();
+map.on('moveend', function(){
+  if(map.getZoom() === lastLabelZoom) return; /* 平移不改变相对布局，仅缩放后重算 */
+  lastLabelZoom = map.getZoom();
+  clearTimeout(labelTimer);
+  labelTimer = setTimeout(placeCityLabels, 180);
+});
+
+/* ================= 状态 ================= */
+var state = { year:D1, playing:false, auto:false, boot:true, filter:null, detail:null };
+var list = $('list'), detail = $('detail'), scroll = $('scroll'), filterbar = $('filterbar');
+var tlDots = $('tlDots'), tlProg = $('tlProg'), tlKnob = $('tlKnob'), tlYear = $('tlYear'), tlCount = $('tlCount'), tlTrack = $('tlTrack');
+var nowToast = $('now'), playBtn = $('playBtn'), playLb = $('playLb');
+
+/* 旅程 ↔ 图例行 / 时间轴色带的联动引用 */
+JOURNEYS.forEach(function(j){
+  j.rowEl = document.querySelector('.lg-j[data-j="'+j.id+'"]');
+  var band = el('div', 'tl-band');
+  /* 色带裁剪在时间轴范围内（第一次旅程始于 AD 46，早于轴起点 AD 47） */
+  var l = Math.max(0, (j.from-D0)/(D1-D0)*100);
+  var r = Math.min(100, (j.to-D0)/(D1-D0)*100);
+  band.style.left = l+'%';
+  band.style.width = Math.max(0, r-l)+'%';
+  band.style.background = j.color;
+  band.title = j.name+' · '+j.years;
+  tlTrack.insertBefore(band, tlDots); /* 色带盖在轨道与进度线之上，位于圆点之下 */
+  j.bandEl = band;
+});
+
+/* ================= 飞行定位：俯冲 + 点亮地点 ================= */
+/* 目标比当前视角高 1.2 级以上时，先略退再俯冲，形成电影感的两段飞行 */
+function flyToCity(ll, zoom, dur){
+  dur = dur || 1;
+  var z = map.getZoom();
+  if(zoom - z > 1.2){
+    map.flyTo(ll, Math.max(z + 0.3, zoom - 1.9), { duration: dur * 0.62 });
+    setTimeout(function(){ map.flyTo(ll, zoom, { duration: dur * 0.55 }); }, dur * 620);
+  }else{
+    map.flyTo(ll, zoom, { duration: dur });
+  }
+}
+var litTimer = null;
+/* 点亮某城市：柔光 + 三重雷达涟漪（keep=true 时持续到关闭详情） */
+function litCity(key, keep){
+  Object.keys(cityEls).forEach(function(k){ cityEls[k].classList.remove('lit'); });
+  var c = cityEls[key];
+  if(!c) return;
+  void c.offsetWidth; /* 强制回流，重启涟漪动画 */
+  c.classList.add('lit');
+  clearTimeout(litTimer);
+  if(!keep){
+    litTimer = setTimeout(function(){ c.classList.remove('lit'); }, 3400);
+  }
+  ripple(CITIES[key].ll);
+}
+/* 地图原生涟漪圈：从地点向外扩散后消散 */
+function ripple(ll){
+  for(var i=0;i<2;i++){
+    (function(i){
+      setTimeout(function(){
+        var ring = L.circleMarker(ll, { radius:4, color:'#c2593f', weight:1.5, opacity:.5, fill:false, interactive:false, className:'ripple' }).addTo(map);
+        var t0 = performance.now();
+        (function grow(t){
+          var p = Math.min(1, (t - t0) / 1500);
+          if(p >= 1){ map.removeLayer(ring); return; }
+          var e = 1 - Math.pow(1 - p, 2.4);
+          ring.setRadius(4 + e * 62);
+          ring.setStyle({ opacity: .5 * (1 - p) });
+          requestAnimationFrame(grow);
+        })(t0);
+      }, i * 420);
+    })(i);
+  }
+}
+
+/* ================= 列表 ================= */
+var rowEls = {};
+function renderList(){
+  var eps = EPISTLES.slice().sort(function(a,b){ return a.from-b.from; });
+  var html = '';
+  eps.forEach(function(ep){
+    if(state.filter && ep.city!==state.filter) return;
+    html += '<div class="ep" data-ep="'+ep.id+'">'
+      + '<div class="ep-yr">'+ep.yr+'</div>'
+      + '<div class="ep-mid"><div class="ep-cn">'+ep.cn+'</div><div class="ep-en">'+ep.en+'</div></div>'
+      + '<div class="ep-city">'+CITIES[ep.city].cn+'</div></div>';
+  });
+  list.innerHTML = html;
+  rowEls = {};
+  list.querySelectorAll('.ep').forEach(function(r){
+    var id = r.getAttribute('data-ep');
+    rowEls[id] = r;
+    r.addEventListener('click', function(){ openDetail(id); });
+    r.addEventListener('mouseenter', function(){ hl(id, true); });
+    r.addEventListener('mouseleave', function(){ hl(id, false); });
+  });
+}
+function hl(id, on){
+  var p = pinEls[id];
+  if(p) p.classList.toggle('hl', on);
+  var r = rowEls[id];
+  if(r) r.classList.toggle('active', on && state.detail===id);
+}
+function hlRow(id, on){
+  var r = rowEls[id];
+  if(r) r.style.background = on ? '#f1f1ed' : '';
+}
+function renderFilter(){
+  if(!state.filter){ filterbar.classList.add('hidden'); filterbar.innerHTML=''; return; }
+  filterbar.classList.remove('hidden');
+  filterbar.innerHTML = '<span>已筛选 · <b>'+CITIES[state.filter].cn+'</b> 的书信</span><button id="clearFilter">清除筛选</button>';
+  $('clearFilter').addEventListener('click', function(){ setFilter(null); });
+}
+function setFilter(key){
+  state.filter = key;
+  renderFilter(); renderList();
+  if(key){ litCity(key); flyToCity(CITIES[key].ll, 5.6, .9); }
+}
+
+/* ================= 详情 ================= */
+function mrow(k, v){ return '<div class="m-row"><span>'+k+'</span><b>'+v+'</b></div>'; }
+function openDetail(id){
+  var ep = EP_BY[id]; if(!ep) return;
+  state.detail = id;
+  pause(); /* 打开详情即停在该书信的年代：对应的传道路段随之点亮 */
+  setYear((ep.from + ep.to) / 2);
+  var c = CITIES[ep.city];
+  detail.innerHTML =
+    '<button class="back" id="backBtn">← 返回列表</button>'
+    + '<div class="d-cn">'+ep.cn+'</div>'
+    + '<div class="d-en">'+ep.en+'</div>'
+    + '<div class="d-meta">'
+    +   mrow('写作地点', c.cn+' · '+c.en)
+    +   mrow('年代', ep.yr)
+    +   mrow('收信对象', ep.recv)
+    +   mrow('送信人', ep.carrier)
+    + '</div>'
+    + '<div class="d-h">背 景</div><p class="d-bg">'+ep.bg+'</p>'
+    + (ep.note ? '<div class="d-note">※ '+ep.note+'</div>' : '')
+    + '<blockquote class="d-verse"><p>“'+ep.verse+'”</p><cite>'+ep.ref+'</cite></blockquote>'
+    + '<button class="locate" id="locateBtn">在地图上定位'
+    + '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+  list.classList.add('hidden'); filterbar.classList.add('hidden');
+  detail.classList.remove('hidden');
+  detail.classList.remove('in'); void detail.offsetWidth; detail.classList.add('in');
+  scroll.scrollTop = 0;
+  var p = pinEls[id];
+  if(p){ p.classList.add('on','focus'); }
+  if(cityEls[ep.city]) cityEls[ep.city].classList.add('hot');
+  litCity(ep.city, true);
+  flyToCity(c.ll, 6.4, 1.0);
+  $('backBtn').addEventListener('click', function(){ closeDetail(); });
+  $('locateBtn').addEventListener('click', function(){ litCity(ep.city, true); flyToCity(c.ll, 6.8, .9); });
+}
+function closeDetail(){
+  state.detail = null;
+  detail.classList.add('hidden');
+  list.classList.remove('hidden');
+  if(state.filter) filterbar.classList.remove('hidden');
+  Object.keys(pinEls).forEach(function(k){ pinEls[k].classList.remove('focus'); });
+  Object.keys(cityEls).forEach(function(k){ cityEls[k].classList.remove('hot','lit'); });
+  clearTimeout(litTimer);
+}
+
+/* ================= 时间轴 ================= */
+var dispOffsets = { eph:-0.5, php:-0.17, col:0.17, phm:0.5, '1ti':-0.2, tit:0.2 };
+EPISTLES.forEach(function(ep){ ep.disp = ep.from + (dispOffsets[ep.id] || 0); });
+
+EPISTLES.forEach(function(ep){
+  var d = el('button', 'tl-dot', '');
+  d.style.left = ((ep.disp-D0)/(D1-D0)*100)+'%';
+  d.title = ep.cn+' · '+ep.yr+' · '+CITIES[ep.city].cn;
+  d.addEventListener('click', function(ev){ ev.stopPropagation(); openDetail(ep.id); });
+  tlDots.appendChild(d);
+  ep.dotEl = d;
+});
+
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+function setYear(y){
+  state.year = y;
+  var pct = clamp((y-D0)/(D1-D0), 0, 1);
+  tlProg.style.width = (pct*100)+'%';
+  tlKnob.style.left = (pct*100)+'%';
+  tlYear.textContent = 'AD ' + Math.round(y);
+  var n = 0, k = 0;
+  EPISTLES.forEach(function(ep){
+    var on = y >= ep.from;
+    if(on) n++;
+    var p = pinEls[ep.id];
+    if(p){
+      if(on && !p.classList.contains('on')){
+        p.classList.add('on');
+        if(state.auto && !state.boot){
+          (function(ep, p, k){
+            setTimeout(function(){
+              p.classList.remove('pop'); void p.offsetWidth; p.classList.add('pop');
+              queueToast('AD '+ep.from, '《'+ep.cn+'》写于 <b>'+CITIES[ep.city].cn+'</b>');
+            }, k*110);
+          })(ep, p, k);
+        }
+      }else if(!on && p.classList.contains('on')){
+        p.classList.remove('on','pop');
+      }
+    }
+    if(ep.dotEl) ep.dotEl.classList.toggle('on', on);
+    k++;
+  });
+  applyTime(y);
+  tlCount.textContent = n + ' / 13 封';
+}
+
+/* 拖拽 */
+var dragging = false;
+function yearFromEvent(e){
+  var r = tlTrack.getBoundingClientRect();
+  var p = clamp((e.clientX - r.left) / r.width, 0, 1);
+  setYear(D0 + p*(D1-D0));
+}
+tlTrack.addEventListener('pointerdown', function(e){
+  pause(); dragging = true;
+  try{ tlTrack.setPointerCapture(e.pointerId); }catch(err){}
+  yearFromEvent(e);
+});
+tlTrack.addEventListener('pointermove', function(e){ if(dragging) yearFromEvent(e); });
+tlTrack.addEventListener('pointerup', function(){ dragging = false; });
+tlTrack.addEventListener('pointercancel', function(){ dragging = false; });
+
+/* 播放 */
+var DURATION = 46000;
+function play(){
+  if(state.playing) return;
+  if(state.year >= D1-0.01){ setYear(D0); }
+  state.playing = true; state.auto = true;
+  playBtn.classList.add('playing'); playLb.textContent = '暂停';
+  var start = state.year, t0 = performance.now();
+  var span = D1 - start;
+  function frame(t){
+    if(!state.playing) return;
+    var p = Math.min(1, (t - t0) / (DURATION * span / (D1 - D0)));
+    setYear(start + span * p);
+    if(p < 1) requestAnimationFrame(frame);
+    else pause();
+  }
+  requestAnimationFrame(frame);
+}
+function pause(){
+  state.playing = false; state.auto = false;
+  playBtn.classList.remove('playing'); playLb.textContent = '播放';
+}
+function togglePlay(){ state.playing ? pause() : play(); }
+playBtn.addEventListener('click', togglePlay);
+
+/* ================= Toast ================= */
+var toastQ = [], toastBusy = false, toastTimer = null;
+function toast(big, html){
+  nowToast.innerHTML = '<span class="yr">'+big+'</span><span class="tx">'+html+'</span>';
+  nowToast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ nowToast.classList.remove('show'); }, 2300);
+}
+function queueToast(big, html){
+  toastQ.push([big, html]);
+  if(!toastBusy) nextToast();
+}
+function nextToast(){
+  if(!toastQ.length){ toastBusy = false; return; }
+  toastBusy = true;
+  var t = toastQ.shift();
+  toast(t[0], t[1]);
+  setTimeout(nextToast, 2500);
+}
+
+/* ================= 旅程动画 ================= */
+var travel = { marker:null, trail:null, raf:0, timer:0 };
+function cancelTravel(){
+  cancelAnimationFrame(travel.raf);
+  clearTimeout(travel.timer);
+  if(travel.marker){ map.removeLayer(travel.marker); travel.marker = null; }
+  if(travel.trail){ map.removeLayer(travel.trail); travel.trail = null; }
+}
+function animateJourney(j){
+  cancelTravel();
+  drawJourney(j);
+  queueToast(j.years, '<b>'+j.name+'</b> · '+j.desc);
+  var icon = L.divIcon({ className:'travel-ic', html:'<div class="td" style="--c:'+j.color+'"></div>', iconSize:[15,15], iconAnchor:[7.5,7.5] });
+  travel.marker = L.marker(j.path[0], { icon:icon, interactive:false, zIndexOffset:1000 }).addTo(map);
+  travel.trail = L.polyline([j.path[0]], { color:j.color, weight:3, opacity:.95, lineCap:'round', interactive:false }).addTo(map);
+  var path = j.path, N = path.length, dur = 9000, t0 = performance.now();
+  function frame(t){
+    var p = Math.min(1, (t - t0) / dur);
+    var idx = Math.floor(p*(N-1));
+    if(travel.marker) travel.marker.setLatLng(path[idx]);
+    if(travel.trail) travel.trail.setLatLngs(path.slice(0, idx+1));
+    if(p < 1) travel.raf = requestAnimationFrame(frame);
+    else travel.timer = setTimeout(cancelTravel, 1500);
+  }
+  travel.raf = requestAnimationFrame(frame);
+}
+document.querySelectorAll('.lg-j').forEach(function(row){
+  row.addEventListener('click', function(){ animateJourney(J_BY[row.getAttribute('data-j')]); });
+});
+
+/* ================= 图层开关 ================= */
+document.querySelectorAll('.chip[data-layer]').forEach(function(chip){
+  chip.addEventListener('click', function(){
+    var on = chip.classList.toggle('on');
+    var layer = chip.getAttribute('data-layer');
+    if(layer==='routes'){ on ? map.addLayer(routesLayer) : map.removeLayer(routesLayer); }
+    if(layer==='cities'){ on ? map.addLayer(cityLayer) : map.removeLayer(cityLayer); }
+    if(layer==='labels'){ map.getContainer().classList.toggle('hide-labels', !on); }
+  });
+});
+$('resetBtn').addEventListener('click', function(){
+  pause(); cancelTravel();
+  setFilter(null); closeDetail();
+  setYear(D1);
+  map.flyToBounds(FIT, {padding:[26,26], duration:.9});
+});
+
+/* ================= 键盘 ================= */
+document.addEventListener('keydown', function(e){
+  var t = e.target;
+  if(t && (t.tagName === 'BUTTON' || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+  if(e.code === 'Space'){ e.preventDefault(); togglePlay(); }
+  else if(e.key === 'ArrowRight'){ pause(); setYear(clamp(state.year+1, D0, D1)); }
+  else if(e.key === 'ArrowLeft'){ pause(); setYear(clamp(state.year-1, D0, D1)); }
+  else if(e.key === 'Escape'){ closeDetail(); setFilter(null); }
+});
+
+/* ================= 启动 ================= */
+renderFilter(); renderList();
+placeCityLabels();
+setYear(D0);
+
+/* 入场：四段旅程先画好，再由时间轴从 AD 47 扫到 AD 67——
+   书信标记依次弹出，传道路线按年代逐段点亮，直观演示"时间 → 路径"的联动 */
+setTimeout(function(){ JOURNEYS.forEach(function(j, i){ setTimeout(function(){ drawJourney(j); }, i*170); }); }, 320);
+setTimeout(function(){
+  state.auto = true; state.boot = true;
+  var t0 = performance.now(), dur = 2600;
+  (function sweep(t){
+    var p = Math.min(1, (t - t0) / dur);
+    var e = 1 - Math.pow(1 - p, 2.4);
+    setYear(D0 + (D1 - D0) * e);
+    if(p < 1) requestAnimationFrame(sweep);
+    else setTimeout(function(){ state.boot = false; state.auto = false; }, 420);
+  })(t0);
+}, 1050);
+setTimeout(function(){
+  toast('AD 48–67', '拖动时间轴或按 <b>空格</b> 播放 —— 看保罗的旅程与 13 封书信如何在地中海世界依次展开');
+}, 3900);
+
+/* hash 深链：#gal 打开书信详情，#j1 播放旅程动画 */
+function handleHash(){
+  var h = (location.hash || '').replace('#', '');
+  if(EP_BY[h]){ setTimeout(function(){ openDetail(h); }, 2300); }
+  else if(J_BY[h]){ setTimeout(function(){ animateJourney(J_BY[h]); }, 2300); }
+}
+window.addEventListener('hashchange', handleHash);
+handleHash();
+
+})();
+</script>
+</body>
+</html>
