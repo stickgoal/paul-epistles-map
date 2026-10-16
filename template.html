@@ -119,6 +119,11 @@ button{font-family:inherit;border:none;background:none}
 .d-verse p{font-family:var(--cjk-serif);font-size:15px;line-height:2.0;color:#2a2e33}
 .d-verse cite{display:block;margin-top:10px;font-size:11.5px;color:var(--ink-3);font-style:normal;letter-spacing:.03em}
 .d-media{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.d-mgroup{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.d-mgroup h5{grid-column:1/-1;font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);font-weight:600;margin:2px 0 -2px}
+.d-mgroup:has(h5:only-child){display:block}
+.d-media.empty{display:block}
+.d-mnote{font-size:12px;line-height:1.7;color:var(--ink-2);border:1px dashed var(--hair);border-radius:10px;padding:11px 13px;margin-bottom:10px}
 .m-fig{margin:0;border:1px solid var(--hair);border-radius:10px;overflow:hidden;background:#fff}
 .m-fig img{width:100%;display:block;aspect-ratio:4/3;object-fit:cover}
 .m-fig figcaption{padding:8px 10px;font-size:11px;color:var(--ink-2);line-height:1.5}
@@ -141,6 +146,10 @@ button{font-family:inherit;border:none;background:none}
 .play{display:flex;align-items:center;gap:6px;border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 13px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s}
 .play:hover{border-color:var(--ink-3);color:var(--ink)}
 .play.playing{background:var(--ink);border-color:var(--ink);color:#fff}
+/* 未播放时的主行动号召：深色实心 + 呼吸光晕，播放后恢复常规样式 */
+.play.hint{background:var(--ink);border-color:var(--ink);color:#fff;padding:7px 16px;font-size:12.5px;font-weight:600;box-shadow:0 2px 10px rgba(20,20,18,.18);animation:breathe 2.8s cubic-bezier(.4,0,.5,1) infinite}
+.play.hint:hover{background:#000;border-color:#000}
+@keyframes breathe{0%,100%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 0 rgba(20,20,18,.16)}50%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 7px rgba(20,20,18,0)}}
 .play .i-pause{display:none}
 .play.playing .i-play{display:none}
 .play.playing .i-pause{display:block}
@@ -148,22 +157,38 @@ button{font-family:inherit;border:none;background:none}
 .tl-step:hover{border-color:var(--ink-3);color:var(--ink)}
 .tl-speed{border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 10px;font-size:11px;color:var(--ink-2);cursor:pointer;transition:.2s;font-feature-settings:"tnum";flex:none}
 .tl-speed:hover{border-color:var(--ink-3);color:var(--ink)}
-.tl-track{position:relative;height:36px;cursor:pointer;touch-action:none;margin-top:2px}
+/* 轨道高度须容纳「圆点最大行数 × 13px + 起始 9px」+ 色带 3px + 间隙。
+ * 12 事件挤在 AD 46–49（量程 46–54）时实测最多 3 行，故取 60px；
+ * 行数由 timeline 的 stagger 按实际像素判定并写入 onPending(rows)。*/
+.tl-track{position:relative;height:60px;cursor:pointer;touch-action:none;margin-top:2px}
 .tl-rail{position:absolute;left:0;right:0;top:14px;height:2px;background:var(--hair);border-radius:2px}
-.tl-band{position:absolute;top:26px;height:3px;border-radius:1.5px;pointer-events:none;opacity:.34;transition:opacity .35s,filter .35s;cursor:pointer}
+/* 章节色带：3px → 5px 并提高基础不透明度，否则在浅灰底图上几乎不可见 */
+.tl-band{position:absolute;top:56px;height:5px;border-radius:2.5px;opacity:.5;transition:opacity .35s,filter .35s;cursor:pointer}
+.tl-band.cut{-webkit-mask-image:linear-gradient(90deg,#000 72%,transparent);mask-image:linear-gradient(90deg,#000 72%,transparent)}
 .tl-band:hover{opacity:.7}
-.tl-band.on{opacity:1;filter:saturate(1.35) brightness(.88)}
-.tl-band.past{opacity:.62}
-.tl-band.future{opacity:.18}
+.tl-band.on{opacity:1;filter:saturate(1.35) brightness(.85)}
+.tl-band.past{opacity:.72}
+.tl-band.future{opacity:.32}
 .tl-prog{position:absolute;left:0;top:14px;height:2px;background:var(--ink);border-radius:2px;width:100%}
-.tl-dot{position:absolute;top:9px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#fff;border:2px solid var(--c,#c3c6bd);transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .25s,border-color .25s;cursor:pointer;padding:0}
-.tl-dot:hover{transform:scale(1.35)}
+.tl-dot{position:absolute;top:9px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#fff;border:2px solid var(--c,#c3c6bd);transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .25s,border-color .25s;cursor:pointer;padding:0;z-index:2;transform:translateX(var(--dx,0px))}
+.tl-dot:hover{transform:translateX(var(--dx,0px)) scale(1.35)}
 .tl-dot.on{background:var(--c,#c2593f);border-color:var(--c,#c2593f)}
 .tl-knob{position:absolute;top:4px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#fff;border:1px solid var(--hair);box-shadow:0 2px 10px rgba(20,20,18,.16);display:flex;align-items:center;justify-content:center;transition:transform .15s;pointer-events:none}
 .tl-track:active .tl-knob{transform:scale(1.12)}
 .tl-knob::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ink)}
 .tl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-feature-settings:"tnum";margin-top:2px}
-.tl-keys{margin-top:10px;font-size:10.5px;color:var(--ink-3);letter-spacing:.02em}
+.tl-keys{margin-top:10px;font-size:11.5px;color:var(--ink-2);letter-spacing:.02em}
+
+/* ============ 首屏引导卡（H-2：让「可播放」可发现） ============ */
+.guide{position:absolute;left:50%;top:22%;transform:translate(-50%,-50%);z-index:900;width:min(400px,calc(100% - 48px));background:rgba(255,255,255,.94);backdrop-filter:saturate(1.5) blur(14px);-webkit-backdrop-filter:saturate(1.5) blur(14px);border:1px solid var(--hair);border-radius:16px;box-shadow:0 14px 44px rgba(20,20,18,.15);padding:22px 24px 20px;text-align:center;cursor:pointer;transition:opacity .4s,transform .4s cubic-bezier(.3,.8,.3,1);animation:guidein .55s cubic-bezier(.2,.9,.3,1)}
+.guide.out{opacity:0;transform:translate(-50%,calc(-50% - 12px)) scale(.97);pointer-events:none}
+@keyframes guidein{from{opacity:0;transform:translate(-50%,calc(-50% + 14px)) scale(.97)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.guide h3{font-size:16.5px;font-weight:650;letter-spacing:-.01em;margin-bottom:7px}
+.guide p{font-size:12.5px;line-height:1.72;color:var(--ink-2);margin-bottom:15px}
+.guide .g-act{display:inline-flex;align-items:center;gap:7px;background:var(--ink);color:#fff;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:600;box-shadow:0 2px 12px rgba(20,20,18,.2)}
+.guide .g-alt{margin-top:11px;font-size:11.5px;color:var(--ink-3)}
+.guide .g-alt kbd{font:inherit;border:1px solid var(--hair);border-radius:4px;padding:1px 5px;background:#fff;color:var(--ink-2)}
+@media (max-width:767px){.guide{top:auto;bottom:96px;transform:translateX(-50%)}.guide.out{transform:translateX(-50%) scale(.97)}@keyframes guidein{from{opacity:0;transform:translateX(-50%) scale(.97)}to{opacity:1;transform:translateX(-50%) scale(1)}}}
 
 /* ============ 地图 ============ */
 #map{flex:1;position:relative;background:radial-gradient(1100px 720px at 32% 18%,#eef0ec,#e5e8e2)}
@@ -175,8 +200,19 @@ button{font-family:inherit;border:none;background:none}
 .chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
 .chip.ghost{background:rgba(255,255,255,.75)}
 
-.legend{position:absolute;left:16px;bottom:16px;z-index:1200;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:13px 15px 11px;box-shadow:var(--shadow);min-width:212px}
+.legend{position:absolute;left:16px;bottom:16px;z-index:1200;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:11px 15px 11px;box-shadow:var(--shadow);min-width:212px}
 .legend h4{font-size:10.5px;color:var(--ink-3);letter-spacing:.12em;margin-bottom:9px;font-weight:600}
+/* L-1：折叠态只留一行摘要；<1100px 时强制收起（与播放中事件卡的空间冲突） */
+.lg-toggle{display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
+.lg-toggle h4{margin-bottom:0}
+.lg-sum{flex:1;text-align:left;font-size:11px;color:var(--ink-2);white-space:nowrap}
+.lg-caret{color:var(--ink-3);transition:transform .28s cubic-bezier(.3,.8,.3,1);flex:none}
+.legend.open .lg-caret{transform:rotate(180deg)}
+.lg-body{max-height:420px;opacity:1;transition:max-height .34s cubic-bezier(.3,.8,.3,1),opacity .26s,margin .3s;overflow:hidden}
+.legend:not(.open) .lg-body{max-height:0;opacity:0;margin-top:0}
+.legend:not(.open){padding-bottom:11px}
+@media (max-width:1100px){.legend.open{z-index:1300}}
+@media (max-width:767px){.legend{display:none}}
 .lg-row{display:flex;align-items:center;gap:9px;padding:3px 0;color:var(--ink-2);font-size:12px}
 .dot-sw{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;margin:0 4.5px}
 .ic-sw{width:18px;height:18px;border-radius:5px;border:1.4px solid currentColor;background:#fff;display:flex;align-items:center;justify-content:center;flex:none}
@@ -285,7 +321,10 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
   .tl{padding:12px 22px 14px}
   .chips{top:10px;left:10px;gap:6px}
   .chip{padding:6px 11px;font-size:11.5px}
-  .now{bottom:14px}
+  /* L-3：事件卡改顶部通栏，把底部留给地图；chips 同步让位 */
+  .now{top:52px;left:12px;right:12px;bottom:auto;transform:translateY(-14px);max-width:none;border-radius:12px;padding:11px 14px 10px}
+  .now.show{transform:translateY(0)}
+  .card-more{padding:6px 12px;font-size:11.5px}
 }
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.01ms!important;transition-duration:.01ms!important}
@@ -298,7 +337,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
     <header class="hd">
       <div class="eyebrow">新约 · 使徒行传与保罗书信</div>
       <h1>保罗故事地图</h1>
-      <div class="sub">Three Missionary Journeys and the Voyage to Rome</div>
+      <div class="sub">The Journeys of Paul · AD 46–67</div>
       <div class="stats" id="stats"></div>
     </header>
 
@@ -332,7 +371,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
         <div class="tl-dots" id="tlDots"></div>
         <div class="tl-knob" id="tlKnob"></div>
       </div>
-      <div class="tl-scale"><span>AD 46</span><span>AD 57</span><span>AD 67</span></div>
+      <div class="tl-scale" id="tlScale"></div>
       <div class="tl-keys">空格 播放 / 暂停 · ← → 步进事件 · Esc 返回列表 · 点击事件标记查看详情</div>
     </footer>
   </aside>
@@ -344,16 +383,35 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
       <button class="chip on" data-layer="labels">地名</button>
       <button class="chip ghost" id="resetBtn">重置视图</button>
     </div>
-    <div class="legend">
-      <h4>图例 · 事件类型</h4>
-      <div id="typeLegend"></div>
-      <h4 style="margin-top:11px">传道旅程</h4>
-      <div id="journeyLegend"></div>
-      <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
+    <!-- L-1：图例可折叠（旅程信息与统计区/时间轴色带三处重复，默认收起摘要） -->
+    <div class="legend" id="legend">
+      <button class="lg-toggle" id="lgToggle" aria-expanded="false">
+        <h4>图例</h4>
+        <span class="lg-sum" id="lgSum">7 类事件 · 1 段旅程 · 点击展开</span>
+        <svg viewBox="0 0 12 12" width="10" height="10" class="lg-caret"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="lg-body" id="lgBody">
+        <h4>事件类型</h4>
+        <div id="typeLegend"></div>
+        <h4 style="margin-top:11px">传道旅程</h4>
+        <div id="journeyLegend"></div>
+        <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
+      </div>
     </div>
     <div class="now" id="now"></div>
     <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet · 经文引自和合本</div>
   </main>
+
+  <!-- 首屏引导：核心交互「时间轴故事播放」的可发现性（H-2）。sessionStorage 记忆，不重复打扰 -->
+  <div class="guide hidden" id="guide">
+    <h3>按时间轴播放这段旅程</h3>
+    <p>地图会随年代推移逐个点亮事件地点，并展开每个事件的经文与资料。<br>共 <b id="guideN">0</b> 个事件 · <span id="guideSpan">AD 46–49</span></p>
+    <span class="g-act">
+      <svg viewBox="0 0 12 12" width="10" height="10"><path d="M2.5 1.2 10 6l-7.5 4.8z" fill="currentColor"/></svg>
+      开始播放
+    </span>
+    <div class="g-alt">或点击地图标记查看详情 · 随时按 <kbd>空格</kbd> 开始</div>
+  </div>
 </div>
 
 <script>
@@ -397,7 +455,16 @@ function typeIcon(type, size) {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"' + (size ? ' width="' + size + '" height="' + size + '"' : '') + '><path d="' + d + '"/></svg>';
 }
 
-var D0 = 46, D1 = 67;
+/* 时间轴量程：动态上界 =已上线事件的最晚年份 + 余量（下限 D0+8）。
+ * 固定用 AD 67 会让M1 的12 个事件（AD 46–49）挤在左侧 14%，
+ * 拖到中段却无新事件发生，产生「时间过半故事结束」的进度错觉。
+ * 随章节数据补齐，上界自动扩展到 AD 67。*/
+var D0 = 46;
+var D1 = Math.max(
+  Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); })) + 5,
+  D0 + 8
+);
+var SCALE_STEPS = 3;                    /* 刻度标签数量 */
 var DWELL = 5200;                 /* 播放时每个事件的停留时长（ms，1×） */
 var SPEEDS = [1, 2, 0.5];
 
@@ -510,20 +577,27 @@ PLACES.forEach(function (p) {
 
 /* ================= 侧栏：统计 / 章节 / 列表 ================= */
 function renderStats() {
-  var online = CHAPTERS.filter(function (c) { return EVENTS.some(function (e) { return e.ch === c.id; }); }).length;
+  var Y = EVENTS.map(function (e) { return Math.max(e.from, e.to); });
+  var lo = Math.min.apply(null, EVENTS.map(function (e) { return Math.min(e.from, e.to); }));
+  var hi = Math.max.apply(null, Y);
+  var places = {};
+  EVENTS.forEach(function (e) { places[e.place] = 1; });
   $('stats').innerHTML =
     '<div class="stat"><b>' + EVENTS.length + '</b><span>个事件</span></div>' +
-    '<div class="stat"><b>' + online + ' / ' + CHAPTERS.length + '</b><span>章节已上线</span></div>' +
-    '<div class="stat"><b>' + ROUTES.length + '</b><span>段传道旅程</span></div>' +
-    '<div class="stat"><b>22</b><span>年 · AD 46–67</span></div>';
+    /* L-2：改为内容视角（覆盖年代 + 章节名），「N/6 章节已上线」是产品进度，对读者是误导 */
+    '<div class="stat"><b>' + EVENTS.filter(function (e) { return e.ch === 'ch1'; }).length + '</b><span>第一次传道旅程</span></div>' +
+    '<div class="stat"><b>' + Object.keys(places).length + '</b><span>处地点</span></div>' +
+    '<div class="stat"><b>' + (hi - lo + 1) + '</b><span>年 · AD ' + lo + '–' + hi + '</span></div>';
 }
 
 function renderChapters() {
   var html = '';
   CHAPTERS.forEach(function (c) {
     var n = EVENTS.filter(function (e) { return e.ch === c.id; }).length;
-    html += '<button class="ch-chip' + (n ? '' : ' empty') + (state.chapter === c.id ? ' on' : '') + '" data-ch="' + c.id + '" style="--c:' + c.color + '">' +
-      '<i></i><span>' + c.name + '</span><em>' + (n ? n + ' 个事件' : '待补充') + '</em></button>';
+    /* M-1：地理范围进 title 与 aria，读者悬停即可建立空间直觉，不额外占版面 */
+    var tip = c.area ? c.name + ' · ' + c.years + ' · ' + c.area : c.name + ' · ' + c.years;
+    html += '<button class="ch-chip' + (n ? '' : ' empty') + (state.chapter === c.id ? ' on' : '') + '" data-ch="' + c.id + '" style="--c:' + c.color + '" title="' + esc(tip) + '" aria-label="' + esc(tip) + '">' +
+      '<i></i><span>' + esc(c.name) + '</span><em>' + (n ? n + ' 个事件' : '待补充') + '</em></button>';
   });
   $('chapterbar').innerHTML = html;
   $('chapterbar').querySelectorAll('.ch-chip').forEach(function (b) {
@@ -596,19 +670,37 @@ function setFilter(pid) {
 
 /* ================= 详情 ================= */
 function mrow(k, v) { return '<div class="m-row"><span>' + k + '</span><b>' + v + '</b></div>'; }
+/* 图像区块：按 kind 分类小标题（今日遗存 / 历史艺术），无图时给出降级说明
+ * 避免「整块消失」被误读为「该事件没有资料」。 */
 function renderMedia(media) {
-  if (!media || !media.length) return '';
-  return media.map(function (m) {
+  if (!media || !media.length) {
+    return '<div class="d-h">图 像</div>' +
+      '<div class="d-media empty"><p class="d-mnote">图像整理中 · 本条事件的照片与艺术作品尚在编集，可先阅读上方经文与背景资料。</p>' +
+      '<a class="m-link" href="https://commons.wikimedia.org/wiki/Category:Paul_the_Apostle" target="_blank" rel="noopener">' +
+      '<b>前往维基共享资源检索</b><span>Wikimedia Commons · Public Domain / CC ↗</span></a></div>';
+  }
+  var groups = [
+    { kind: 'photo', label: '今 日 遗 存', items: [] },
+    { kind: 'art', label: '历 史 艺 术', items: [] },
+    { kind: null, label: '相 关 资 料', items: [] }
+  ];
+  media.forEach(function (m) {
+    var g = groups.filter(function (x) { return x.kind === (m.kind || null); })[0];
+    if (!m.src && !m.url) return;
     if (m.src) {
-      return '<figure class="m-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '" loading="lazy">' +
-        '<figcaption>' + esc(m.title) + (m.credit ? '<span>' + esc(m.credit) + '</span>' : '') + '</figcaption></figure>';
+      g.items.push('<figure class="m-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '" loading="lazy">' +
+        '<figcaption>' + esc(m.title) + (m.credit ? '<span>' + esc(m.credit) + '</span>' : '') + '</figcaption></figure>');
+    } else {
+      g.items.push('<a class="m-link" href="' + esc(m.url) + '" target="_blank" rel="noopener"><b>' + esc(m.title) + '</b>' +
+        '<span>' + (m.credit ? esc(m.credit) + ' · ' : '') + '在线查看 ↗</span></a>');
     }
-    if (m.url) {
-      return '<a class="m-link" href="' + esc(m.url) + '" target="_blank" rel="noopener"><b>' + esc(m.title) + '</b>' +
-        '<span>' + (m.credit ? esc(m.credit) + ' · ' : '') + '在线查看 ↗</span></a>';
-    }
-    return '';
-  }).join('');
+  });
+  var html = '<div class="d-h">图 像</div><div class="d-media">';
+  groups.forEach(function (g) {
+    if (!g.items.length) return;
+    html += '<div class="d-mgroup"><h5>' + g.label + '</h5>' + g.items.join('') + '</div>';
+  });
+  return html + '</div>';
 }
 function openEvent(id) {
   var ev = EV_BY[id];
@@ -631,28 +723,29 @@ function openEvent(id) {
       mrow('年代', 'AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '')) +
       mrow('地点', p.cn + ' · ' + p.en) +
       mrow('今天所在', p.modern) +
+      /* M-2：场所释义随 places.json 的 gloss 字段配置化，不硬编码在模板里 */
+      (p.gloss ? mrow('场所说明', p.gloss) : '') +
+      (c.area ? mrow('本章区域', c.area) : '') +
     '</div>' +
     '<div class="d-h">缘 起</div><p class="d-bg">' + esc(ev.narrative) + '</p>' +
     (ev.note ? '<div class="d-note">※ ' + esc(ev.note) + '</div>' : '') +
     (verses ? '<div class="d-h">经 文 · 和合本</div>' + verses : '') +
     (media ? '<div class="d-h">图 像</div><div class="d-media">' + media + '</div>' : '') +
-    '<button class="locate" id="locateBtn">在地图上定位' +
-    '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+    '<button class="locate" id="locateBtn">放大查看该地点' +
+    '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M7 2.2v9.6M2.2 7h9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
   $('list').classList.add('hidden');
   $('filterbar').classList.add('hidden');
   var detail = $('detail');
   detail.classList.remove('hidden');
   detail.classList.remove('in'); void detail.offsetWidth; detail.classList.add('in');
   $('scroll').scrollTop = 0;
-  /* 地图侧：事件点亮为当前 + 飞行定位 */
-  EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
-  var d0 = dotEls[id];
-  if (d0) d0.classList.add('on', 'cur');
+  /* 地图侧：事件点亮为当前 + 飞行定位（标记状态交由 applyReveal 统一收口） */
   state.focus = id;
+  applyReveal(state.year);
   mapCore.lit(ev.ll, ev.typeMeta.color, true);
-  mapCore.flyTo(ev.ll, 6.4, 1.0);
+  mapCore.flyTo(ev.ll, 6.4, .7);   /* M-5：1.0s → 0.7s，点击到视觉反馈控制在 300ms 内 */
   $('backBtn').addEventListener('click', closeEvent);
-  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, 6.8, .9); });
+  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, 6.8, .7); });
   renderList();
   try { history.replaceState(null, '', '#e/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
   GS.fx.emit('event:open', ev);
@@ -669,25 +762,26 @@ function closeEvent() {
   GS.fx.emit('event:close');
 }
 
-/* ================= 年份驱动：事件点显隐 + 路线点亮 ================= */
+/* ================= 年份驱动：事件点显隐 + 路线点亮 + 标记状态唯一收口 ====
+ * M-5：.cur / .dim / .on / .ahead 全部在此统一计算，revealEvent 与 openEvent
+ * 只设state.focus 后调用本函数，避免两条路径手工增删类造成状态分叉。 */
 function applyReveal(y) {
   var n = 0;
   EVENTS.forEach(function (ev) {
     var on = y >= ev.from - 1e-9;
     if (on) n++;
+    var cur = ev.id === state.focus;
     var d = dotEls[ev.id];
     if (d) {
-      if (on && !d.classList.contains('on')) {
-        d.classList.add('on');
-        if (state.auto && !state.boot) {
-          d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
-        }
-      } else if (!on && d.classList.contains('on')) {
-        d.classList.remove('on', 'pop', 'cur');
+      var wasOn = d.classList.contains('on');
+      d.classList.toggle('on', on);
+      if (on && !wasOn && state.auto && !state.boot) {
+        d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
       }
+      if (!on) d.classList.remove('pop');
+      d.classList.toggle('cur', cur && on);
       /* 播放中：非当前、非未来事件压暗，让当前事件独占视觉焦点 */
-      d.classList.toggle('dim', state.playing && on && state.focus !== ev.id);
-      /* 播放态下未到达的事件不占位（opacity 0 已由 .on 控制） */
+      d.classList.toggle('dim', state.playing && on && !cur);
       d.classList.toggle('ahead', state.playing && !on);
     }
     if (ev.dotEl) ev.dotEl.classList.toggle('on', on);
@@ -727,12 +821,6 @@ function syncPlayBtn() {
 }
 function revealEvent(ev) {
   setStoryEnd(false);
-  EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
-  var d = dotEls[ev.id];
-  if (d) {
-    d.classList.add('on', 'cur');
-    d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
-  }
   state.focus = ev.id;
   /* 智能跟随：事件地点不在当前视口内才飞行 */
   var b = map.getBounds().pad(-0.15);
@@ -740,7 +828,7 @@ function revealEvent(ev) {
   mapCore.lit(ev.ll, ev.typeMeta.color);
   /* 描线沿路径渐进生长到事件地点（去程/回程自动区分），耗时与年份推进同步 */
   routes.seek(ev, 2200 / state.speed);
-  applyReveal(state.year);   /* 刷新 dim：当前事件不压暗 */
+  applyReveal(state.year);   /* 标记状态唯一收口：当前 .cur / 其余 .dim */
   showCard(ev);
   GS.fx.emit('event:arrive', ev);
 }
@@ -839,6 +927,18 @@ function renderLegend() {
     j.rowEl = row;
     row.addEventListener('click', function () { replayJourney(j); });
   });
+  /* L-1：折叠摘要只统计「已含事件」的旅程，避免把待补充章节算进来 */
+  var evMaxFrom = Math.max.apply(null, EVENTS.map(function (e) { return e.from; }));
+  var liveRoute = ROUTES.filter(function (j) { return j.from <= evMaxFrom; }).length;
+  $('lgSum').textContent = Object.keys(TYPE_META).length + ' 类事件 · ' + liveRoute + ' 段旅程 · 点击展开';
+  $('lgToggle').addEventListener('click', function () {
+    var lg = $('legend');
+    lg.classList.toggle('open');
+    $('lgToggle').setAttribute('aria-expanded', lg.classList.contains('open') ? 'true' : 'false');
+  });
+  /* 播放中自动展开一次（读者此刻最需要知道图标含义），播完再收起 */
+  GS.fx.on('play:start', function () { $('legend').classList.add('open'); });
+  GS.fx.on('play:end', function () { $('legend').classList.remove('open'); });
 }
 function replayJourney(j) {
   pause();
@@ -877,6 +977,15 @@ document.addEventListener('keydown', function (e) {
 });
 
 /* ================= 时间轴 ================= */
+/* 刻度：按动态量程均分（AD 46 / 50 / 54 …），末段留白即「后续章节待补充」 */
+(function renderScale() {
+  var h = '';
+  for (var i = 0; i < SCALE_STEPS; i++) {
+    h += '<span>AD ' + Math.round(D0 + (D1 - D0) * i / (SCALE_STEPS - 1)) + '</span>';
+  }
+  $('tlScale').innerHTML = h;
+})();
+
 var tlMarks = EVENTS.map(function (e) {
   return { id: e.id, from: e.from, color: e.typeMeta.color, title: e.title + ' · ' + PLACE_BY[e.place].cn };
 });
@@ -897,6 +1006,13 @@ var timeline = GS.timeline.init({
   },
   onMark: function (m) { pause(); openEvent(m.id); },
   onBand: function (b) { jumpChapter(b.id); },
+  /* 轨道高度随圆点实际行数自适应，避免留大片空白或压住章节色带 */
+  onPending: function (info) {
+    var rows = info.rows || 3;
+    $('tlTrack').style.height = (9 + rows * 13 + 12) + 'px';
+    var bands = $('tlTrack').querySelectorAll('.tl-band');
+    for (var i = 0; i < bands.length; i++) bands[i].style.top = (9 + rows * 13 + 6) + 'px';
+  },
   onState: function (playing) { state.playing = playing; state.auto = playing; syncPlayBtn(); }
 });
 EVENTS.forEach(function (e) {
@@ -925,6 +1041,36 @@ function handleHash() {
 }
 window.addEventListener('hashchange', handleHash);
 
+/* ================= 首屏引导（H-2） ================= */
+var GUIDE_KEY = 'gs.guide.seen.v1';
+function dismissGuide(silent) {
+  var g = $('guide');
+  if (!g || g.classList.contains('hidden')) return;
+  g.classList.add('out');
+  setTimeout(function () { g.classList.add('hidden'); }, 420);
+  $('playBtn').classList.remove('hint');   /* 播放按钮恢复常规样式 */
+  if (!silent) { try { sessionStorage.setItem(GUIDE_KEY, '1'); } catch (e) { /* 隐私模式忽略 */ } }
+}
+function maybeShowGuide() {
+  var seen = false;
+  try { seen = sessionStorage.getItem(GUIDE_KEY) === '1'; } catch (e) { seen = false; }
+  if (seen || (location.hash || '').length > 1) return;   /* 深链进入不给引导 */
+  var g = $('guide');
+  $('guideN').textContent = EVENTS.length;
+  $('guideSpan').textContent = 'AD ' + D0 + '–' + Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); }));
+  g.classList.remove('hidden', 'out');
+  void g.offsetWidth;
+  $('playBtn').classList.add('hint');
+  g.addEventListener('click', function () { dismissGuide(); startPlay(); });
+}
+$('playBtn').addEventListener('click', dismissGuide);
+window.addEventListener('keydown', function (e) {
+  if (e.key === ' ' || e.key === 'Enter') dismissGuide(true);
+}, true);
+['pointerdown', 'wheel'].forEach(function (t) {
+  window.addEventListener(t, function () { dismissGuide(true); }, { passive: true });
+});
+
 /* ================= 启动 ================= */
 renderStats();
 renderChapters();
@@ -935,8 +1081,10 @@ mapCore.placeLabels(labelItems);   /* 兜底初始调用；尺寸稳定后 onRea
 timeline.setYear(D0);
 routes.drawAll(170);
 setTimeout(function () {
-  toast('AD 46–67', '按 <b>空格</b> 播放故事 · 点击事件标记查看详情');
+  toast('AD ' + D0 + '–' + Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); })),
+    '按 <b>空格</b> 播放故事 · 点击事件标记查看详情');
 }, 1300);
+setTimeout(maybeShowGuide, 1900);   /* 让首帧与toast 先落定，引导卡后置入场 */
 GS.fx.emit('app:ready');
 handleHash();
 
