@@ -10,14 +10,17 @@
 
 | 里程碑 | 主题 | 内容 | 验收标准 | 状态 |
 |---|---|---|---|---|
-| M0 | 重构与引擎分层 | 目录归档；`shared/` 引擎分层（map-core / route-engine / timeline）；新构建管线；本计划文档 | 归档项目可原样构建；新项目可构建空页面 | 进行中（目录/骨架 ✅，引擎随 M1 落地） |
-| M1 | 第一次传道旅程端到端 | ch1 全部 12 个事件（含塞浦路斯士求保罗）；事件驱动播放 + 点击详情 + 章节导航 | CDP 脚本断言 + 截图核对 | 待开始 |
+| M0 | 重构与引擎分层 | 目录归档；`shared/` 引擎分层（fx / map-core / route-engine / timeline）；新构建管线；本计划文档 | 归档项目可原样构建；新项目可构建空页面 | ✅ 完成 |
+| M1 | 第一次传道旅程端到端 | ch1 全部 12 个事件（含塞浦路斯士求保罗）；事件驱动播放 + 点击详情 + 章节导航 | CDP 脚本断言 + 截图核对 | ✅ 完成（CDP 验收 A–J 十项全绿，零控制台错误） |
 | M2 | 第二、三次旅程 | ch2 / ch3 事件 + 书信事件（帖前后 / 林前后 / 罗马书） | 同上 | 待开始 |
 | M3 | 被捕受审 + 赴罗马 | ch4 / ch5：圣殿骚乱、四重审讯、马耳他船难 | 同上 | 待开始 |
 | M4 | 富媒体与尾声 | ch6；照片 / 画作本地 webp + Wikimedia 署名回退 | 媒体加载与回退断言 | 待开始 |
-| M5 | 共享回灌（可选） | `paul-epistles-map` 改用 `shared/` 引擎 | 现有 `verify.mjs` / `verify5.mjs` 全绿 | 暂缓（归档优先，避免无收益改动） |
+| M5 | 共享回灌（可选） | `paul-epistles-map` 改用 `shared/` 引擎 | 归档 `verify.mjs` 全绿 | 暂缓（归档优先，避免无收益改动） |
+| M6 | 音效与增强动画 | GS.fx 总线订阅点落地：WebAudio 合成音效 / 事件弹出增强动画 | 不破坏现有 A–J 断言 | 待开始（用户已提出需求） |
 
 > **为什么引擎随 M1 抽取**：`shared/` 的抽象边界（哪些参数化、哪些回调）只有出现真实消费方后才能定形；M0 先冻结目录与构建管线，M1 边写消费方边上抽，避免无消费者的预先抽象。
+>
+> **M1 踩坑记录（防复发）**：CSS `var(--x}` 漏写右括号，未闭合函数会令解析器吞掉其后全部规则——`.place`/`.ev-dot` 整段静默失效，地点核心退化为 0×0 不可点，且控制台无任何报错。**纪律：改完 `template.html` 的 CSS 必须 `node build.mjs` + `node verify.mjs` 全量回归，不接受「只改了一行」的直觉判断。**
 
 ## 1. 架构
 
@@ -27,22 +30,23 @@
 geo-story/
 ├── template.html        # 页面结构 + CSS + UI 编排（侧栏 / 详情 / 播放控件）
 ├── shared/              # 与 paul-epistles-map 共用的引擎（构建期内联，产物仍是单文件）
+│   ├── fx.js            #   事件总线（音效 / 增强动画订阅点，M6 消费）
 │   ├── map-core.js      #   地图基底：GeoJSON 底图 / 经纬网 / flyTo / 点亮 / 涟漪 / 标签避位
 │   ├── route-engine.js  #   平滑路径 / 累计里程 / 按年代截取点亮 / 路线光点 / 旅程重播
-│   └── timeline.js      #   时间轴控件（拖拽 / 键盘 / 圆点 / 色带）+ 播放调度 + 事件触发
+│   └── timeline.js      #   时间轴控件（拖拽 / 键盘 / 圆点 / 色带）+ 播放调度 + 事件序列播放
 ├── data/                # 纯数据（改内容只动这里）
-│   ├── chapters.js      #   六章元数据
-│   ├── places.js        #   地点库：坐标 / 古今名 / 现代归属 / 备注
-│   ├── routes.js        #   四段旅程路径点（命名途经点）
-│   └── events.js        #   事件库（核心资产，见 §1.4）
+│   ├── chapters.json    #   六章元数据
+│   ├── places.json      #   地点库：坐标 / 古今名 / 现代归属 / 备注
+│   ├── routes.json      #   四段旅程路径点（命名途经点）
+│   └── events.json      #   事件库（核心资产，见 §1.4）
 ├── assets/
 │   ├── leaflet.js / .css / med.json / countries-110m.json / topojson-client.min.js
 │   └── media/           #   本地图片（webp 优先）；缺失时回退外链
 ├── build.mjs            # 构建：template + shared + data + assets → geo-story.html
 ├── prep-data.mjs        # 地图数据裁剪（仅在需要调整可视范围时运行）
 ├── cdp-shot.mjs         # CDP 截图 / 求值工具（从归档项目原样搬入）
-├── verify.mjs           # 验收脚本（M1 起编写）
-├── verify5.mjs          # 验收脚本（M1 起编写）
+├── verify.mjs           # CDP 验收脚本（M1 起编写，A–J 十项）
+├── scripts/             # 经文提取管线（OpenCC 繁→简 + 双源交叉，M2 加事件时复用）
 ├── docs/plan.md         # 本文件
 ├── paul-epistles-map/   # 归档：保罗书信地图（冻结，不再改动）
 └── README.md
@@ -60,7 +64,8 @@ geo-story/
 | `@@GS_MAPCORE@@` | `shared/map-core.js` | 共享引擎 |
 | `@@GS_ROUTES@@` | `shared/route-engine.js` | 共享引擎 |
 | `@@GS_TIMELINE@@` | `shared/timeline.js` | 共享引擎 |
-| `@@DATA_CHAPTERS@@` / `@@DATA_PLACES@@` / `@@DATA_ROUTES@@` / `@@DATA_EVENTS@@` | `data/*.js` | 数据 |
+| `@@GS_FX@@` | `shared/fx.js` | 共享引擎（事件总线） |
+| `@@DATA_CHAPTERS@@` / `@@DATA_PLACES@@` / `@@DATA_ROUTES@@` / `@@DATA_EVENTS@@` | `data/*.json` | 数据 |
 
 ```bash
 node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离线可用）
@@ -72,17 +77,18 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 |---|---|---|
 | `shared/map-core.js` | 地图初始化、底图 / 经纬网 / 控件；`flyToCity` / `litCity` / `ripple` / 城市标签自动避位 | 自 `template.html` 平移抽取 |
 | `shared/route-engine.js` | `smoothPath` 平滑、累计里程、`applyTime` 按年代逐段点亮、路线光点、旅程重播动画 | 自 `template.html` 平移抽取 |
-| `shared/timeline.js` | 时间轴渲染 / 拖拽 / 键盘 / 播放循环；**新增**：事件序列调度（光标逐事件推进 + 到达回调） | 自 `template.html` 平移 + 扩展 |
-| `data/places.js` | 地点：`{ id, cn, en, modern, ll, note }` | 新写（整合归档 `CITIES` + `CTX` + 新增） |
-| `data/routes.js` | 旅程：`{ id, name, from, to, color, pts:[{cn,ll}...], desc }` | 自归档 `JOURNEYS` 扩展（途经点加名） |
-| `data/events.js` | 事件（§1.4） | 新写，核心资产 |
-| `data/chapters.js` | 章节：`{ id, name, years, range, from, to }` | 新写 |
+| `shared/timeline.js` | 时间轴渲染 / 拖拽 / 键盘 / 播放循环；**新增**：事件序列调度（光标逐事件推进 + 到达回调 + dwell 停留） | 自 `template.html` 平移 + 扩展 |
+| `shared/fx.js` | 事件总线 `GS.fx.on/off/emit`；M6 音效与增强动画的订阅点 | 新写 |
+| `data/places.json` | 地点：`{ id, cn, en, modern, ll, note, ctx }` | 新写（整合归档 `CITIES` + `CTX` + 新增） |
+| `data/routes.json` | 旅程：`{ id, name, from, to, color, stops:[{cn,ll}...], desc }` | 自归档 `JOURNEYS` 扩展（途经点加名） |
+| `data/events.json` | 事件（§1.4） | 新写，核心资产 |
+| `data/chapters.json` | 章节：`{ id, name, years, range, from, to, color }` | 新写 |
 | `template.html` | 页面结构 + CSS + UI 编排；事件类型色板；详情面板富媒体布局 | 以归档模板为基底改写 |
 
 ### 1.4 事件数据模型
 
 ```js
-// data/events.js —— 字段规范
+// data/events.json —— 字段规范（JSON 数组，每项一个事件）
 {
   id: 'paphos-sergius',        // 语义化 slug，用于 hash 深链 #e/paphos-sergius
   ch: 'ch1',                   // 所属章节
@@ -90,8 +96,8 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
   from: 46, to: 46,            // 年代（可为区间，如 {from:46,to:48}）
   title: '士求保罗信主',        // 中文标题
   en: 'Sergius Paulus Believes',
-  place: 'paphos',             // 关联 places.js 地点 id
-  ll: [32.4057, 34.7571],      // 事件坐标（路线途经点可省略，取路线点）
+  place: 'paphos',             // 关联 places.json 地点 id
+  brief: '以吕马受罚，士求保罗信主；扫罗始称保罗',  // 一句话摘要（时间轴 tooltip / 事件卡）
   narrative: '……',            // 叙事 2–4 句（学术中立语气）
   verses: [                    // 经文（和合本），可多节
     { ref: '使徒行传 13:9-12', text: '……' }
@@ -106,6 +112,8 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
   note: '……'                   // 可选：年代 / 地点 / 史实的学术争议标注
 }
 ```
+
+> **M1 定形说明**：事件数据全部走 JSON 数组配置（用户硬性要求，非硬编码）；M1 的 12 个事件已验证「改数据 → `node build.mjs` → 无需改代码即可上线」的闭环。
 
 ## 2. 播放与交互设计
 
@@ -144,7 +152,7 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 1. **年代推定**：所有事件年代采用学界主流推定；争议处必须写 `note`（参照归档项目的标注粒度）
 2. **经文**：统一和合本；引用前须对照纸质 / 权威电子版校对
 3. **媒体版权**：仅使用 CC 许可或公有领域作品；`credit` 与 `url` 必填；本地文件用 webp，单张 ≤ 300KB
-4. **新增事件流程**：只改 `data/events.js`（+ `places.js` / `routes.js`）→ `node build.mjs` → CDP 验收
+4. **新增事件流程**：只改 `data/events.json`（+ `places.json` / `routes.json`）→ `node build.mjs` → CDP 验收（经文用 `scripts/extract.mjs` 管线提取校对）
 
 ## 5. M1 事件清单（第一次传道旅程 · 徒 13–14 + 徒 15）
 
@@ -178,8 +186,9 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 
 ## 7. 验证方案
 
-- **工具**：`cdp-shot.mjs`（原样搬入）+ 新写 `verify.mjs` / `verify5.mjs`；headless Chrome 真实时间驱动（冻结 CSS 过渡的 `--virtual-time-budget` 截图模式有伪影，禁用）
+- **工具**：`cdp-shot.mjs`（原样搬入）+ 新写 `verify.mjs`；headless Chrome 真实时间驱动（冻结 CSS 过渡的 `--virtual-time-budget` 截图模式有伪影，禁用）
 - **断言不变量（反漂移）**：事件总数 == 数据声明数；播放至终态时最后一个事件详情可打开；点击事件标记后详情含经文引用；媒体本地缺失时显示回退链接；控制台零错误
+- **M1 十项**：A 启动态 / B 点击详情 / C 返回列表 / D 播放 / E 步进 / F 深链 / G 章节筛选 / H 地点筛选 / I 重置 / J 移动端 + 截图 f1–f5
 - **截图核对**：每里程碑关键态截图（播放中事件卡 / 详情富媒体 / 移动端）
 
 ## 8. 已知限制与风险
