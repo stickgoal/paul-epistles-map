@@ -112,9 +112,15 @@ GS.routeEngine = (function () {
 
   /* 事件驱动描线：把路线进度推到 ev 对应站点（place id 匹配 stops.p）。
    * 同一地点出现多次时（去程/回程），取「当前进度之后」的最近站点——
-   * 回访事件因此自然落到回程段；无匹配（地点不在该旅程上）则保持当前进度。 */
-  function seek(ev) {
+   * 回访事件因此自然落到回程段；无匹配（地点不在该旅程上）则保持当前进度。
+   * dur > 0 时补间渐变（沿线"画"过去），dur = 0 即瞬移（拖拽/步进场景）。 */
+  var seekRaf = 0;
+  function cancelSeek() { if (seekRaf) { cancelAnimationFrame(seekRaf); seekRaf = 0; } }
+
+  function seek(ev, dur) {
     if (!ev || !ev.place) return;
+    cancelSeek();
+    var plan = [];
     routes.forEach(function (j) {
       if (!j.drawn || !j.stopInfo) return;
       var cands = [];
@@ -122,25 +128,47 @@ GS.routeEngine = (function () {
         if (j.stopInfo[s].p === ev.place) cands.push(j.stopInfo[s]);
       }
       if (!cands.length) return;
-      var cur = ((j.hold != null) ? j.hold : yearP(j, getYear())) * j.total;
+      var from = (j.hold != null) ? j.hold : yearP(j, getYear());
+      var cur = from * j.total;
       var pick = null;
       for (var c = 0; c < cands.length; c++) {
         if (cands[c].d >= cur - 1e-6) { pick = cands[c]; break; }
       }
       if (!pick) pick = cands[cands.length - 1];
-      j.hold = pick.d / j.total;
-      applyTime(getYear());
+      plan.push({ j: j, from: from, to: pick.d / j.total });
     });
+    if (!plan.length) return;
+
+    if (!(dur > 0)) {
+      plan.forEach(function (x) { x.j.hold = x.to; });
+      applyTime(getYear());
+      return;
+    }
+    /* 只前进不后退：回程事件若落在已描线之后则前进，否则直接定位 */
+    var t0 = performance.now();
+    (function frame(t) {
+      var p = Math.min(1, (t - t0) / dur);
+      var e = p < 1 ? 1 - Math.pow(1 - p, 3) : 1;   /* easeOutCubic：起步快、收尾稳 */
+      plan.forEach(function (x) {
+        var tgt = x.from + (x.to - x.from) * e;
+        x.j.hold = (x.to > x.from) ? Math.max(x.from, tgt) : x.to;
+      });
+      applyTime(getYear());
+      if (p < 1) seekRaf = requestAnimationFrame(frame);
+      else seekRaf = 0;
+    })(t0);
   }
 
   /* 解除事件驱动，恢复年份线性映射（拖拽 / 步进 / 章节跳转时由调用方触发） */
   function release() {
+    cancelSeek();
     routes.forEach(function (j) { j.hold = null; });
   }
 
   /* 旅程重播动画：光点沿路径行进，留下拖尾 */
   var travel = { marker: null, trail: null, raf: 0, timer: 0, active: null };
   function cancelTravel() {
+    cancelSeek();
     cancelAnimationFrame(travel.raf);
     clearTimeout(travel.timer);
     if (travel.marker) { travel.marker._map && travel.marker._map.removeLayer(travel.marker); travel.marker = null; }
@@ -154,14 +182,14 @@ GS.routeEngine = (function () {
     var icon = L.divIcon({ className: 'travel-ic', html: '<div class="td" style="--c:' + j.color + '"></div>', iconSize: [15, 15], iconAnchor: [7.5, 7.5] });
     travel.marker = L.marker(j.path[0], { icon: icon, interactive: false, zIndexOffset: 1000 }).addTo(layer);
     travel.trail = L.polyline([j.path[0]], { color: j.color, weight: 3, opacity: .95, lineCap: 'round', interactive: false }).addTo(layer);
-    var path = j.path, N = path.length, dur = 9000, t0 = performance.now();
+    var path = j.path, N = path.length, dur = 15000, t0 = performance.now();
     (function frame(t) {
       var p = Math.min(1, (t - t0) / dur);
       var idx = Math.floor(p * (N - 1));
       if (travel.marker) travel.marker.setLatLng(path[idx]);
       if (travel.trail) travel.trail.setLatLngs(path.slice(0, idx + 1));
       if (p < 1 && travel.active === j) travel.raf = requestAnimationFrame(frame);
-      else { travel.timer = setTimeout(function () { if (travel.active === j) { cancelTravel(); if (done) done(); } }, 1500); }
+      else { travel.timer = setTimeout(function () { if (travel.active === j) { cancelTravel(); if (done) done(); } }, 2200); }
     })(t0);
   }
 
@@ -175,6 +203,7 @@ GS.routeEngine = (function () {
     release: release,
     replay: replay,
     cancelTravel: cancelTravel,
+    cancelSeek: cancelSeek,
     byId: function (id) { return byId[id]; },
     all: function () { return routes; }
   };

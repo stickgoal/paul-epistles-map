@@ -8,8 +8,9 @@ GS.mapCore = (function () {
   var map = null, glowMarker = null, litTimer = null;
   var lastItems = [], lastObstacleSel = '.place .core, .place .ev-dot, .ctx';
   var labelTimer = null, lastLabelZoom = 0;
+  var lastFit = null;
 
-  var FIT = [[27.6, -11.8], [47.8, 44.2]];
+  var DEFAULT_FIT = [[27.6, -11.8], [47.8, 44.2]];
   var LABEL_CANDIDATES = [
     ['right', [14, 0]], ['right', [14, -12]],
     ['left', [-14, 0]], ['left', [-14, 12]],
@@ -24,7 +25,7 @@ GS.mapCore = (function () {
       zoomControl: false, attributionControl: false,
       minZoom: 3, maxZoom: 10, zoomSnap: .5, wheelPxPerZoomLevel: 140
     });
-    var fit = opts.fit || FIT;
+    var fit = lastFit = opts.fit || DEFAULT_FIT;
     map.fitBounds(fit, { padding: [26, 26], animate: false });
     L.control.zoom({ position: 'topright' }).addTo(map);
     L.control.scale({ position: 'bottomright', imperial: false, maxWidth: 120 }).addTo(map);
@@ -118,32 +119,33 @@ GS.mapCore = (function () {
     if (glowMarker) { map.removeLayer(glowMarker); glowMarker = null; }
   }
 
-  /* 点亮某坐标：柔光 + 双重涟漪（keep=true 持续到 clearLit） */
+  /* 点亮某坐标：柔光 + 双重涟漪（keep=true 持续到 clearLit）
+   * 涟漪节奏放慢（原 1.5s 扩散 + 0.42s 二次触发 → 视觉过于频闪） */
   function lit(ll, color, keep) {
     color = color || '#c2593f';
     clearLit();
     var icon = L.divIcon({
       className: 'fx-ic',
       html: '<div class="fx-glow" style="--c:' + color + '"></div>',
-      iconSize: [150, 150], iconAnchor: [75, 75]
+      iconSize: [170, 170], iconAnchor: [85, 85]
     });
     glowMarker = L.marker(ll, { icon: icon, interactive: false, zIndexOffset: 600 }).addTo(map);
     ripple(ll, color);
-    setTimeout(function () { ripple(ll, color); }, 420);
-    if (!keep) litTimer = setTimeout(clearLit, 3400);
+    setTimeout(function () { ripple(ll, color); }, 1150);
+    if (!keep) litTimer = setTimeout(clearLit, 4600);
   }
 
-  /* 地图原生涟漪圈：从坐标向外扩散后消散 */
+  /* 地图原生涟漪圈：从坐标向外扩散后消散（2.9s 单程） */
   function ripple(ll, color) {
     color = color || '#c2593f';
-    var ring = L.circleMarker(ll, { radius: 4, color: color, weight: 1.5, opacity: .5, fill: false, interactive: false }).addTo(map);
+    var ring = L.circleMarker(ll, { radius: 4, color: color, weight: 1.5, opacity: .42, fill: false, interactive: false }).addTo(map);
     var t0 = performance.now();
     (function grow(t) {
-      var p = Math.min(1, (t - t0) / 1500);
+      var p = Math.min(1, (t - t0) / 2900);
       if (p >= 1) { map.removeLayer(ring); return; }
       var e = 1 - Math.pow(1 - p, 2.4);
-      ring.setRadius(4 + e * 62);
-      ring.setStyle({ opacity: .5 * (1 - p) });
+      ring.setRadius(4 + e * 74);
+      ring.setStyle({ opacity: .42 * (1 - p) });
       requestAnimationFrame(grow);
     })(t0);
   }
@@ -196,7 +198,7 @@ GS.mapCore = (function () {
     ripple: ripple,
     placeLabels: placeLabels,
     setLabelsVisible: function (v) { map.getContainer().classList.toggle('hide-labels', !v); },
-    resetView: function () { map.flyToBounds(FIT, { padding: [26, 26], duration: .9 }); }
+    resetView: function () { map.flyToBounds(lastFit || DEFAULT_FIT, { padding: [26, 26], duration: .9 }); }
   };
   return { init: init };
 })();
