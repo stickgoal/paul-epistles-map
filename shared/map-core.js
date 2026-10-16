@@ -24,7 +24,8 @@ GS.mapCore = (function () {
       zoomControl: false, attributionControl: false,
       minZoom: 3, maxZoom: 10, zoomSnap: .5, wheelPxPerZoomLevel: 140
     });
-    map.fitBounds(opts.fit || FIT, { padding: [26, 26], animate: false });
+    var fit = opts.fit || FIT;
+    map.fitBounds(fit, { padding: [26, 26], animate: false });
     L.control.zoom({ position: 'topright' }).addTo(map);
     L.control.scale({ position: 'bottomright', imperial: false, maxWidth: 120 }).addTo(map);
 
@@ -39,6 +40,54 @@ GS.mapCore = (function () {
     });
     for (var lo = -10; lo <= 40; lo += 5) {
       L.polyline([[27, lo], [48.5, lo]], { color: '#e0e3dc', weight: .7, opacity: .9, interactive: false }).addTo(grat);
+    }
+
+    /* 初始视野加固：容器尺寸未定（iframe/小窗/字体加载）时 fitBounds 会算错 zoom，
+     * 而之后的 invalidateSize 只重定位 marker、不重新适配视野。
+     * 用户首次交互前，布局稳定后重放初始 fit；onReady 供调用方补做依赖尺寸的测量。
+     * 防护：容器尺寸异常（布局中间态可能读到 0 宽）时跳过本次，fitBounds 会把 zoom 爆到 max。 */
+    var ready = false, locked = false;
+    function validSize() {
+      var s = map.getSize();
+      return s.x > 200 && s.y > 120;
+    }
+    function settle() {
+      if (locked || ready) return;
+      if (!validSize()) return;   /* 布局未就绪，等下一次时机 */
+      var before = map.getSize();
+      map.invalidateSize();
+      map.fitBounds(fit, { padding: [26, 26], animate: false });
+      if (Math.abs(map.getSize().x - before.x) < 1 && Math.abs(map.getSize().y - before.y) < 1) {
+        ready = true;
+        if (opts.onReady) opts.onReady();
+      }
+    }
+    requestAnimationFrame(function () { requestAnimationFrame(settle); });
+    setTimeout(settle, 350);
+    setTimeout(settle, 1000);
+    map.on('zoomstart dragstart', function () { locked = true; });
+
+    /* 容器尺寸监控：iframe 嵌入 / 窗口缩放 / CSS 过渡都可能不派发 window resize，
+     * Leaflet 的 trackResize 收不到，_size 缓存停留在中间态（曾实测读到 0 宽，
+     * 导致 marker 全部错位）。ResizeObserver 直接观察容器，兜底轮距保底。 */
+    var lastW = map.getContainer().getBoundingClientRect().width;
+    var lastH = map.getContainer().getBoundingClientRect().height;
+    function onContainerResize() {
+      if (locked) return;
+      var r = map.getContainer().getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return;               /* 布局中间态，跳过 */
+      if (Math.abs(r.width - lastW) < 1 && Math.abs(r.height - lastH) < 1) return;
+      lastW = r.width; lastH = r.height;
+      map.invalidateSize();
+      if (!ready) { settle(); return; }
+      map.fitBounds(fit, { padding: [26, 26], animate: false });
+      clearTimeout(labelTimer);
+      labelTimer = setTimeout(function () { if (lastItems.length) placeLabels(lastItems, lastObstacleSel); }, 180);
+    }
+    if (window.ResizeObserver) {
+      new ResizeObserver(onContainerResize).observe(map.getContainer());
+    } else {
+      setInterval(onContainerResize, 250);
     }
 
     lastLabelZoom = map.getZoom();
