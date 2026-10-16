@@ -27,6 +27,15 @@
 > 2. **divIcon 子元素定位双扣除**：JS 设 `left/top` 与 CSS `margin` 都做居中修正会叠加成 2 倍偏移（ev-dot 恒定偏 6px）。**居中只做一方。**
 > 3. **Leaflet 尺寸缓存中间态**：iframe/窗口缩放/CSS 过渡不派发 window resize，`trackResize` 收不到，`_size` 停留在某帧 0 宽——marker 全错位且 invalidateSize 不重新 fitBounds。**用 ResizeObserver 直接观察容器；fitBounds 前校验尺寸，0 宽会让 zoom 爆到 max。**
 > 4. **验收脚本时序脆弱**：鼠标点击 + 截图耗时可能漂移过 dwell 边界，造成「step 跳序」假阴性。**状态断言优先用 API 精确控制，真实鼠标留给交互冒烟。**
+>
+> **UX 修复轮踩坑记录（2026-10-16 落实 `docs/ux-review.md` 的 11 项）**：
+> 1. **⚠️ 危险命令 `taskkill /F /IM chrome.exe`**：会终止**用户自己开着的所有 Chrome 窗口**（实测一次误杀 11 个进程）。**纪律：验收一律走 `scripts/run-cdp.ps1`，它记录 PID 后用 `taskkill /PID <pid> /T` 只终止自身进程树。** 同理避免任何 `/IM` 形式的批量杀进程。
+> 2. **`.ps1` 文件必须纯 ASCII**：PowerShell 5.1 在无 UTF-8 BOM 时按 GBK 解码，注释里的中文会乱码并让整份脚本语法崩溃（`@echo off` 报「意外的标记 off」）。且需设 `[Console]::OutputEncoding = UTF8`，否则 node 的中文输出被按 GBK 显示，**极易把显示乱码误判为产品缺陷**。
+> 3. **CDP 表达式里不要用 `\uXXXX`**：`Runtime.evaluate` 传输时反斜杠转义会被二次处理，`/·/` 这类正则静默不匹配。改用 `String.fromCharCode(183)`。
+> 4. **绝对不要用 `/IM` 批量杀进程做「收尾清理」**：这是本项目最严重的一次工具误用，已写入用户级记忆。
+> 5. **Commons 全文搜索不能直接取第一条**：会把植物学名（Lystra lanata）、现代风景区排在古代遗址之前。**图像素材必须人工指定精确文件名 + API 校验存在性与授权。**
+> 6. **绝对定位的 hover transform 会覆盖定位**：圆点错位用 `style.transform` 会被 `:hover{transform:scale()}` 顶掉，**像素偏移必须走 CSS 变量**（本项目用 `--dx`）。
+> 7. **`pointer-events:none` 与 click 监听互斥**：章节色带带此属性时 click 永不触发，且不会有任何报错。
 
 ## 1. 架构
 

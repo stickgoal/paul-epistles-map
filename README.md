@@ -19,14 +19,19 @@ node build.mjs    # template.html + shared/ + data/ + assets/ → geo-story.html
 ```
 geo-story/
 ├── template.html      # 页面结构 + CSS + UI 编排
-├── shared/            # 共享引擎（map-core / route-engine / timeline，构建期内联）
-├── data/              # chapters / places / routes / events（核心数据）
-├── assets/            # leaflet + med.json + media/（本地图片）
+├── shared/            # 共享引擎（map-core / route-engine / timeline / fx，构建期内联）
+├── data/              # chapters / places / routes / events（核心数据，全 JSON）
+├── assets/            # leaflet + med.json + 底图 GeoJSON + media/（本地图片）
 ├── build.mjs          # 构建：→ geo-story.html
-├── prep-data.mjs      # 地图数据裁剪（仅在调整可视范围时运行）
-├── cdp-shot.mjs       # CDP 截图 / 求值工具
-├── verify.mjs / verify5.mjs  # 验收脚本
-├── docs/plan.md       # 里程碑计划（M0–M5）与数据模型规范
+├── verify.mjs         # CDP 验收脚本（A–J + A2–A9 回归断言）
+├── scripts/
+│   ├── extract.mjs    # 和合本经文提取（OpenCC 繁→简 + 双源交叉）
+│   ├── extract2.mjs   #   同上（第二轮校对）
+│   ├── fetch-media.mjs # Commons 图像元数据补全（--write 落盘）
+│   └── run-cdp.ps1    # 验收 runner：只关闭自己启动的 headless Chrome
+├── docs/
+│   ├── plan.md        # 里程碑计划（M0–M6）、数据模型规范、踩坑记录
+│   └── ux-review.md   # UX 评估报告 + 修复落实记录
 └── paul-epistles-map/ # 归档：前身项目（冻结）
 ```
 
@@ -44,13 +49,21 @@ geo-story/
 
 ## 验证
 
-```bash
-# 启动带调试端口的 Chrome（本机实际路径：用户目录安装）
-"/c/Users/Administrator/AppData/Local/Google/Chrome/Application/chrome.exe" --headless=new \
-  --no-sandbox --disable-gpu --window-size=1680,1000 \
-  --remote-debugging-port=9222 --user-data-dir=.cdp-profile about:blank
+验收请用 helper 脚本，**不要手动 `taskkill /IM chrome.exe`**（会杀掉你自己开着的所有 Chrome 窗口）：
 
-node verify.mjs     # M1 验收：A–J 十项 + 控制台错误 + 截图 f1–f5
+```bash
+# 一条命令搞定：启动独立 headless Chrome → 跑验收 → 只关闭自己启动的那一个
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-cdp.ps1 verify.mjs
+# 可选窗口尺寸： ... run-cdp.ps1 verify.mjs 1280 800
+```
+
+`verify.mjs` 覆盖 A–J 十项 + A2/A3/A4/A5/A6/A7/A8/A9 九条回归断言 + 控制台错误 + 截图 f1/f1b/f2/f3/f4/f5。
+
+图像素材补全（需联网访问 Commons API）：
+
+```bash
+node scripts/fetch-media.mjs          # 预览：校验候选文件的授权
+node scripts/fetch-media.mjs --write  # 写入 data/events.json 的 media 字段
 ```
 
 ## 数据来源与学术说明
