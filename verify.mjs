@@ -67,6 +67,14 @@ console.log('A2 seq-order:', await ev(`(function(){
 })()`));
 await shot('f1_boot.png');
 
+/* A4. 初始视野聚焦地点密集区：全部事件地点应在视口内，且不覆盖整个地中海 */
+console.log('A4 initial-view:', await ev(`(function(){
+  var b = GS_APP.map.getBounds(), z = GS_APP.map.getZoom();
+  var outside = GS_APP.places.filter(function(p){ return !p.ctx && !b.contains(L.latLng(p.ll)); }).map(function(p){return p.cn;});
+  return JSON.stringify({ zoom: z, outsideEventPlaces: outside,
+    spanLat: Math.round((b.getNorth()-b.getSouth())*10)/10, spanLng: Math.round((b.getEast()-b.getWest())*10)/10 });
+})()`));
+
 /* A3. 位置精度回归：marker 视觉中心 vs latLng 投影。
  * place core 曾因 CSS 全段失效退化为 0×0；ev-dot 曾因 JS/CSS 双重 margin 偏移 6px。 */
 console.log('A3 position-accuracy:', await ev(`(function(){
@@ -90,7 +98,7 @@ console.log('A3 position-accuracy:', await ev(`(function(){
     var c = map.latLngToContainerPoint(e.ll);
     var dx = (r.x + r.width/2) - (mapR.left + c.x), dy = (r.y + r.height/2) - (mapR.top + c.y);
     var dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist > 30) evDev.push(e.id + ':' + Math.round(dist));  /* 设计圆周偏移半径 26 */
+    if (dist > 38) evDev.push(e.id + ':' + Math.round(dist));  /* 设计圆周偏移半径 34 */
   });
   return JSON.stringify({ placeDev: placeDev, evDev: evDev });
 })()`));
@@ -110,13 +118,22 @@ await click('#backBtn');
 await sleep(500);
 console.log('C list-back:', await ev(`document.getElementById('list').classList.contains('hidden')?'HIDDEN':'shown'`), 'detail:', await ev(`window.GS_APP.state.detail`));
 
-/* D. 播放 5 秒：年代递进 + 事件卡 + 当前事件 */
+/* D. 播放：年代递进 + 事件卡 + 当前事件（travel 已放慢至2.6s，停留 5.2s） */
 await click('#playBtn');
-await sleep(5000);
+await sleep(9000);
 console.log('D playing:', await ev(`window.GS_APP.state.playing`), 'year:', await ev(`document.getElementById('tlYear').textContent`), 'focus:', await ev(`window.GS_APP.state.focus`));
 console.log('D card:', await ev(`(function(){var n=document.getElementById('now');return n.classList.contains('show')?(n.querySelector('.card-t')?n.querySelector('.card-t').textContent:'toast'):'hide';})()`));
 console.log('D cur-dot:', await ev(`document.querySelectorAll('.ev-dot.cur').length`));
 console.log('D lit:', await ev(`document.querySelectorAll('.place.lit').length`));
+/* D1b. 事件图标：每个标记内含类型 SVG（非圆点）；播放中非当前事件压暗 */
+console.log('D1b event-icons:', await ev(`JSON.stringify({
+  dots: document.querySelectorAll('.ev-dot').length,
+  svg: document.querySelectorAll('.ev-dot > svg').length,
+  distinctPaths: new Set(Array.from(document.querySelectorAll('.ev-dot > svg path')).map(function(p){return p.getAttribute('d');})).size,
+  dim: document.querySelectorAll('.ev-dot.dim').length,
+  curNotDim: !document.querySelector('.ev-dot.cur').classList.contains('dim'),
+  storyEnd: document.body.classList.contains('story-end')
+})`));
 /* D2. 描线同步：播放中路线点数应 > 1（事件驱动 seek 生效，而非停在起点） */
 console.log('D2 route-progress:', await ev(`(function(){
   var j1 = GS.routeEngine.api.byId('j1');
@@ -172,6 +189,20 @@ console.log('H cleared rows:', await ev(`document.querySelectorAll('.ev').length
 await click('#resetBtn');
 await sleep(1200);
 console.log('I reset year:', await ev(`document.getElementById('tlYear').textContent`), 'count:', await ev(`document.getElementById('tlCount').textContent`));
+
+/* I2. 播放到底：事件图标应整体隐去（story-end），任意交互后恢复
+   临时把倍速调高以在合理时间内跑完整个序列（D 为只读引用，改state.speed 生效） */
+await ev(`window.GS_APP.state.speed = 8; window.GS_APP.timeline.setYear(46); window.GS_APP.play();`);
+for (var q = 0; q < 60; q++) {
+  await sleep(500);
+  if (!(await ev(`window.GS_APP.state.playing`))) break;
+}
+await sleep(800);
+console.log('I2 play-end storyEnd:', await ev(`document.body.classList.contains('story-end')`),
+  '| dots hidden:', await ev(`(function(){var d=document.querySelector('.ev-dot.on');return d?getComputedStyle(d).opacity:'no-visible-dot';})()`));
+await ev(`window.GS_APP.timeline.setYear(50)`);
+await sleep(400);
+console.log('I2 after-interaction storyEnd:', await ev(`document.body.classList.contains('story-end')`));
 
 /* J. 移动端 */
 await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });
