@@ -87,7 +87,8 @@ button{font-family:inherit;border:none;background:none}
 .ev:hover{background:#f1f1ed}
 .ev.active{background:var(--accent-soft)}
 .ev + .ev::before{content:'';position:absolute;top:0;left:12px;right:12px;height:1px;background:var(--hair-2)}
-.ev-tdot{flex:none;width:9px;height:9px;border-radius:50%}
+.ev-tdot{flex:none;width:20px;height:20px;border-radius:6px;border:1.4px solid currentColor;background:#fff;display:flex;align-items:center;justify-content:center}
+.ev-tdot svg{width:12px;height:12px;display:block}
 .ev-yr{flex:none;width:74px;font-size:11px;color:var(--ink-3);font-feature-settings:"tnum";letter-spacing:.01em}
 .ev-mid{flex:1;min-width:0}
 .ev-cn{font-size:14.5px;font-weight:600;letter-spacing:.01em}
@@ -104,7 +105,7 @@ button{font-family:inherit;border:none;background:none}
 .back{color:var(--ink-2);font-size:12.5px;cursor:pointer;padding:4px 0;margin-bottom:12px}
 .back:hover{color:var(--accent)}
 .d-type{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2);background:#fff;border:1px solid var(--hair);padding:4px 11px;border-radius:999px;margin-bottom:12px}
-.d-type i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.d-type svg{color:var(--c);flex:none}
 .d-cn{font-size:24px;font-weight:700;letter-spacing:-.01em}
 .d-en{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-3);margin-top:3px}
 .d-meta{margin:18px 0 6px;border-top:1px solid var(--hair)}
@@ -178,6 +179,8 @@ button{font-family:inherit;border:none;background:none}
 .legend h4{font-size:10.5px;color:var(--ink-3);letter-spacing:.12em;margin-bottom:9px;font-weight:600}
 .lg-row{display:flex;align-items:center;gap:9px;padding:3px 0;color:var(--ink-2);font-size:12px}
 .dot-sw{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;margin:0 4.5px}
+.ic-sw{width:18px;height:18px;border-radius:5px;border:1.4px solid currentColor;background:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.ic-sw svg{width:12px;height:12px;display:block}
 .lg-j{display:flex;align-items:center;gap:9px;padding:4px 7px;margin:1px -7px;color:var(--ink-2);font-size:12px;border-radius:8px;cursor:pointer;transition:.15s}
 .lg-j:hover{background:#f1f1ed;color:var(--ink)}
 .lg-j i{width:16px;height:3px;border-radius:2px;flex:none}
@@ -227,20 +230,27 @@ button{font-family:inherit;border:none;background:none}
 
 /* 地点标记（核心 + 事件点） */
 .place-icon{pointer-events:none}
-.place{position:relative;width:78px;height:78px}
-.place .glow{position:absolute;left:50%;top:50%;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 6%,transparent) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
+.place{position:relative;width:96px;height:96px}
+.place .glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 6%,transparent) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
 .place.lit .glow{opacity:1}
-.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:pulse 3s cubic-bezier(.2,.6,.4,1) infinite;pointer-events:none;opacity:.5}
+.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:pulse 4.6s cubic-bezier(.2,.6,.4,1) infinite;pointer-events:none;opacity:.5}
 .place .core{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#fff;border:3.5px solid #b9bdb4;box-shadow:0 1px 5px rgba(20,20,18,.25);cursor:pointer;pointer-events:auto;transition:transform .25s cubic-bezier(.34,1.56,.64,1),border-color .3s;z-index:4}
 .place:hover .core{transform:scale(1.25);border-color:var(--accent)}
-.ev-dot{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#fff;border:2.5px solid var(--c);cursor:pointer;pointer-events:auto;transform:scale(.2);opacity:0;transition:opacity .3s,transform .45s cubic-bezier(.34,1.56,.64,1),background .25s,box-shadow .25s;padding:0;z-index:3}
+
+/* 事件标记：按类型区分的线性图标（与地点核心的圆点形态明确区分） */
+.ev-dot{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:7px;background:#fff;border:1.6px solid var(--c);color:var(--c);display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;transform:scale(.2);opacity:0;transition:opacity .3s,transform .45s cubic-bezier(.34,1.56,.64,1),background .25s,color .25s,box-shadow .3s,border-color .3s;padding:0;z-index:3;box-shadow:0 1px 4px rgba(20,20,18,.18)}
+.ev-dot svg{width:13px;height:13px;display:block;pointer-events:none}
 .ev-dot.on{opacity:1;transform:scale(1)}
-.ev-dot.on:hover{transform:scale(1.3)}
-.ev-dot.cur{background:var(--c);box-shadow:0 0 0 5px color-mix(in srgb,var(--c) 22%,transparent)}
-.ev-dot.hl{box-shadow:0 0 0 6px var(--accent-soft)}
-.ev-dot.pop{animation:dotpop .55s cubic-bezier(.34,1.56,.64,1)}
-@keyframes dotpop{0%{transform:scale(.2)}55%{transform:scale(1.4)}100%{transform:scale(1)}}
-.ev-label{position:absolute;left:50%;bottom:15px;transform:translate(-50%,6px);background:rgba(255,255,255,.97);border:1px solid var(--hair);border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s cubic-bezier(.2,.7,.3,1);z-index:6}
+.ev-dot.on:hover{transform:scale(1.22);box-shadow:0 3px 10px rgba(20,20,18,.22)}
+/* 播放中：未到达的事件隐去，已到达的淡出，当前事件高亮 */
+.ev-dot.dim{opacity:.26;color:var(--ink-3);border-color:var(--hair);box-shadow:none}
+.ev-dot.cur{opacity:1;background:var(--c);color:#fff;border-color:var(--c);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 24%,transparent),0 4px 14px color-mix(in srgb,var(--c) 40%,transparent);transform:scale(1.18);z-index:7}
+.ev-dot.hl{box-shadow:0 0 0 5px var(--accent-soft)}
+.ev-dot.pop{animation:dotpop .62s cubic-bezier(.34,1.56,.64,1)}
+@keyframes dotpop{0%{transform:scale(.2)}55%{transform:scale(1.45)}100%{transform:scale(1.18)}}
+/* 播放结束后事件图标整体隐去，回到干净底图；任何交互即恢复 */
+body.story-end .ev-dot{opacity:0;pointer-events:none}
+.ev-label{position:absolute;left:50%;bottom:26px;transform:translate(-50%,6px);background:rgba(255,255,255,.97);border:1px solid var(--hair);border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s cubic-bezier(.2,.7,.3,1);z-index:6}
 .ev-dot.cur .ev-label{opacity:1;transform:translate(-50%,0)}
 body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 
@@ -250,16 +260,16 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 
 /* 点亮特效 */
 .fx-ic{pointer-events:none}
-.fx-glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin .45s ease-out forwards}
-@keyframes fxin{to{opacity:1}}
+.fx-glow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin 1.4s ease-out forwards}
+@keyframes fxin{0%{opacity:0}22%{opacity:1}to{opacity:1}}
 
 /* 旅程动画 */
 .travel-ic{pointer-events:none}
 .td{width:15px;height:15px;margin:-7.5px 0 0 -7.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 5px color-mix(in srgb,var(--c,#c2593f) 22%,transparent),0 0 16px color-mix(in srgb,var(--c,#c2593f) 55%,transparent);position:relative}
-.td::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.55;animation:pulse 1.7s ease-out infinite}
-.route-flow{animation:dashflow 2.6s linear infinite}
-@keyframes dashflow{to{stroke-dashoffset:-28}}
-@keyframes pulse{0%{transform:scale(1);opacity:.5}70%{transform:scale(3.4);opacity:0}100%{transform:scale(3.4);opacity:0}}
+.td::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.55;animation:pulse 2.8s ease-out infinite}
+.route-flow{animation:dashflow 6.5s linear infinite}
+@keyframes dashflow{to{stroke-dashoffset:-56}}
+@keyframes pulse{0%{transform:scale(1);opacity:.45}70%{transform:scale(3);opacity:0}100%{transform:scale(3);opacity:0}}
 .rh-ic{pointer-events:none}
 .rh{width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#c2593f) 20%,transparent),0 0 14px color-mix(in srgb,var(--c,#c2593f) 65%,transparent);position:relative}
 .rh::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.5;animation:pulse 1.7s ease-out infinite}
@@ -374,14 +384,18 @@ var EVENTS = @@DATA_EVENTS@@;
 
 /* 事件类型元数据：颜色与图例文案 */
 var TYPE_META = {
-  arrival:     { cn: '启程 / 抵达',  color: '#8fa3b8' },
-  preach:      { cn: '传道 / 教导',  color: '#8fa79a' },
-  miracle:     { cn: '神迹',         color: '#b39c8a' },
-  persecution: { cn: '逼迫 / 骚乱',  color: '#a34a33' },
-  trial:       { cn: '被捕 / 审讯',  color: '#7d6b5d' },
-  letter:      { cn: '书信写作',     color: '#a493b6' },
-  council:     { cn: '教会决议',     color: '#6f7f74' }
+  arrival:     { cn: '启程 / 抵达',  color: '#8fa3b8', icon: 'M3 13h18M12 13V4M12 4 6.5 9.5M12 4l5.5 5.5M4 17v3M20 17v3' },
+  preach:      { cn: '传道 / 教导',  color: '#8fa79a', icon: 'M12 6c-2.5-2-6-2.2-9-1.2v13c3-1 6.5-.8 9 1.2 2.5-2 6-2.2 9-1.2v-13c-3-1-6.5-.8-9 1.2Z M12 6v13' },
+  miracle:     { cn: '神迹',         color: '#b39c8a', icon: 'M12 2.5 14 9l6.5 2-6.5 2-2 6.5-2-6.5L3.5 11 10 9Z' },
+  persecution: { cn: '逼迫 / 骚乱',  color: '#a34a33', icon: 'M12 2.5c3.5 4 5.5 6.5 5.5 9.5a5.5 5.5 0 1 1-11 0c0-3 2-5.5 5.5-9.5Z' },
+  trial:       { cn: '被捕 / 审讯',  color: '#7d6b5d', icon: 'M12 3v18M5 7h14M7.5 7 4 14h7ZM16.5 7 13 14h7ZM8 21h8' },
+  letter:      { cn: '书信写作',     color: '#a493b6', icon: 'M3 6h18v12H3zM3 7l9 6.5L21 7' },
+  council:     { cn: '教会决议',     color: '#6f7f74', icon: 'M3 20h18M5 20V9m4.5 11V9M14.5 20V9M19 20V9M2 9h20L12 3Z' }
 };
+function typeIcon(type, size) {
+  var d = (TYPE_META[type] || TYPE_META.preach).icon;
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"' + (size ? ' width="' + size + '" height="' + size + '"' : '') + '><path d="' + d + '"/></svg>';
+}
 
 var D0 = 46, D1 = 67;
 var DWELL = 5200;                 /* 播放时每个事件的停留时长（ms，1×） */
@@ -412,9 +426,24 @@ var SEQ = EVENTS.map(function (e, i) { return { e: e, i: i }; })
 
 var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, chapter: null, speed: 1, speedIdx: 0 };
 
+/* 初始视野：由「有事件的地方」自动聚合，而非写死整个地中海。
+   取所有事件地点的经纬范围 + 12%留白；随章节数据增加自动扩展（耶路撒冷/罗马/马耳他纳入后自然变宽）。 */
+var STORY_FIT = (function () {
+  var pts = [];
+  EVENTS.forEach(function (e) { if (PLACE_BY[e.place]) pts.push(PLACE_BY[e.place].ll); });
+  if (pts.length < 2) return null;
+  var la = pts.map(function (p) { return p[0]; }), ln = pts.map(function (p) { return p[1]; });
+  var s = Math.max(Math.max.apply(null, la) - Math.min.apply(null, la),
+                   Math.max.apply(null, ln) - Math.min.apply(null, ln)) * 0.12;
+  s = Math.max(s, 0.6);   /* 至少留 0.6° 边距，避免单点聚集时过度放大 */
+  return [[Math.min.apply(null, la) - s, Math.min.apply(null, ln) - s],
+          [Math.max.apply(null, la) + s, Math.max.apply(null, ln) + s]];
+})();
+
 /* ================= 地图与图层 ================= */
 var mapCore = GS.mapCore.init({
   geo: GEO,
+  fit: STORY_FIT,
   onReady: function () { mapCore.placeLabels(labelItems); }  /* 尺寸稳定后重算标签避位 */
 });
 var map = mapCore.map();
@@ -447,7 +476,7 @@ PLACES.forEach(function (p) {
     return;
   }
   var evs = EVENTS.filter(function (e) { return e.place === p.id; });
-  var BOX = 78, R = 26;
+  var BOX = 96, R = 34;
   var html = '<div class="place" data-place="' + p.id + '"><span class="glow"></span><span class="ring"></span><span class="core" title="' + esc(p.cn) + '"></span></div>';
   var icon = L.divIcon({ className: 'place-icon', html: html, iconSize: [BOX, BOX], iconAnchor: [BOX / 2, BOX / 2] });
   var mk = L.marker(p.ll, { icon: icon, riseOnHover: true, keyboard: false }).addTo(placeLayer);
@@ -470,7 +499,7 @@ PLACES.forEach(function (p) {
     d.setAttribute('data-ev', ev.id);
     d.title = ev.title + ' · AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '');
     d.setAttribute('aria-label', ev.title);
-    d.innerHTML = '<span class="ev-label">' + esc(ev.title) + '</span>';
+    d.innerHTML = typeIcon(ev.type) + '<span class="ev-label">' + esc(ev.title) + '</span>';
     pel.appendChild(d);
     dotEls[ev.id] = d;
     d.addEventListener('click', function (e) { e.stopPropagation(); openEvent(ev.id); });
@@ -520,7 +549,7 @@ function renderList() {
     html += '<div class="ch-head" style="--c:' + c.color + '"><i></i>' + c.name + '<span>' + c.years + '</span></div>';
     evs.forEach(function (ev) {
       html += '<div class="ev' + (state.detail === ev.id ? ' active' : '') + '" data-ev="' + ev.id + '">' +
-        '<i class="ev-tdot" style="background:' + ev.typeMeta.color + '"></i>' +
+        '<i class="ev-tdot" style="color:' + ev.typeMeta.color + '">' + typeIcon(ev.type) + '</i>' +
         '<div class="ev-yr">AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '') + '</div>' +
         '<div class="ev-mid"><div class="ev-cn">' + esc(ev.title) + '</div><div class="ev-en">' + esc(ev.en) + '</div></div>' +
         '<div class="ev-place">' + esc(PLACE_BY[ev.place].cn) + '</div></div>';
@@ -554,6 +583,7 @@ function renderFilter() {
 }
 function setFilter(pid) {
   state.filter = pid;
+  setStoryEnd(false);
   renderFilter(); renderList();
   if (pid) {
     var p = PLACE_BY[pid];
@@ -584,6 +614,7 @@ function openEvent(id) {
   var ev = EV_BY[id];
   if (!ev) return;
   state.detail = id;
+  setStoryEnd(false);
   pause();
   timeline.setYear(ev.from);
   var p = PLACE_BY[ev.place], c = CH_BY[ev.ch];
@@ -593,7 +624,7 @@ function openEvent(id) {
   var media = renderMedia(ev.media);
   $('detail').innerHTML =
     '<button class="back" id="backBtn">← 返回列表</button>' +
-    '<div class="d-type" style="--c:' + ev.typeMeta.color + '"><i></i>' + ev.typeMeta.cn + ' · ' + esc(c.name) + '</div>' +
+    '<div class="d-type" style="--c:' + ev.typeMeta.color + '">' + typeIcon(ev.type, 12) + esc(ev.typeMeta.cn) + ' · ' + esc(c.name) + '</div>' +
     '<div class="d-cn">' + esc(ev.title) + '</div>' +
     '<div class="d-en">' + esc(ev.en) + '</div>' +
     '<div class="d-meta">' +
@@ -654,11 +685,20 @@ function applyReveal(y) {
       } else if (!on && d.classList.contains('on')) {
         d.classList.remove('on', 'pop', 'cur');
       }
+      /* 播放中：非当前、非未来事件压暗，让当前事件独占视觉焦点 */
+      d.classList.toggle('dim', state.playing && on && state.focus !== ev.id);
+      /* 播放态下未到达的事件不占位（opacity 0 已由 .on 控制） */
+      d.classList.toggle('ahead', state.playing && !on);
     }
     if (ev.dotEl) ev.dotEl.classList.toggle('on', on);
   });
   $('tlCount').textContent = n + ' / ' + EVENTS.length + ' 事件';
   routes.applyTime(y);
+}
+
+/* 播放结束（或首次进入）后隐藏事件图标，回到干净底图；任何交互即恢复 */
+function setStoryEnd(on) {
+  document.body.classList.toggle('story-end', !!on);
 }
 
 /* ================= 事件卡（播放中） ================= */
@@ -686,6 +726,7 @@ function syncPlayBtn() {
   $('playLb').textContent = state.playing ? '暂停' : '播放';
 }
 function revealEvent(ev) {
+  setStoryEnd(false);
   EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
   var d = dotEls[ev.id];
   if (d) {
@@ -695,9 +736,11 @@ function revealEvent(ev) {
   state.focus = ev.id;
   /* 智能跟随：事件地点不在当前视口内才飞行 */
   var b = map.getBounds().pad(-0.15);
-  if (!b.contains(L.latLng(ev.ll))) mapCore.flyTo(ev.ll, 6.2, 1.1);
+  if (!b.contains(L.latLng(ev.ll))) mapCore.flyTo(ev.ll, 6.2, 1.4);
   mapCore.lit(ev.ll, ev.typeMeta.color);
-  routes.seek(ev);   /* 描线同步推进到事件所在地点（去程/回程自动区分） */
+  /* 描线沿路径渐进生长到事件地点（去程/回程自动区分），耗时与年份推进同步 */
+  routes.seek(ev, 2200 / state.speed);
+  applyReveal(state.year);   /* 刷新 dim：当前事件不压暗 */
   showCard(ev);
   GS.fx.emit('event:arrive', ev);
 }
@@ -705,25 +748,29 @@ function startPlay() {
   if (state.playing) return;
   if (state.detail) closeEvent();
   hideCard();
+  setStoryEnd(false);
   routes.release();   /* 从年份驱动切换到事件驱动描线 */
   var ahead = SEQ.filter(function (e) { return e.from >= state.year - 1e-9; });
   if (!ahead.length) { timeline.setYear(D0); ahead = SEQ; }
   state.playing = true; state.auto = true;
   syncPlayBtn();
+  applyReveal(state.year);
   timeline.playEvents(ahead, {
     speed: state.speed,
     dwell: DWELL,
-    travel: 1500,
+    travel: 2600,
     onEvent: function (ev) { revealEvent(ev); },
     onLeave: function (ev) {
       var d = dotEls[ev.id];
       if (d && state.detail !== ev.id) d.classList.remove('cur');
       hideCard();
+      applyReveal(state.year);
     },
     onEnd: function () {
       state.playing = false; state.auto = false;
       syncPlayBtn();
-      toast('AD 46–67', '故事播放完毕 · 点击任意事件可回看详情');
+      setStoryEnd(true);   /* 播完隐藏事件图标，回到干净底图 */
+      toast('AD 46–67', '故事播放完毕 · 拖动时间轴或点击事件可回看');
       GS.fx.emit('play:end');
     }
   });
@@ -736,6 +783,7 @@ function pause() {
   routes.release();   /* 暂停后描线交还年份驱动 */
   syncPlayBtn();
   hideCard();
+  applyReveal(state.year);   /* 清除 dim */
   if (was) GS.fx.emit('play:pause');
 }
 function togglePlay() { state.playing ? pause() : startPlay(); }
@@ -778,7 +826,7 @@ function toast(big, html) {
 function renderLegend() {
   var th = '';
   Object.keys(TYPE_META).forEach(function (k) {
-    th += '<div class="lg-row"><span class="dot-sw" style="background:' + TYPE_META[k].color + '"></span>' + TYPE_META[k].cn + '</div>';
+    th += '<div class="lg-row"><span class="ic-sw" style="color:' + TYPE_META[k].color + '">' + typeIcon(k) + '</span>' + TYPE_META[k].cn + '</div>';
   });
   $('typeLegend').innerHTML = th;
   var jh = '';
@@ -844,7 +892,7 @@ var timeline = GS.timeline.init({
   marks: tlMarks,
   onYear: function (y) {
     state.year = y;
-    if (!state.playing) routes.release();  /* 拖拽/步进/章节跳转：恢复年份线性驱动 */
+    if (!state.playing) { routes.release(); setStoryEnd(false); }  /* 拖拽/步进：恢复年份驱动并显回图标 */
     applyReveal(y);
   },
   onMark: function (m) { pause(); openEvent(m.id); },
@@ -899,7 +947,7 @@ window.GS_APP = {
   state: state,
   open: openEvent, close: closeEvent, play: startPlay, pause: pause,
   step: stepEvent, jumpChapter: jumpChapter, setFilter: setFilter,
-  dotEls: dotEls, map: map
+  dotEls: dotEls, map: map, timeline: timeline, setYear: function (y) { timeline.setYear(y); }
 };
 
 })();
