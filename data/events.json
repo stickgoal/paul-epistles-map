@@ -5,13 +5,16 @@
     "type": "arrival",
     "from": 46,
     "to": 46,
-    "title": "安提阿受差遣",
-    "en": "Sent Out from Antioch",
+    "title": "受差遣前往",
+    "en": "Called Out to Preach",
     "place": "antioch-syria",
     "brief": "圣灵分派巴拿巴与扫罗，第一次旅程开始",
     "narrative": "安提阿教会的先知与教师事奉主、禁食的时候，圣灵说：「要为我分派巴拿巴和扫罗，去作我召他们所作的工。」于是教会禁食祷告，按手在二人头上，打发他们出发。保罗的第一次传道旅程由此开始；安提阿此后也成为他三次宣教事工的基地。",
     "verses": [
-      { "ref": "使徒行传 13:2-3", "text": "他们事奉主、禁食的时候，圣灵说：「要为我分派巴拿巴和扫罗，去作我召他们所作的工。」于是禁食祷告，按手在他们头上，就打发他们去了。" }
+      {
+        "ref": "使徒行传 13:2-3",
+        "text": "他们事奉主、禁食的时候，圣灵说：「要为我分派巴拿巴和扫罗，去作我召他们所作的工。」于是禁食祷告，按手在他们头上，就打发他们去了。"
+      }
     ],
     "media": []
   },
@@ -21,16 +24,30 @@
     "type": "preach",
     "from": 46,
     "to": 46,
-    "title": "帕弗：士求保罗信主",
+    "title": "士求保罗信主",
     "en": "Sergius Paulus Believes",
     "place": "paphos",
     "brief": "以吕马受罚，方伯信主；扫罗始称保罗",
-    "narrative": "保罗和巴拿巴经居比路的撒拉米进入帕弗，在会堂里遇见方伯士求保罗——一位「通达人」——与术士巴耶稣（以吕马）。保罗当面斥责以吕马「充满各样诡诈奸恶，混乱主的正道」，方伯看见所发生的事就信了。路加从此处起改称扫罗为保罗：他以罗马名的姿态，进入罗马人的世界。",
+    "narrative": "保罗和巴拿巴经居比路的撒拉米进入帕弗，在会堂（犹太教聚礼诵经的会堂建筑）里遇见方伯（罗马殖民地的总督）士求保罗——一位「通达人」——与术士巴耶稣（以吕马）。保罗当面斥责以吕马「充满各样诡诈奸恶，混乱主的正道」，方伯看见所发生的事就信了。路加从此处起改称扫罗为保罗：他以罗马名的姿态，进入罗马人的世界。",
     "verses": [
-      { "ref": "使徒行传 13:9", "text": "扫罗，又名保罗，被圣灵充满，定睛看他" },
-      { "ref": "使徒行传 13:12", "text": "方伯看见所作的事，就信了，很希奇主的道。" }
+      {
+        "ref": "使徒行传 13:9",
+        "text": "扫罗，又名保罗，被圣灵充满，定睛看他"
+      },
+      {
+        "ref": "使徒行传 13:12",
+        "text": "方伯看见所作的事，就信了，很希奇主的道。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "art",
+        "title": "帕弗出土马赛克《丽达与天鹅》（公元 4 世纪出土于帕弗附近）",
+        "src": null,
+        "credit": "Unknown author · Public domain · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Leda_mosaic.jpg"
+      }
+    ]
   },
   {
     "id": "antioch-pisidia-sermon",
@@ -38,16 +55,30 @@
     "type": "preach",
     "from": 46,
     "to": 47,
-    "title": "彼西底的安提阿：会堂讲道",
-    "en": "Sermon in the Synagogue",
+    "title": "会堂讲道",
+    "en": "Preaching in the Synagogue",
     "place": "antioch-pisidia",
     "brief": "赦罪的道唯靠基督，不在摩西律法",
-    "narrative": "在彼西底的安提阿，保罗应会堂管家的邀请在安息日讲道：从出埃及的历史讲到基督的复活，宣告赦罪的道唯有靠着基督，不在摩西的律法。讲道结束后，外邦人欢喜领受，犹太人中也有人跟随——这欢喜也埋下了下一场逼迫的引线。",
+    "narrative": "在彼西底的安提阿，保罗应会堂（犹太教聚会场所）管家的邀请在安息日讲道：从出埃及的历史讲到基督的复活，宣告赦罪的道唯有靠着基督，不在摩西的律法。讲道结束后，外邦人欢喜领受，犹太人中也有人跟随——这欢喜也埋下了下一场逼迫的引线。",
     "verses": [
-      { "ref": "使徒行传 13:38-39", "text": "所以，弟兄们，你们当晓得：赦罪的道是由这人传给你们的。你们靠摩西的律法，在一切不得称义的事上信靠这人，就都得称义了。" },
-      { "ref": "使徒行传 13:48", "text": "外邦人听见这话，就欢喜了，赞美神的道；凡预定得永生的人都信了。" }
+      {
+        "ref": "使徒行传 13:38-39",
+        "text": "所以，弟兄们，你们当晓得：赦罪的道是由这人传给你们的。你们靠摩西的律法，在一切不得称义的事上信靠这人，就都得称义了。"
+      },
+      {
+        "ref": "使徒行传 13:48",
+        "text": "外邦人听见这话，就欢喜了，赞美神的道；凡预定得永生的人都信了。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "photo",
+        "title": "彼西底的安提阿：奥古斯都神庙遗址",
+        "src": null,
+        "credit": "Dosseman · CC BY-SA 4.0 · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Antioch_in_Pisidia_Augustus_Temple_2937.jpg"
+      }
+    ]
   },
   {
     "id": "antioch-pisidia-expelled",
@@ -55,15 +86,26 @@
     "type": "persecution",
     "from": 47,
     "to": 47,
-    "title": "安提阿：被赶出境",
-    "en": "Driven Out",
+    "title": "被赶出境",
+    "en": "Expelled from Pisidian Antioch",
     "place": "antioch-pisidia",
     "brief": "犹太人挑唆逼迫，二人跺脚尘土往以哥念",
     "narrative": "不信的犹太人挑唆虔敬的妇女和城内有名望的人，又怂恿众人把保罗和巴拿巴赶出境外。二人对着众人跺下脚上的尘土，声明神的道已先传给他们；他们前往以哥念，留下满心喜乐、被圣灵充满的门徒。",
     "verses": [
-      { "ref": "使徒行传 13:51-52", "text": "二人对着众人跺下脚上的尘土，就往以哥念去了。门徒满心喜乐，又被圣灵充满。" }
+      {
+        "ref": "使徒行传 13:51-52",
+        "text": "二人对着众人跺下脚上的尘土，就往以哥念去了。门徒满心喜乐，又被圣灵充满。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "photo",
+        "title": "彼西底的安提阿：古剧场——保罗讲道后人群聚集于此",
+        "src": null,
+        "credit": "Dosseman · CC BY-SA 4.0 · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Antioch_in_Pisidia_Theatre_2963.jpg"
+      }
+    ]
   },
   {
     "id": "iconium-stay",
@@ -71,13 +113,16 @@
     "type": "preach",
     "from": 47,
     "to": 47,
-    "title": "以哥念：放胆讲道",
-    "en": "Bold Speech in Iconium",
+    "title": "放胆讲道",
+    "en": "Speaking Boldly in Iconium",
     "place": "iconium",
     "brief": "住了多日，主借他们的手施行神迹",
     "narrative": "保罗和巴拿巴照例进入以哥念犹太人的会堂讲道，使许多犹太人和希腊人都信了。那不信的犹太人耸动外邦人的心，叫他们恼恨弟兄；二人仍在那里住了多日，倚靠主放胆讲道，主借他们的手施行神迹奇事，见证他恩惠的道。",
     "verses": [
-      { "ref": "使徒行传 14:3", "text": "二人在那里住了多日，倚靠主放胆讲道；主藉他们的手施行神迹奇事，证明他恩惠的道。" }
+      {
+        "ref": "使徒行传 14:3",
+        "text": "二人在那里住了多日，倚靠主放胆讲道；主藉他们的手施行神迹奇事，证明他恩惠的道。"
+      }
     ],
     "media": []
   },
@@ -87,13 +132,16 @@
     "type": "miracle",
     "from": 47,
     "to": 47,
-    "title": "路司得：瘸腿行走",
+    "title": "瘸腿行走",
     "en": "The Lame Man Walks",
     "place": "lystra",
     "brief": "生来瘸腿的跳起来行走，众人当作神",
     "narrative": "在路司得，保罗医治了一个生来瘸腿、从来没有走过的人。众人看见这事，用本地话高声说：「有神借着人形降临在我们中间了」——称巴拿巴为丢斯，称保罗为希耳米，同城的祭司甚至牵着牛、拿着花圈，要到城门口向他们献祭。",
     "verses": [
-      { "ref": "使徒行传 14:10", "text": "就大声说：「你起来，两脚站直！」那人就跳起来，而且行走。" }
+      {
+        "ref": "使徒行传 14:10",
+        "text": "就大声说：「你起来，两脚站直！」那人就跳起来，而且行走。"
+      }
     ],
     "media": []
   },
@@ -103,15 +151,26 @@
     "type": "persecution",
     "from": 47,
     "to": 47,
-    "title": "路司得：石头之难",
-    "en": "Stoned and Left for Dead",
+    "title": "石头之难",
+    "en": "Almost Stoned at Lystra",
     "place": "lystra",
     "brief": "众人石头打保罗，以为他死了便拖到城外",
     "narrative": "有从安提阿和以哥念来的犹太人挑唆众人，用石头打保罗，以为他是死了，便拖到城外。门徒正围着他的时候，他竟起来，走进城去；次日同巴拿巴往特庇去。保罗后来追忆此事，正应了他自己所说的话：「我们进入神的国，必须经历许多艰难。」",
     "verses": [
-      { "ref": "使徒行传 14:19-20", "text": "但有些犹太人从安提阿和以哥念来，挑唆众人，就用石头打保罗，以为他是死了，便拖到城外。门徒正围着他，他就起来，走进城去。第二天，同巴拿巴往特庇去。" }
+      {
+        "ref": "使徒行传 14:19-20",
+        "text": "但有些犹太人从安提阿和以哥念来，挑唆众人，就用石头打保罗，以为他是死了，便拖到城外。门徒正围着他，他就起来，走进城去。第二天，同巴拿巴往特庇去。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "art",
+        "title": "《路司得的献祭》：保罗一行被误当神明献祭的场景（ Pieter Coecke van Aelst，约 1529–1530）",
+        "src": null,
+        "credit": "Pieter Coecke van Aelst (Flemish、1502 - 1550)  – artist (Flemish) · Public domain · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Pieter_Coecke_van_Aelst_(Flemish_-_The_Sacrifice_at_Lystra_-_Google_Art_Project.jpg"
+      }
+    ]
   },
   {
     "id": "derbe-teaching",
@@ -119,13 +178,16 @@
     "type": "preach",
     "from": 47,
     "to": 47,
-    "title": "特庇：旅程最远处",
-    "en": "Teaching in Derbe",
+    "title": "旅程最远处",
+    "en": "Preaching in Derbe",
     "place": "derbe",
     "brief": "传福音、教导多人，此后原路返回",
     "narrative": "在特庇——第一次旅程所到最远之处——保罗和巴拿巴传了福音，教导了好些人作门徒。此后二人不再前行，而是原路返回，逐一坚固这一路上新建立的教会。",
     "verses": [
-      { "ref": "使徒行传 14:21", "text": "对那城里的人传了福音，使好些人作门徒，就回路司得、以哥念、安提阿去。" }
+      {
+        "ref": "使徒行传 14:21",
+        "text": "对那城里的人传了福音，使好些人作门徒，就回路司得、以哥念、安提阿去。"
+      }
     ],
     "media": []
   },
@@ -136,14 +198,25 @@
     "from": 47,
     "to": 48,
     "title": "回访诸城",
-    "en": "Strengthening the Churches",
+    "en": "Revisiting the Cities",
     "place": "lystra",
     "brief": "坚固门徒、选立长老、交托所信的主",
     "narrative": "二人回路司得、以哥念、安提阿去，坚固门徒的心，劝他们恒守所信的道，并说：「我们进入神的国，必须经历许多艰难。」又在各教会中选立长老，禁食祷告，把他们交托所信的主——新教会的骨架就此立定。",
     "verses": [
-      { "ref": "使徒行传 14:22-23", "text": "坚固门徒的心，劝他们恒守所信的道；又说：「我们进入神的国，必须经历许多艰难。」二人在各教会中选立了长老，又禁食祷告，就把他们交托所信的主。" }
+      {
+        "ref": "使徒行传 14:22-23",
+        "text": "坚固门徒的心，劝他们恒守所信的道；又说：「我们进入神的国，必须经历许多艰难。」二人在各教会中选立了长老，又禁食祷告，就把他们交托所信的主。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "photo",
+        "title": "撒拉米：罗马时期遗址与 basilica 遗迹",
+        "src": null,
+        "credit": "George Groutas · CC BY 2.0 · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Salamis_Ruins,_Cyprus.jpg"
+      }
+    ]
   },
   {
     "id": "antioch-report",
@@ -151,15 +224,26 @@
     "type": "arrival",
     "from": 48,
     "to": 48,
-    "title": "归回安提阿",
-    "en": "Report to the Church",
+    "title": "归回报信",
+    "en": "Report Back to Antioch",
     "place": "antioch-syria",
     "brief": "述说神所行的一切事，旅程完成",
     "narrative": "二人回到叙利亚的安提阿，聚集教会，述说神借他们所行的一切事，以及神怎样为外邦人开了信道的门。第一次传道旅程至此完成，历时约两年；外邦人的教会自此站稳，保罗的视野也完全转向小亚细亚与更远的欧洲。",
     "verses": [
-      { "ref": "使徒行传 14:27", "text": "到了那里，聚集了会众，就述说神藉他们所行的一切事，并神怎样为外邦人开了信道的门。" }
+      {
+        "ref": "使徒行传 14:27",
+        "text": "到了那里，聚集了会众，就述说神藉他们所行的一切事，并神怎样为外邦人开了信道的门。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "art",
+        "title": "加拉太地区在罗马帝国行省图中的位置",
+        "src": null,
+        "credit": "Immanuel Giel · Public domain · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Galatia_(Imperium_Romanum).png"
+      }
+    ]
   },
   {
     "id": "galatians-letter",
@@ -168,13 +252,16 @@
     "from": 48,
     "to": 49,
     "title": "写《加拉太书》",
-    "en": "The Letter to the Galatians",
+    "en": "Writing to Galatia",
     "place": "antioch-syria",
     "brief": "为因信称义的福音急切辩护，最早的书信",
     "narrative": "第一次旅程之后不久，保罗写下《加拉太书》，为因信称义的福音急切辩护——若有人传「别的福音」，就应当被咒诅。此书一般推定写于耶路撒冷会议前后，是保罗现存最早的书信。",
     "note": "写作地点与年代学界有争议：主流推定写于叙利亚的安提阿（AD 48–49），另有以弗所说与哥林多说。",
     "verses": [
-      { "ref": "加拉太书 1:8", "text": "但无论是我们，是天上来的使者，若传福音给你们，与我们所传给你们的不同，他就应当被咒诅。" }
+      {
+        "ref": "加拉太书 1:8",
+        "text": "但无论是我们，是天上来的使者，若传福音给你们，与我们所传给你们的不同，他就应当被咒诅。"
+      }
     ],
     "media": []
   },
@@ -190,9 +277,23 @@
     "brief": "外邦信徒不受割礼之约束，通往欧洲的大门打开",
     "narrative": "耶路撒冷会议裁定：外邦信徒不必受割礼、守摩西律法，只须禁戒祭偶像之物、血、勒死的牲畜和奸淫。决议的书信随保罗、巴拿巴带到安提阿，教会大得安慰。这次会议也成全了保罗的下一步——第二次传道旅程将首次进入欧洲。",
     "verses": [
-      { "ref": "使徒行传 15:19-20", "text": "所以据我的意见，不可难为那归服神的外邦人；只要写信，吩咐他们禁戒偶像的污秽和奸淫，并勒死的牲畜和血。" },
-      { "ref": "使徒行传 15:28-29", "text": "因为圣灵和我们定意不将别的重担放在你们身上；惟有几件事是不可少的，就是禁戒祭偶像的物和血，并勒死的牲畜和奸淫。这几件你们若能自己禁戒不犯就好了。愿你们平安！" }
+      {
+        "ref": "使徒行传 15:19-20",
+        "text": "所以据我的意见，不可难为那归服神的外邦人；只要写信，吩咐他们禁戒偶像的污秽和奸淫，并勒死的牲畜和血。"
+      },
+      {
+        "ref": "使徒行传 15:28-29",
+        "text": "因为圣灵和我们定意不将别的重担放在你们身上；惟有几件事是不可少的，就是禁戒祭偶像的物和血，并勒死的牲畜和奸淫。这几件你们若能自己禁戒不犯就好了。愿你们平安！"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "photo",
+        "title": "耶路撒冷第二圣殿时期模型（圣殿与公会堂的格局）",
+        "src": null,
+        "credit": "Daniel Ventura · CC BY-SA 4.0 · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Model_of_Jerusalem_in_the_Late_Second_Temple_Period_09.jpg"
+      }
+    ]
   }
 ]
