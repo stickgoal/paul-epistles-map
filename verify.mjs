@@ -51,6 +51,19 @@ async function click(sel) {
   await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
   return true;
 }
+/* 真实鼠标点击：走完整的 mousedown → mouseup → click 命中测试链路。
+ * 必须用这个而非 DOM .click() —— 后者绕过命中测试，正是「引导卡点了没反应」
+ * 「播完后事件点不开」这两个 bug 能通过验收却在线上复现的原因。 */
+async function realClick(x, y) {
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+  await send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 });
+  await sleep(60);
+  await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
+}
+async function centerOf(sel) {
+  const pos = await ev(`(function(){var e=document.querySelector('${sel}');if(!e)return 'NONE';var r=e.getBoundingClientRect();return JSON.stringify({x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)});})()`);
+  return pos === 'NONE' ? null : JSON.parse(pos);
+}
 
 /* A. 启动态：统计 / 事件数据 / 地图标记 */
 console.log('A stats:', await ev(`document.querySelector('#stats').textContent.replace(/\\s+/g,' ').trim()`));
@@ -75,12 +88,37 @@ await sleep(4200);
 console.log('A8 guide:', await ev(`(function(){
   var g = document.getElementById('guide');
   return JSON.stringify({ visible: !g.classList.contains('hidden'),
-    heading: g.querySelector('h3').textContent,
     count: document.getElementById('guideN').textContent,
     span: document.getElementById('guideSpan').textContent,
+    cta: document.getElementById('guideAct').textContent,
     playBtnHighlighted: document.getElementById('playBtn').classList.contains('hint') });
 })()`));
 await shot('f1b_guide.png');
+
+/* A10b. 引导横幅不得覆盖任何可交互元素。
+   它是流内元素（占据布局高度），因此必须验证：
+     1) 与地图区域零交集（旧版居中浮层正好盖住事件标记密集区）
+     2) 不遮挡播放按钮、事件列表行、时间轴圆点
+   必须在 guide 仍可见时测：display:none 后 rect 全为 0，永远「无重叠」—— 那是假通过。 */
+console.log('A10b guide-not-blocking:', await ev(`(function(){
+  var gd = document.getElementById('guide');
+  if (gd.classList.contains('hidden')) return JSON.stringify({ skipped: 'guide hidden' });
+  var g = gd.getBoundingClientRect();
+  function overlap(elm) {
+    var r = elm.getBoundingClientRect();
+    var ow = Math.min(g.right, r.right) - Math.max(g.left, r.left);
+    var oh = Math.min(g.bottom, r.bottom) - Math.max(g.top, r.top);
+    return Math.round(Math.max(0, ow) * Math.max(0, oh));
+  }
+  var blocked = { map: overlap(document.getElementById('map')),
+                  playBtn: overlap(document.getElementById('playBtn')),
+                  timeline: overlap(document.getElementById('tlTrack')) };
+  var rows = 0;
+  document.querySelectorAll('.ev').forEach(function (r) { if (overlap(r) > 0) rows++; });
+  blocked.listRows = rows;
+  var any = Object.keys(blocked).some(function (k) { return blocked[k] > 0; });
+  return JSON.stringify({ visible: true, blocked: blocked, clear: !any });
+})()`));
 
 /* A9. 图例折叠态（L-1）：默认收起为一行摘要；播放中自动展开（读者此刻最需要图标含义），
  *     播完再收起。须在 A8 触发播放「之前」断言默认态。 */
@@ -91,14 +129,50 @@ console.log('A9 legend-default:', await ev(`(function(){
     bodyHeight: Math.round(b.getBoundingClientRect().height) });
 })()`));
 
-/* 点击引导卡 → 关闭并开始播放，播放按钮恢复常规样式 */
-await ev(`document.getElementById('guide').click()`);
-await sleep(900);
-console.log('A8 guide-dismiss:', await ev(`JSON.stringify({
-  dismissed: document.getElementById('guide').classList.contains('out'),
-  playing: GS_APP.state.playing,
-  playBtnBackToNormal: !document.getElementById('playBtn').classList.contains('hint') })`));
+/* 点击引导卡 CTA → 关闭并开始播放，播放按钮恢复常规样式。
+   必须走真实鼠标：旧实现整卡可点且 window pointerdown 在按下瞬间就置
+   pointer-events:none，导致 mouseup 落到下层、click 的 target 退化为共同祖先，
+   引导卡的 click 永不触发 —— 而 DOM .click() 绕过命中测试，测不出来。 */
+const cta = await centerOf('#guideAct');
+console.log('A10 guide-cta-realclick:', cta ? 'found' : 'MISSING');
+if (cta) {
+  await realClick(cta.x, cta.y);
+  await sleep(1200);
+  console.log('A10 result:', await ev(`JSON.stringify({
+    playing: GS_APP.state.playing,
+    dismissed: document.getElementById('guide').classList.contains('out'),
+    playBtnBackToNormal: !document.getElementById('playBtn').classList.contains('hint') })`));
+}
 await ev(`GS_APP.pause()`); await sleep(300);
+
+/* A11. 播完后事件图标隐去，但任意地图交互即恢复，且恢复后这一下就能点开详情。
+   旧实现 body.story-end 只进不出，没有任何交互恢复 → 详情永久点不开。 */
+await ev(`window.GS_APP.state.speed = 12; window.GS_APP.timeline.setYear(46); window.GS_APP.play();`);
+for (var w = 0; w < 80; w++) { await sleep(400); if (!(await ev(`window.GS_APP.state.playing`))) break; }
+await sleep(900);
+const dotAfterEnd = await ev(`(function(){
+  var d = document.querySelector('.ev-dot.on'); if (!d) return 'NONE';
+  var r = d.getBoundingClientRect();
+  return JSON.stringify({ id: d.getAttribute('data-ev'),
+    pe: getComputedStyle(d).pointerEvents,
+    x: Math.round(r.x+r.width/2), y: Math.round(r.y+r.height/2) });
+})()`);
+console.log('A11 after-play-end dot:', dotAfterEnd, 'storyEnd:', await ev(`document.body.classList.contains('story-end')`));
+if (dotAfterEnd !== 'NONE') {
+  const dp = JSON.parse(dotAfterEnd);
+  if (dp.pe === 'none') { await realClick(dp.x, dp.y); await sleep(600); }  /* 先在标记位置落一次，恢复图标 */
+  const dp2 = JSON.parse(await ev(`(function(){
+    var d = document.querySelector('.ev-dot[data-ev="${dp.id}"]'); var r = d.getBoundingClientRect();
+    return JSON.stringify({ x: Math.round(r.x+r.width/2), y: Math.round(r.y+r.height/2) });
+  })()`));
+  await realClick(dp2.x, dp2.y);
+  await sleep(1000);
+  console.log('A11 result:', await ev(`JSON.stringify({
+    recovered: !document.body.classList.contains('story-end'),
+    detailOpen: !document.getElementById('detail').classList.contains('hidden'),
+    title: (document.querySelector('.d-cn')||{}).textContent })`));
+}
+await ev(`window.GS_APP.close()`); await sleep(300);
 
 /* A4. 初始视野聚焦地点密集区：全部事件地点应在视口内，且不覆盖整个地中海 */
 console.log('A4 initial-view:', await ev(`(function(){
@@ -216,8 +290,11 @@ await click('#backBtn');
 await sleep(500);
 console.log('C list-back:', await ev(`document.getElementById('list').classList.contains('hidden')?'HIDDEN':'shown'`), 'detail:', await ev(`window.GS_APP.state.detail`));
 
-/* D. 播放：年代递进 + 事件卡 + 当前事件（travel 已放慢至2.6s，停留 5.2s） */
-await click('#playBtn');
+/* D. 播放：年代递进 + 事件卡 + 当前事件（travel 2.6s，停留 5.2s） */
+await ev(`window.GS_APP.timeline.setYear(46); window.GS_APP.state.speed = 1;`);
+await sleep(200);
+const playBtnPos = await centerOf('#playBtn');
+if (playBtnPos) await realClick(playBtnPos.x, playBtnPos.y);
 await sleep(9000);
 console.log('D playing:', await ev(`window.GS_APP.state.playing`), 'year:', await ev(`document.getElementById('tlYear').textContent`), 'focus:', await ev(`window.GS_APP.state.focus`));
 console.log('D card:', await ev(`(function(){var n=document.getElementById('now');return n.classList.contains('show')?(n.querySelector('.card-t')?n.querySelector('.card-t').textContent:'toast'):'hide';})()`));
@@ -238,6 +315,33 @@ console.log('D2 route-progress:', await ev(`(function(){
   return JSON.stringify({ n: j1.base.getLatLngs().length, total: j1.path.length, headOn: j1.headOn });
 })()`));
 await shot('f3_playing.png');
+
+/* D3. 相机与描线同步回归：跨一个完整 travel 窗口（描线 2.6s）连续采样，
+ * 断言镜头中心紧跟路线行进光点（屏幕像素距离）且缩放随行程变化。
+ * 旧实现两者完全独立（相机只在事件前后各 flyTo 一次、zoom 硬编码 6.2），
+ * 采样会显示屏幕距离数百 px、zoom 恒定不变。 */
+var syncSamples = [];
+for (var s = 0; s < 16; s++) {
+  syncSamples.push(await ev(`(function(){
+    var map = GS_APP.map, j1 = GS.routeEngine.api.byId('j1');
+    if (!j1.headOn) return null;
+    var R = map.getSize();
+    var c = map.latLngToContainerPoint(j1.head.getLatLng());
+    return { d: Math.round(Math.sqrt(Math.pow(c.x-R.x/2,2)+Math.pow(c.y-R.y/2,2))), z: map.getZoom(), pts: j1.base.getLatLngs().length };
+  })()`));
+  await sleep(200);
+}
+var valid = syncSamples.filter(Boolean);
+var dists = valid.map(v => v.d);
+var zooms = valid.map(v => v.z);
+console.log('D3 samples:', JSON.stringify(valid));
+console.log('D3 verdict:', JSON.stringify({
+  maxCenterDistPx: Math.max.apply(null, dists),
+  avgCenterDistPx: Math.round(dists.reduce(function(a,b){return a+b;},0)/dists.length),
+  zoomChanged: Math.max.apply(null, zooms) !== Math.min.apply(null, zooms),
+  zoomRange: [Math.min.apply(null, zooms), Math.max.apply(null, zooms)],
+  routeGrew: valid[valid.length-1].pts > valid[0].pts
+}));
 await ev(`window.GS_APP.pause()`);
 await sleep(400);
 console.log('D paused:', await ev(`window.GS_APP.state.playing`));
@@ -290,9 +394,9 @@ console.log('I reset year:', await ev(`document.getElementById('tlYear').textCon
 
 /* I2. 播放到底：事件图标应整体隐去（story-end），任意交互后恢复
    临时把倍速调高以在合理时间内跑完整个序列（D 为只读引用，改state.speed 生效） */
-await ev(`window.GS_APP.state.speed = 8; window.GS_APP.timeline.setYear(46); window.GS_APP.play();`);
-for (var q = 0; q < 60; q++) {
-  await sleep(500);
+await ev(`window.GS_APP.state.speed = 12; window.GS_APP.timeline.setYear(46); window.GS_APP.play();`);
+for (var q = 0; q < 90; q++) {
+  await sleep(400);
   if (!(await ev(`window.GS_APP.state.playing`))) break;
 }
 await sleep(800);
@@ -303,10 +407,42 @@ await sleep(400);
 console.log('I2 after-interaction storyEnd:', await ev(`document.body.classList.contains('story-end')`));
 
 /* J. 移动端 */
+await ev(`sessionStorage.removeItem('gs.guide.seen.v1')`);
 await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });
 await send('Page.navigate', { url: PAGE });
-await sleep(4200);
+await sleep(4400);
 console.log('J mobile mapH:', await ev(`Math.round(document.getElementById('map').getBoundingClientRect().height)`));
+console.log('J mobile guide:', await ev(`(function(){
+  var gd = document.getElementById('guide');
+  var g = gd.getBoundingClientRect();
+  function ov(elm){ var r=elm.getBoundingClientRect();
+    return Math.round(Math.max(0,Math.min(g.right,r.right)-Math.max(g.left,r.left)) * Math.max(0,Math.min(g.bottom,r.bottom)-Math.max(g.top,r.top))); }
+  return JSON.stringify({ visible: !gd.classList.contains('hidden'),
+    mapOverlap: ov(document.getElementById('map')),
+    playBtnOverlap: ov(document.getElementById('playBtn')),
+    inViewport: g.left >= 0 && g.right <= innerWidth && g.top >= 0 && g.bottom <= innerHeight });
+})()`));
+/* J2. 窄屏高度分配：事件列表区必须仍可容纳至少 3 行事件（曾实测被压到 45px，
+   列表整体不可见、引导横幅压住播放按钮 —— 且当时没有任何断言覆盖这条）。 */
+console.log('J2 mobile-layout:', await ev(`(function(){
+  var scEl = document.getElementById('scroll');
+  var sc = scEl.getBoundingClientRect();
+  var cb = document.getElementById('chapterbar').getBoundingClientRect();
+  /* 统计 scroll 区内有多少事件行有实际可视高度（未被压扁/挤出） */
+  var rows = [].slice.call(document.querySelectorAll('.ev'));
+  var rowH = rows.length ? rows[0].getBoundingClientRect().height : 0;
+  var usable = sc.height - cb.height;
+  return JSON.stringify({
+    scrollH: Math.round(sc.height),
+    chapterbarH: Math.round(cb.height),
+    usableForRows: Math.round(usable),
+    visibleRows: Math.max(0, Math.floor(usable / Math.max(1, rowH))),
+    mapH: Math.round(document.getElementById('map').getBoundingClientRect().height),
+    listRows: rows.length,
+    scrollable: scEl.scrollHeight > scEl.clientHeight + 1,
+    ok: sc.height >= 88 && usable / Math.max(1, rowH) >= 3
+  });
+})()`));
 await shot('f5_mobile.png');
 
 console.log('JS ERRORS:', errors.length ? errors.join(' | ') : 'NONE');
