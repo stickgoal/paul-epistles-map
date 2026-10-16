@@ -14,16 +14,20 @@ GS.timeline = (function () {
   function init(opts) {
     cfg = {
       from: opts.from, to: opts.to,
-      onYear: opts.onYear, onMark: opts.onMark, onBand: opts.onBand, onState: opts.onState
+      onYear: opts.onYear, onMark: opts.onMark, onBand: opts.onBand, onState: opts.onState,
+      onPending: opts.onPending
     };
     els = opts.els;
     state.year = opts.from;
+    var pending = 0;
 
     (opts.bands || []).forEach(function (b) {
+      if (b.from > cfg.to) { pending++; return; }   /* 完全在量程之外（后续章节待补充） */
       var band = document.createElement('div');
       band.className = 'tl-band';
       var l = Math.max(0, (b.from - cfg.from) / (cfg.to - cfg.from) * 100);
       var r = Math.min(100, (b.to - cfg.from) / (cfg.to - cfg.from) * 100);
+      if (b.to > cfg.to) band.classList.add('cut');  /* 被量程截断：右端加渐隐提示 */
       band.style.left = l + '%';
       band.style.width = Math.max(0, r - l) + '%';
       band.style.background = b.color;
@@ -33,7 +37,8 @@ GS.timeline = (function () {
       b.el = band;
     });
 
-    (opts.marks || []).forEach(function (m) {
+    var marks = opts.marks || [];
+    marks.forEach(function (m) {
       var d = document.createElement('button');
       d.className = 'tl-dot';
       d.style.left = ((m.from - cfg.from) / (cfg.to - cfg.from) * 100) + '%';
@@ -43,6 +48,47 @@ GS.timeline = (function () {
       els.dots.appendChild(d);
       m.el = d;
     });
+
+    /* 圆点防重叠：同年 / 相近年份的圆点在水平方向上左右微错位，
+     * 仍不足时再向下错行。规则：
+     *   1) 先尝试「同一行 + 水平偏移 ±7px」，让同年圆点并排；
+     *   2) 若该行水平空间仍不足（前后已有圆点），落到下一行。
+     * 这样 12 个挤在 AD 46–49 的事件最多占 3 行，轨道高度可控。
+     * 量程随数据动态变化，故按实际像素判定而非固定行数。 */
+    (function stagger() {
+      var w = els.dots.getBoundingClientRect().width;
+      if (!w) { setTimeout(stagger, 120); return; }
+      var D = 12;                /* 圆点直径 */
+      var STEP = 7;/* 同排水平错位步长 */
+      var ROW = 13;                                  /* 行距须 > 圆点直径，否则上下行压边 */
+      var sorted = marks.slice().sort(function (a, b) { return a.from - b.from; });
+      var rows = [];                /* rows[r] = [{x, half}] 该行已占位（half = 左半宽） */
+      sorted.forEach(function (m) {
+        var x0 = (m.from - cfg.from) / (cfg.to - cfg.from) * w;
+        var placed = false;
+        for (var r = 0; r <= rows.length && !placed; r++) {
+          var occ = rows[r] || (rows[r] = []);
+          /* 依次尝试 x0, x0+STEP, x0-STEP, x0+2*STEP, ... */
+          for (var k = 0; k < 8; k++) {
+            var sgn = (k % 2 === 0) ? 1 : -1;
+            var x = x0 + sgn * Math.ceil(k / 2) * STEP;
+            if (x < D / 2) x = D / 2;
+            if (x > w - D / 2) x = w - D / 2;
+            var hit = occ.some(function (o) { return Math.abs(o - x) < D + 1; });
+            if (!hit) {
+              occ.push(x);
+              /* left 保持百分比（随量程变化），像素偏移写入 --dx 供 hover 缩放时保持 */
+              m.el.style.setProperty('--dx', (x - x0) + 'px');
+              m.el.style.top = (9 + r * ROW) + 'px';
+              m.el.dataset.row = r;
+              placed = true;
+              break;
+            }
+          }
+        }
+      });
+      if (cfg.onPending) cfg.onPending({ count: pending, marks: marks, rows: rows.length });
+    })();
 
     /* 拖拽 / 点击轨道 */
     var dragging = false;
