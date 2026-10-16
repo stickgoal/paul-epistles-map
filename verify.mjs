@@ -59,7 +59,41 @@ console.log('A ev-dots:', await ev(`document.querySelectorAll('.ev-dot').length`
 console.log('A places:', await ev(`document.querySelectorAll('.place').length`), 'ctx:', await ev(`document.querySelectorAll('.ctx').length`));
 console.log('A year:', await ev(`document.getElementById('tlYear').textContent`));
 console.log('A count:', await ev(`document.getElementById('tlCount').textContent`));
+/* A2. SEQ 顺序回归：同年事件必须保持 events.json 的叙事顺序（曾因 id 字典序 tie-break 导致播放乱序） */
+console.log('A2 seq-order:', await ev(`(function(){
+  var same = GS_APP.seq.filter(function(e){return e.from===46;}).map(function(e){return e.id;}).join(',');
+  var evOrder = GS_APP.events.filter(function(e){return e.from===46;}).map(function(e){return e.id;}).join(',');
+  return JSON.stringify({ seq46: same, events46: evOrder, match: same === evOrder });
+})()`));
 await shot('f1_boot.png');
+
+/* A3. 位置精度回归：marker 视觉中心 vs latLng 投影。
+ * place core 曾因 CSS 全段失效退化为 0×0；ev-dot 曾因 JS/CSS 双重 margin 偏移 6px。 */
+console.log('A3 position-accuracy:', await ev(`(function(){
+  var map = GS_APP.map;
+  var mapR = map.getContainer().getBoundingClientRect();
+  var placeDev = [], evDev = [];
+  GS_APP.places.forEach(function (p) {
+    if (p.ctx) return;
+    var el = document.querySelector('.place[data-place="' + p.id + '"]');
+    if (!el) return;
+    var r = el.closest('.place-icon').getBoundingClientRect();
+    var c = map.latLngToContainerPoint(p.ll);
+    var dx = (r.x + r.width/2) - (mapR.left + c.x), dy = (r.y + r.height/2) - (mapR.top + c.y);
+    if (Math.abs(dx) > 1.5 || Math.abs(dy) > 1.5) placeDev.push(p.id + ':' + Math.round(dx) + ',' + Math.round(dy));
+  });
+  GS_APP.events.forEach(function (e) {
+    var d = document.querySelector('.ev-dot[data-ev="' + e.id + '"]');
+    if (!d) return;
+    var r = d.getBoundingClientRect();
+    if (r.width === 0) return;
+    var c = map.latLngToContainerPoint(e.ll);
+    var dx = (r.x + r.width/2) - (mapR.left + c.x), dy = (r.y + r.height/2) - (mapR.top + c.y);
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > 30) evDev.push(e.id + ':' + Math.round(dist));  /* 设计圆周偏移半径 26 */
+  });
+  return JSON.stringify({ placeDev: placeDev, evDev: evDev });
+})()`));
 
 /* B. 点击列表事件 → 详情视图（士求保罗） */
 await click('.ev[data-ev="paphos-sergius"]');
@@ -83,15 +117,33 @@ console.log('D playing:', await ev(`window.GS_APP.state.playing`), 'year:', awai
 console.log('D card:', await ev(`(function(){var n=document.getElementById('now');return n.classList.contains('show')?(n.querySelector('.card-t')?n.querySelector('.card-t').textContent:'toast'):'hide';})()`));
 console.log('D cur-dot:', await ev(`document.querySelectorAll('.ev-dot.cur').length`));
 console.log('D lit:', await ev(`document.querySelectorAll('.place.lit').length`));
+/* D2. 描线同步：播放中路线点数应 > 1（事件驱动 seek 生效，而非停在起点） */
+console.log('D2 route-progress:', await ev(`(function(){
+  var j1 = GS.routeEngine.api.byId('j1');
+  return JSON.stringify({ n: j1.base.getLatLngs().length, total: j1.path.length, headOn: j1.headOn });
+})()`));
 await shot('f3_playing.png');
-await click('#playBtn');
+await ev(`window.GS_APP.pause()`);
 await sleep(400);
 console.log('D paused:', await ev(`window.GS_APP.state.playing`));
 
-/* E. 步进下一事件 */
+/* E. 步进下一事件（API 精确控制：鼠标点击+截图耗时可能漂移过 dwell 边界，导致断言假阴性） */
+var eBefore = await ev(`window.GS_APP.state.focus`);
 await ev(`window.GS_APP.step(1)`);
 await sleep(1200);
-console.log('E focus-after-step:', await ev(`window.GS_APP.state.focus`), 'year:', await ev(`document.getElementById('tlYear').textContent`));
+var eAfter = await ev(`window.GS_APP.state.focus`);
+console.log('E focus-after-step:', eAfter, 'year:', await ev(`document.getElementById('tlYear').textContent`), '| from:', eBefore, '→', eAfter);
+console.log('E step-adjacency:', await ev(`(function(){
+  var ids = GS_APP.seq.map(function(e){return e.id;});
+  var i = ids.indexOf('${eBefore}');
+  return JSON.stringify({ ok: i >= 0 && i + 1 < ids.length && ids[i+1] === '${eAfter}' });
+})()`));
+/* E2. 描线 seek 生效：步进到帕弗事件后，路线应已描到帕弗附近（n 明显 > 起点） */
+console.log('E2 route-after-step:', await ev(`(function(){
+  var j1 = GS.routeEngine.api.byId('j1');
+  var head = j1.headOn ? j1.head.getLatLng() : null;
+  return JSON.stringify({ n: j1.base.getLatLngs().length, total: j1.path.length, head: head ? [Math.round(head.lat*100)/100, Math.round(head.lng*100)/100] : null });
+})()`));
 
 /* F. hash 深链 #e/lystra-stoning */
 await send('Page.navigate', { url: PAGE + '#e/lystra-stoning' });
