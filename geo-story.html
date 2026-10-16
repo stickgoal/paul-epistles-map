@@ -744,7 +744,8 @@ button{font-family:inherit;border:none;background:none}
 .ev:hover{background:#f1f1ed}
 .ev.active{background:var(--accent-soft)}
 .ev + .ev::before{content:'';position:absolute;top:0;left:12px;right:12px;height:1px;background:var(--hair-2)}
-.ev-tdot{flex:none;width:9px;height:9px;border-radius:50%}
+.ev-tdot{flex:none;width:20px;height:20px;border-radius:6px;border:1.4px solid currentColor;background:#fff;display:flex;align-items:center;justify-content:center}
+.ev-tdot svg{width:12px;height:12px;display:block}
 .ev-yr{flex:none;width:74px;font-size:11px;color:var(--ink-3);font-feature-settings:"tnum";letter-spacing:.01em}
 .ev-mid{flex:1;min-width:0}
 .ev-cn{font-size:14.5px;font-weight:600;letter-spacing:.01em}
@@ -761,7 +762,7 @@ button{font-family:inherit;border:none;background:none}
 .back{color:var(--ink-2);font-size:12.5px;cursor:pointer;padding:4px 0;margin-bottom:12px}
 .back:hover{color:var(--accent)}
 .d-type{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2);background:#fff;border:1px solid var(--hair);padding:4px 11px;border-radius:999px;margin-bottom:12px}
-.d-type i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.d-type svg{color:var(--c);flex:none}
 .d-cn{font-size:24px;font-weight:700;letter-spacing:-.01em}
 .d-en{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-3);margin-top:3px}
 .d-meta{margin:18px 0 6px;border-top:1px solid var(--hair)}
@@ -775,6 +776,11 @@ button{font-family:inherit;border:none;background:none}
 .d-verse p{font-family:var(--cjk-serif);font-size:15px;line-height:2.0;color:#2a2e33}
 .d-verse cite{display:block;margin-top:10px;font-size:11.5px;color:var(--ink-3);font-style:normal;letter-spacing:.03em}
 .d-media{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.d-mgroup{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.d-mgroup h5{grid-column:1/-1;font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);font-weight:600;margin:2px 0 -2px}
+.d-mgroup:has(h5:only-child){display:block}
+.d-media.empty{display:block}
+.d-mnote{font-size:12px;line-height:1.7;color:var(--ink-2);border:1px dashed var(--hair);border-radius:10px;padding:11px 13px;margin-bottom:10px}
 .m-fig{margin:0;border:1px solid var(--hair);border-radius:10px;overflow:hidden;background:#fff}
 .m-fig img{width:100%;display:block;aspect-ratio:4/3;object-fit:cover}
 .m-fig figcaption{padding:8px 10px;font-size:11px;color:var(--ink-2);line-height:1.5}
@@ -797,6 +803,10 @@ button{font-family:inherit;border:none;background:none}
 .play{display:flex;align-items:center;gap:6px;border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 13px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s}
 .play:hover{border-color:var(--ink-3);color:var(--ink)}
 .play.playing{background:var(--ink);border-color:var(--ink);color:#fff}
+/* 未播放时的主行动号召：深色实心 + 呼吸光晕，播放后恢复常规样式 */
+.play.hint{background:var(--ink);border-color:var(--ink);color:#fff;padding:7px 16px;font-size:12.5px;font-weight:600;box-shadow:0 2px 10px rgba(20,20,18,.18);animation:breathe 2.8s cubic-bezier(.4,0,.5,1) infinite}
+.play.hint:hover{background:#000;border-color:#000}
+@keyframes breathe{0%,100%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 0 rgba(20,20,18,.16)}50%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 7px rgba(20,20,18,0)}}
 .play .i-pause{display:none}
 .play.playing .i-play{display:none}
 .play.playing .i-pause{display:block}
@@ -804,22 +814,38 @@ button{font-family:inherit;border:none;background:none}
 .tl-step:hover{border-color:var(--ink-3);color:var(--ink)}
 .tl-speed{border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 10px;font-size:11px;color:var(--ink-2);cursor:pointer;transition:.2s;font-feature-settings:"tnum";flex:none}
 .tl-speed:hover{border-color:var(--ink-3);color:var(--ink)}
-.tl-track{position:relative;height:36px;cursor:pointer;touch-action:none;margin-top:2px}
+/* 轨道高度须容纳「圆点最大行数 × 13px + 起始 9px」+ 色带 3px + 间隙。
+ * 12 事件挤在 AD 46–49（量程 46–54）时实测最多 3 行，故取 60px；
+ * 行数由 timeline 的 stagger 按实际像素判定并写入 onPending(rows)。*/
+.tl-track{position:relative;height:60px;cursor:pointer;touch-action:none;margin-top:2px}
 .tl-rail{position:absolute;left:0;right:0;top:14px;height:2px;background:var(--hair);border-radius:2px}
-.tl-band{position:absolute;top:26px;height:3px;border-radius:1.5px;pointer-events:none;opacity:.34;transition:opacity .35s,filter .35s;cursor:pointer}
+/* 章节色带：3px → 5px 并提高基础不透明度，否则在浅灰底图上几乎不可见 */
+.tl-band{position:absolute;top:56px;height:5px;border-radius:2.5px;opacity:.5;transition:opacity .35s,filter .35s;cursor:pointer}
+.tl-band.cut{-webkit-mask-image:linear-gradient(90deg,#000 72%,transparent);mask-image:linear-gradient(90deg,#000 72%,transparent)}
 .tl-band:hover{opacity:.7}
-.tl-band.on{opacity:1;filter:saturate(1.35) brightness(.88)}
-.tl-band.past{opacity:.62}
-.tl-band.future{opacity:.18}
+.tl-band.on{opacity:1;filter:saturate(1.35) brightness(.85)}
+.tl-band.past{opacity:.72}
+.tl-band.future{opacity:.32}
 .tl-prog{position:absolute;left:0;top:14px;height:2px;background:var(--ink);border-radius:2px;width:100%}
-.tl-dot{position:absolute;top:9px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#fff;border:2px solid var(--c,#c3c6bd);transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .25s,border-color .25s;cursor:pointer;padding:0}
-.tl-dot:hover{transform:scale(1.35)}
+.tl-dot{position:absolute;top:9px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#fff;border:2px solid var(--c,#c3c6bd);transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .25s,border-color .25s;cursor:pointer;padding:0;z-index:2;transform:translateX(var(--dx,0px))}
+.tl-dot:hover{transform:translateX(var(--dx,0px)) scale(1.35)}
 .tl-dot.on{background:var(--c,#c2593f);border-color:var(--c,#c2593f)}
 .tl-knob{position:absolute;top:4px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#fff;border:1px solid var(--hair);box-shadow:0 2px 10px rgba(20,20,18,.16);display:flex;align-items:center;justify-content:center;transition:transform .15s;pointer-events:none}
 .tl-track:active .tl-knob{transform:scale(1.12)}
 .tl-knob::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ink)}
 .tl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-feature-settings:"tnum";margin-top:2px}
-.tl-keys{margin-top:10px;font-size:10.5px;color:var(--ink-3);letter-spacing:.02em}
+.tl-keys{margin-top:10px;font-size:11.5px;color:var(--ink-2);letter-spacing:.02em}
+
+/* ============ 首屏引导卡（H-2：让「可播放」可发现） ============ */
+.guide{position:absolute;left:50%;top:22%;transform:translate(-50%,-50%);z-index:900;width:min(400px,calc(100% - 48px));background:rgba(255,255,255,.94);backdrop-filter:saturate(1.5) blur(14px);-webkit-backdrop-filter:saturate(1.5) blur(14px);border:1px solid var(--hair);border-radius:16px;box-shadow:0 14px 44px rgba(20,20,18,.15);padding:22px 24px 20px;text-align:center;cursor:pointer;transition:opacity .4s,transform .4s cubic-bezier(.3,.8,.3,1);animation:guidein .55s cubic-bezier(.2,.9,.3,1)}
+.guide.out{opacity:0;transform:translate(-50%,calc(-50% - 12px)) scale(.97);pointer-events:none}
+@keyframes guidein{from{opacity:0;transform:translate(-50%,calc(-50% + 14px)) scale(.97)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.guide h3{font-size:16.5px;font-weight:650;letter-spacing:-.01em;margin-bottom:7px}
+.guide p{font-size:12.5px;line-height:1.72;color:var(--ink-2);margin-bottom:15px}
+.guide .g-act{display:inline-flex;align-items:center;gap:7px;background:var(--ink);color:#fff;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:600;box-shadow:0 2px 12px rgba(20,20,18,.2)}
+.guide .g-alt{margin-top:11px;font-size:11.5px;color:var(--ink-3)}
+.guide .g-alt kbd{font:inherit;border:1px solid var(--hair);border-radius:4px;padding:1px 5px;background:#fff;color:var(--ink-2)}
+@media (max-width:767px){.guide{top:auto;bottom:96px;transform:translateX(-50%)}.guide.out{transform:translateX(-50%) scale(.97)}@keyframes guidein{from{opacity:0;transform:translateX(-50%) scale(.97)}to{opacity:1;transform:translateX(-50%) scale(1)}}}
 
 /* ============ 地图 ============ */
 #map{flex:1;position:relative;background:radial-gradient(1100px 720px at 32% 18%,#eef0ec,#e5e8e2)}
@@ -831,10 +857,23 @@ button{font-family:inherit;border:none;background:none}
 .chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
 .chip.ghost{background:rgba(255,255,255,.75)}
 
-.legend{position:absolute;left:16px;bottom:16px;z-index:1200;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:13px 15px 11px;box-shadow:var(--shadow);min-width:212px}
+.legend{position:absolute;left:16px;bottom:16px;z-index:1200;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:11px 15px 11px;box-shadow:var(--shadow);min-width:212px}
 .legend h4{font-size:10.5px;color:var(--ink-3);letter-spacing:.12em;margin-bottom:9px;font-weight:600}
+/* L-1：折叠态只留一行摘要；<1100px 时强制收起（与播放中事件卡的空间冲突） */
+.lg-toggle{display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
+.lg-toggle h4{margin-bottom:0}
+.lg-sum{flex:1;text-align:left;font-size:11px;color:var(--ink-2);white-space:nowrap}
+.lg-caret{color:var(--ink-3);transition:transform .28s cubic-bezier(.3,.8,.3,1);flex:none}
+.legend.open .lg-caret{transform:rotate(180deg)}
+.lg-body{max-height:420px;opacity:1;transition:max-height .34s cubic-bezier(.3,.8,.3,1),opacity .26s,margin .3s;overflow:hidden}
+.legend:not(.open) .lg-body{max-height:0;opacity:0;margin-top:0}
+.legend:not(.open){padding-bottom:11px}
+@media (max-width:1100px){.legend.open{z-index:1300}}
+@media (max-width:767px){.legend{display:none}}
 .lg-row{display:flex;align-items:center;gap:9px;padding:3px 0;color:var(--ink-2);font-size:12px}
 .dot-sw{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;margin:0 4.5px}
+.ic-sw{width:18px;height:18px;border-radius:5px;border:1.4px solid currentColor;background:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.ic-sw svg{width:12px;height:12px;display:block}
 .lg-j{display:flex;align-items:center;gap:9px;padding:4px 7px;margin:1px -7px;color:var(--ink-2);font-size:12px;border-radius:8px;cursor:pointer;transition:.15s}
 .lg-j:hover{background:#f1f1ed;color:var(--ink)}
 .lg-j i{width:16px;height:3px;border-radius:2px;flex:none}
@@ -884,20 +923,27 @@ button{font-family:inherit;border:none;background:none}
 
 /* 地点标记（核心 + 事件点） */
 .place-icon{pointer-events:none}
-.place{position:relative;width:78px;height:78px}
-.place .glow{position:absolute;left:50%;top:50%;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 6%,transparent) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
+.place{position:relative;width:96px;height:96px}
+.place .glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 6%,transparent) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
 .place.lit .glow{opacity:1}
-.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:pulse 3s cubic-bezier(.2,.6,.4,1) infinite;pointer-events:none;opacity:.5}
+.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:pulse 4.6s cubic-bezier(.2,.6,.4,1) infinite;pointer-events:none;opacity:.5}
 .place .core{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#fff;border:3.5px solid #b9bdb4;box-shadow:0 1px 5px rgba(20,20,18,.25);cursor:pointer;pointer-events:auto;transition:transform .25s cubic-bezier(.34,1.56,.64,1),border-color .3s;z-index:4}
 .place:hover .core{transform:scale(1.25);border-color:var(--accent)}
-.ev-dot{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#fff;border:2.5px solid var(--c);cursor:pointer;pointer-events:auto;transform:scale(.2);opacity:0;transition:opacity .3s,transform .45s cubic-bezier(.34,1.56,.64,1),background .25s,box-shadow .25s;padding:0;z-index:3}
+
+/* 事件标记：按类型区分的线性图标（与地点核心的圆点形态明确区分） */
+.ev-dot{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:7px;background:#fff;border:1.6px solid var(--c);color:var(--c);display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;transform:scale(.2);opacity:0;transition:opacity .3s,transform .45s cubic-bezier(.34,1.56,.64,1),background .25s,color .25s,box-shadow .3s,border-color .3s;padding:0;z-index:3;box-shadow:0 1px 4px rgba(20,20,18,.18)}
+.ev-dot svg{width:13px;height:13px;display:block;pointer-events:none}
 .ev-dot.on{opacity:1;transform:scale(1)}
-.ev-dot.on:hover{transform:scale(1.3)}
-.ev-dot.cur{background:var(--c);box-shadow:0 0 0 5px color-mix(in srgb,var(--c) 22%,transparent)}
-.ev-dot.hl{box-shadow:0 0 0 6px var(--accent-soft)}
-.ev-dot.pop{animation:dotpop .55s cubic-bezier(.34,1.56,.64,1)}
-@keyframes dotpop{0%{transform:scale(.2)}55%{transform:scale(1.4)}100%{transform:scale(1)}}
-.ev-label{position:absolute;left:50%;bottom:15px;transform:translate(-50%,6px);background:rgba(255,255,255,.97);border:1px solid var(--hair);border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s cubic-bezier(.2,.7,.3,1);z-index:6}
+.ev-dot.on:hover{transform:scale(1.22);box-shadow:0 3px 10px rgba(20,20,18,.22)}
+/* 播放中：未到达的事件隐去，已到达的淡出，当前事件高亮 */
+.ev-dot.dim{opacity:.26;color:var(--ink-3);border-color:var(--hair);box-shadow:none}
+.ev-dot.cur{opacity:1;background:var(--c);color:#fff;border-color:var(--c);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 24%,transparent),0 4px 14px color-mix(in srgb,var(--c) 40%,transparent);transform:scale(1.18);z-index:7}
+.ev-dot.hl{box-shadow:0 0 0 5px var(--accent-soft)}
+.ev-dot.pop{animation:dotpop .62s cubic-bezier(.34,1.56,.64,1)}
+@keyframes dotpop{0%{transform:scale(.2)}55%{transform:scale(1.45)}100%{transform:scale(1.18)}}
+/* 播放结束后事件图标整体隐去，回到干净底图；任何交互即恢复 */
+body.story-end .ev-dot{opacity:0;pointer-events:none}
+.ev-label{position:absolute;left:50%;bottom:26px;transform:translate(-50%,6px);background:rgba(255,255,255,.97);border:1px solid var(--hair);border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s cubic-bezier(.2,.7,.3,1);z-index:6}
 .ev-dot.cur .ev-label{opacity:1;transform:translate(-50%,0)}
 body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 
@@ -907,16 +953,16 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 
 /* 点亮特效 */
 .fx-ic{pointer-events:none}
-.fx-glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin .45s ease-out forwards}
-@keyframes fxin{to{opacity:1}}
+.fx-glow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin 1.4s ease-out forwards}
+@keyframes fxin{0%{opacity:0}22%{opacity:1}to{opacity:1}}
 
 /* 旅程动画 */
 .travel-ic{pointer-events:none}
 .td{width:15px;height:15px;margin:-7.5px 0 0 -7.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 5px color-mix(in srgb,var(--c,#c2593f) 22%,transparent),0 0 16px color-mix(in srgb,var(--c,#c2593f) 55%,transparent);position:relative}
-.td::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.55;animation:pulse 1.7s ease-out infinite}
-.route-flow{animation:dashflow 2.6s linear infinite}
-@keyframes dashflow{to{stroke-dashoffset:-28}}
-@keyframes pulse{0%{transform:scale(1);opacity:.5}70%{transform:scale(3.4);opacity:0}100%{transform:scale(3.4);opacity:0}}
+.td::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.55;animation:pulse 2.8s ease-out infinite}
+.route-flow{animation:dashflow 6.5s linear infinite}
+@keyframes dashflow{to{stroke-dashoffset:-56}}
+@keyframes pulse{0%{transform:scale(1);opacity:.45}70%{transform:scale(3);opacity:0}100%{transform:scale(3);opacity:0}}
 .rh-ic{pointer-events:none}
 .rh{width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#c2593f) 20%,transparent),0 0 14px color-mix(in srgb,var(--c,#c2593f) 65%,transparent);position:relative}
 .rh::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.5;animation:pulse 1.7s ease-out infinite}
@@ -932,7 +978,10 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
   .tl{padding:12px 22px 14px}
   .chips{top:10px;left:10px;gap:6px}
   .chip{padding:6px 11px;font-size:11.5px}
-  .now{bottom:14px}
+  /* L-3：事件卡改顶部通栏，把底部留给地图；chips 同步让位 */
+  .now{top:52px;left:12px;right:12px;bottom:auto;transform:translateY(-14px);max-width:none;border-radius:12px;padding:11px 14px 10px}
+  .now.show{transform:translateY(0)}
+  .card-more{padding:6px 12px;font-size:11.5px}
 }
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.01ms!important;transition-duration:.01ms!important}
@@ -945,7 +994,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
     <header class="hd">
       <div class="eyebrow">新约 · 使徒行传与保罗书信</div>
       <h1>保罗故事地图</h1>
-      <div class="sub">Three Missionary Journeys and the Voyage to Rome</div>
+      <div class="sub">The Journeys of Paul · AD 46–67</div>
       <div class="stats" id="stats"></div>
     </header>
 
@@ -979,7 +1028,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
         <div class="tl-dots" id="tlDots"></div>
         <div class="tl-knob" id="tlKnob"></div>
       </div>
-      <div class="tl-scale"><span>AD 46</span><span>AD 57</span><span>AD 67</span></div>
+      <div class="tl-scale" id="tlScale"></div>
       <div class="tl-keys">空格 播放 / 暂停 · ← → 步进事件 · Esc 返回列表 · 点击事件标记查看详情</div>
     </footer>
   </aside>
@@ -991,16 +1040,35 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
       <button class="chip on" data-layer="labels">地名</button>
       <button class="chip ghost" id="resetBtn">重置视图</button>
     </div>
-    <div class="legend">
-      <h4>图例 · 事件类型</h4>
-      <div id="typeLegend"></div>
-      <h4 style="margin-top:11px">传道旅程</h4>
-      <div id="journeyLegend"></div>
-      <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
+    <!-- L-1：图例可折叠（旅程信息与统计区/时间轴色带三处重复，默认收起摘要） -->
+    <div class="legend" id="legend">
+      <button class="lg-toggle" id="lgToggle" aria-expanded="false">
+        <h4>图例</h4>
+        <span class="lg-sum" id="lgSum">7 类事件 · 1 段旅程 · 点击展开</span>
+        <svg viewBox="0 0 12 12" width="10" height="10" class="lg-caret"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="lg-body" id="lgBody">
+        <h4>事件类型</h4>
+        <div id="typeLegend"></div>
+        <h4 style="margin-top:11px">传道旅程</h4>
+        <div id="journeyLegend"></div>
+        <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
+      </div>
     </div>
     <div class="now" id="now"></div>
     <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet · 经文引自和合本</div>
   </main>
+
+  <!-- 首屏引导：核心交互「时间轴故事播放」的可发现性（H-2）。sessionStorage 记忆，不重复打扰 -->
+  <div class="guide hidden" id="guide">
+    <h3>按时间轴播放这段旅程</h3>
+    <p>地图会随年代推移逐个点亮事件地点，并展开每个事件的经文与资料。<br>共 <b id="guideN">0</b> 个事件 · <span id="guideSpan">AD 46–49</span></p>
+    <span class="g-act">
+      <svg viewBox="0 0 12 12" width="10" height="10"><path d="M2.5 1.2 10 6l-7.5 4.8z" fill="currentColor"/></svg>
+      开始播放
+    </span>
+    <div class="g-alt">或点击地图标记查看详情 · 随时按 <kbd>空格</kbd> 开始</div>
+  </div>
 </div>
 
 <script>
@@ -1047,8 +1115,9 @@ GS.mapCore = (function () {
   var map = null, glowMarker = null, litTimer = null;
   var lastItems = [], lastObstacleSel = '.place .core, .place .ev-dot, .ctx';
   var labelTimer = null, lastLabelZoom = 0;
+  var lastFit = null;
 
-  var FIT = [[27.6, -11.8], [47.8, 44.2]];
+  var DEFAULT_FIT = [[27.6, -11.8], [47.8, 44.2]];
   var LABEL_CANDIDATES = [
     ['right', [14, 0]], ['right', [14, -12]],
     ['left', [-14, 0]], ['left', [-14, 12]],
@@ -1063,7 +1132,8 @@ GS.mapCore = (function () {
       zoomControl: false, attributionControl: false,
       minZoom: 3, maxZoom: 10, zoomSnap: .5, wheelPxPerZoomLevel: 140
     });
-    map.fitBounds(opts.fit || FIT, { padding: [26, 26], animate: false });
+    var fit = lastFit = opts.fit || DEFAULT_FIT;
+    map.fitBounds(fit, { padding: [26, 26], animate: false });
     L.control.zoom({ position: 'topright' }).addTo(map);
     L.control.scale({ position: 'bottomright', imperial: false, maxWidth: 120 }).addTo(map);
 
@@ -1078,6 +1148,54 @@ GS.mapCore = (function () {
     });
     for (var lo = -10; lo <= 40; lo += 5) {
       L.polyline([[27, lo], [48.5, lo]], { color: '#e0e3dc', weight: .7, opacity: .9, interactive: false }).addTo(grat);
+    }
+
+    /* 初始视野加固：容器尺寸未定（iframe/小窗/字体加载）时 fitBounds 会算错 zoom，
+     * 而之后的 invalidateSize 只重定位 marker、不重新适配视野。
+     * 用户首次交互前，布局稳定后重放初始 fit；onReady 供调用方补做依赖尺寸的测量。
+     * 防护：容器尺寸异常（布局中间态可能读到 0 宽）时跳过本次，fitBounds 会把 zoom 爆到 max。 */
+    var ready = false, locked = false;
+    function validSize() {
+      var s = map.getSize();
+      return s.x > 200 && s.y > 120;
+    }
+    function settle() {
+      if (locked || ready) return;
+      if (!validSize()) return;   /* 布局未就绪，等下一次时机 */
+      var before = map.getSize();
+      map.invalidateSize();
+      map.fitBounds(fit, { padding: [26, 26], animate: false });
+      if (Math.abs(map.getSize().x - before.x) < 1 && Math.abs(map.getSize().y - before.y) < 1) {
+        ready = true;
+        if (opts.onReady) opts.onReady();
+      }
+    }
+    requestAnimationFrame(function () { requestAnimationFrame(settle); });
+    setTimeout(settle, 350);
+    setTimeout(settle, 1000);
+    map.on('zoomstart dragstart', function () { locked = true; });
+
+    /* 容器尺寸监控：iframe 嵌入 / 窗口缩放 / CSS 过渡都可能不派发 window resize，
+     * Leaflet 的 trackResize 收不到，_size 缓存停留在中间态（曾实测读到 0 宽，
+     * 导致 marker 全部错位）。ResizeObserver 直接观察容器，兜底轮距保底。 */
+    var lastW = map.getContainer().getBoundingClientRect().width;
+    var lastH = map.getContainer().getBoundingClientRect().height;
+    function onContainerResize() {
+      if (locked) return;
+      var r = map.getContainer().getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return;               /* 布局中间态，跳过 */
+      if (Math.abs(r.width - lastW) < 1 && Math.abs(r.height - lastH) < 1) return;
+      lastW = r.width; lastH = r.height;
+      map.invalidateSize();
+      if (!ready) { settle(); return; }
+      map.fitBounds(fit, { padding: [26, 26], animate: false });
+      clearTimeout(labelTimer);
+      labelTimer = setTimeout(function () { if (lastItems.length) placeLabels(lastItems, lastObstacleSel); }, 180);
+    }
+    if (window.ResizeObserver) {
+      new ResizeObserver(onContainerResize).observe(map.getContainer());
+    } else {
+      setInterval(onContainerResize, 250);
     }
 
     lastLabelZoom = map.getZoom();
@@ -1108,32 +1226,33 @@ GS.mapCore = (function () {
     if (glowMarker) { map.removeLayer(glowMarker); glowMarker = null; }
   }
 
-  /* 点亮某坐标：柔光 + 双重涟漪（keep=true 持续到 clearLit） */
+  /* 点亮某坐标：柔光 + 双重涟漪（keep=true 持续到 clearLit）
+   * 涟漪节奏放慢（原 1.5s 扩散 + 0.42s 二次触发 → 视觉过于频闪） */
   function lit(ll, color, keep) {
     color = color || '#c2593f';
     clearLit();
     var icon = L.divIcon({
       className: 'fx-ic',
       html: '<div class="fx-glow" style="--c:' + color + '"></div>',
-      iconSize: [150, 150], iconAnchor: [75, 75]
+      iconSize: [170, 170], iconAnchor: [85, 85]
     });
     glowMarker = L.marker(ll, { icon: icon, interactive: false, zIndexOffset: 600 }).addTo(map);
     ripple(ll, color);
-    setTimeout(function () { ripple(ll, color); }, 420);
-    if (!keep) litTimer = setTimeout(clearLit, 3400);
+    setTimeout(function () { ripple(ll, color); }, 1150);
+    if (!keep) litTimer = setTimeout(clearLit, 4600);
   }
 
-  /* 地图原生涟漪圈：从坐标向外扩散后消散 */
+  /* 地图原生涟漪圈：从坐标向外扩散后消散（2.9s 单程） */
   function ripple(ll, color) {
     color = color || '#c2593f';
-    var ring = L.circleMarker(ll, { radius: 4, color: color, weight: 1.5, opacity: .5, fill: false, interactive: false }).addTo(map);
+    var ring = L.circleMarker(ll, { radius: 4, color: color, weight: 1.5, opacity: .42, fill: false, interactive: false }).addTo(map);
     var t0 = performance.now();
     (function grow(t) {
-      var p = Math.min(1, (t - t0) / 1500);
+      var p = Math.min(1, (t - t0) / 2900);
       if (p >= 1) { map.removeLayer(ring); return; }
       var e = 1 - Math.pow(1 - p, 2.4);
-      ring.setRadius(4 + e * 62);
-      ring.setStyle({ opacity: .5 * (1 - p) });
+      ring.setRadius(4 + e * 74);
+      ring.setStyle({ opacity: .42 * (1 - p) });
       requestAnimationFrame(grow);
     })(t0);
   }
@@ -1186,7 +1305,7 @@ GS.mapCore = (function () {
     ripple: ripple,
     placeLabels: placeLabels,
     setLabelsVisible: function (v) { map.getContainer().classList.toggle('hide-labels', !v); },
-    resetView: function () { map.flyToBounds(FIT, { padding: [26, 26], duration: .9 }); }
+    resetView: function () { map.flyToBounds(lastFit || DEFAULT_FIT, { padding: [26, 26], duration: .9 }); }
   };
   return { init: init };
 })();
@@ -1261,17 +1380,26 @@ GS.routeEngine = (function () {
     });
     j.headOn = true;
     j.sig = '';
+    j.stopInfo = j.stops.map(function (s, i) { return { p: s.p || null, d: j.dist[i] }; });
     applyTime(getYear());
   }
 
-  /* 时间驱动：future 尚未出发（隐藏） / now 正在行进（全亮+流光+光点） / past 已完成（暗淡保留） */
+  /* 年份线性进度（拖拽时间轴时使用） */
+  function yearP(j, y) {
+    if (y < j.from) return 0;
+    if (y > j.to) return 1;
+    return (y - j.from) / (j.to - j.from);
+  }
+
+  /* 时间驱动：future 尚未出发（隐藏） / now 正在行进（全亮+流光+光点） / past 已完成（暗淡保留）
+   * now 态进度优先用事件驱动值 j.hold（播放中由 seek 设置），否则按年份线性映射（拖拽时间轴）。 */
   function applyTime(y) {
     routes.forEach(function (j) {
       if (!j.drawn) return;
       var st, p;
       if (y < j.from) { st = 'future'; p = 0; }
       else if (y > j.to) { st = 'past'; p = 1; }
-      else { st = 'now'; p = (y - j.from) / (j.to - j.from); }
+      else { st = 'now'; p = (j.hold != null) ? j.hold : yearP(j, y); }
       var target = p * j.total, k = 0;
       while (k < j.cum.length - 1 && j.cum[k + 1] <= target) k++;
       var sig = st + '|' + k;
@@ -1296,9 +1424,65 @@ GS.routeEngine = (function () {
     });
   }
 
+  /* 事件驱动描线：把路线进度推到 ev 对应站点（place id 匹配 stops.p）。
+   * 同一地点出现多次时（去程/回程），取「当前进度之后」的最近站点——
+   * 回访事件因此自然落到回程段；无匹配（地点不在该旅程上）则保持当前进度。
+   * dur > 0 时补间渐变（沿线"画"过去），dur = 0 即瞬移（拖拽/步进场景）。 */
+  var seekRaf = 0;
+  function cancelSeek() { if (seekRaf) { cancelAnimationFrame(seekRaf); seekRaf = 0; } }
+
+  function seek(ev, dur) {
+    if (!ev || !ev.place) return;
+    cancelSeek();
+    var plan = [];
+    routes.forEach(function (j) {
+      if (!j.drawn || !j.stopInfo) return;
+      var cands = [];
+      for (var s = 0; s < j.stopInfo.length; s++) {
+        if (j.stopInfo[s].p === ev.place) cands.push(j.stopInfo[s]);
+      }
+      if (!cands.length) return;
+      var from = (j.hold != null) ? j.hold : yearP(j, getYear());
+      var cur = from * j.total;
+      var pick = null;
+      for (var c = 0; c < cands.length; c++) {
+        if (cands[c].d >= cur - 1e-6) { pick = cands[c]; break; }
+      }
+      if (!pick) pick = cands[cands.length - 1];
+      plan.push({ j: j, from: from, to: pick.d / j.total });
+    });
+    if (!plan.length) return;
+
+    if (!(dur > 0)) {
+      plan.forEach(function (x) { x.j.hold = x.to; });
+      applyTime(getYear());
+      return;
+    }
+    /* 只前进不后退：回程事件若落在已描线之后则前进，否则直接定位 */
+    var t0 = performance.now();
+    (function frame(t) {
+      var p = Math.min(1, (t - t0) / dur);
+      var e = p < 1 ? 1 - Math.pow(1 - p, 3) : 1;   /* easeOutCubic：起步快、收尾稳 */
+      plan.forEach(function (x) {
+        var tgt = x.from + (x.to - x.from) * e;
+        x.j.hold = (x.to > x.from) ? Math.max(x.from, tgt) : x.to;
+      });
+      applyTime(getYear());
+      if (p < 1) seekRaf = requestAnimationFrame(frame);
+      else seekRaf = 0;
+    })(t0);
+  }
+
+  /* 解除事件驱动，恢复年份线性映射（拖拽 / 步进 / 章节跳转时由调用方触发） */
+  function release() {
+    cancelSeek();
+    routes.forEach(function (j) { j.hold = null; });
+  }
+
   /* 旅程重播动画：光点沿路径行进，留下拖尾 */
   var travel = { marker: null, trail: null, raf: 0, timer: 0, active: null };
   function cancelTravel() {
+    cancelSeek();
     cancelAnimationFrame(travel.raf);
     clearTimeout(travel.timer);
     if (travel.marker) { travel.marker._map && travel.marker._map.removeLayer(travel.marker); travel.marker = null; }
@@ -1312,14 +1496,14 @@ GS.routeEngine = (function () {
     var icon = L.divIcon({ className: 'travel-ic', html: '<div class="td" style="--c:' + j.color + '"></div>', iconSize: [15, 15], iconAnchor: [7.5, 7.5] });
     travel.marker = L.marker(j.path[0], { icon: icon, interactive: false, zIndexOffset: 1000 }).addTo(layer);
     travel.trail = L.polyline([j.path[0]], { color: j.color, weight: 3, opacity: .95, lineCap: 'round', interactive: false }).addTo(layer);
-    var path = j.path, N = path.length, dur = 9000, t0 = performance.now();
+    var path = j.path, N = path.length, dur = 15000, t0 = performance.now();
     (function frame(t) {
       var p = Math.min(1, (t - t0) / dur);
       var idx = Math.floor(p * (N - 1));
       if (travel.marker) travel.marker.setLatLng(path[idx]);
       if (travel.trail) travel.trail.setLatLngs(path.slice(0, idx + 1));
       if (p < 1 && travel.active === j) travel.raf = requestAnimationFrame(frame);
-      else { travel.timer = setTimeout(function () { if (travel.active === j) { cancelTravel(); if (done) done(); } }, 1500); }
+      else { travel.timer = setTimeout(function () { if (travel.active === j) { cancelTravel(); if (done) done(); } }, 2200); }
     })(t0);
   }
 
@@ -1329,8 +1513,11 @@ GS.routeEngine = (function () {
       routes.forEach(function (j, i) { setTimeout(function () { draw(j); if (cb) cb(j); }, i * (staggerMs || 0)); });
     },
     applyTime: applyTime,
+    seek: seek,
+    release: release,
     replay: replay,
     cancelTravel: cancelTravel,
+    cancelSeek: cancelSeek,
     byId: function (id) { return byId[id]; },
     all: function () { return routes; }
   };
@@ -1355,16 +1542,20 @@ GS.timeline = (function () {
   function init(opts) {
     cfg = {
       from: opts.from, to: opts.to,
-      onYear: opts.onYear, onMark: opts.onMark, onBand: opts.onBand, onState: opts.onState
+      onYear: opts.onYear, onMark: opts.onMark, onBand: opts.onBand, onState: opts.onState,
+      onPending: opts.onPending
     };
     els = opts.els;
     state.year = opts.from;
+    var pending = 0;
 
     (opts.bands || []).forEach(function (b) {
+      if (b.from > cfg.to) { pending++; return; }   /* 完全在量程之外（后续章节待补充） */
       var band = document.createElement('div');
       band.className = 'tl-band';
       var l = Math.max(0, (b.from - cfg.from) / (cfg.to - cfg.from) * 100);
       var r = Math.min(100, (b.to - cfg.from) / (cfg.to - cfg.from) * 100);
+      if (b.to > cfg.to) band.classList.add('cut');  /* 被量程截断：右端加渐隐提示 */
       band.style.left = l + '%';
       band.style.width = Math.max(0, r - l) + '%';
       band.style.background = b.color;
@@ -1374,7 +1565,8 @@ GS.timeline = (function () {
       b.el = band;
     });
 
-    (opts.marks || []).forEach(function (m) {
+    var marks = opts.marks || [];
+    marks.forEach(function (m) {
       var d = document.createElement('button');
       d.className = 'tl-dot';
       d.style.left = ((m.from - cfg.from) / (cfg.to - cfg.from) * 100) + '%';
@@ -1384,6 +1576,47 @@ GS.timeline = (function () {
       els.dots.appendChild(d);
       m.el = d;
     });
+
+    /* 圆点防重叠：同年 / 相近年份的圆点在水平方向上左右微错位，
+     * 仍不足时再向下错行。规则：
+     *   1) 先尝试「同一行 + 水平偏移 ±7px」，让同年圆点并排；
+     *   2) 若该行水平空间仍不足（前后已有圆点），落到下一行。
+     * 这样 12 个挤在 AD 46–49 的事件最多占 3 行，轨道高度可控。
+     * 量程随数据动态变化，故按实际像素判定而非固定行数。 */
+    (function stagger() {
+      var w = els.dots.getBoundingClientRect().width;
+      if (!w) { setTimeout(stagger, 120); return; }
+      var D = 12;                /* 圆点直径 */
+      var STEP = 7;/* 同排水平错位步长 */
+      var ROW = 13;                                  /* 行距须 > 圆点直径，否则上下行压边 */
+      var sorted = marks.slice().sort(function (a, b) { return a.from - b.from; });
+      var rows = [];                /* rows[r] = [{x, half}] 该行已占位（half = 左半宽） */
+      sorted.forEach(function (m) {
+        var x0 = (m.from - cfg.from) / (cfg.to - cfg.from) * w;
+        var placed = false;
+        for (var r = 0; r <= rows.length && !placed; r++) {
+          var occ = rows[r] || (rows[r] = []);
+          /* 依次尝试 x0, x0+STEP, x0-STEP, x0+2*STEP, ... */
+          for (var k = 0; k < 8; k++) {
+            var sgn = (k % 2 === 0) ? 1 : -1;
+            var x = x0 + sgn * Math.ceil(k / 2) * STEP;
+            if (x < D / 2) x = D / 2;
+            if (x > w - D / 2) x = w - D / 2;
+            var hit = occ.some(function (o) { return Math.abs(o - x) < D + 1; });
+            if (!hit) {
+              occ.push(x);
+              /* left 保持百分比（随量程变化），像素偏移写入 --dx 供 hover 缩放时保持 */
+              m.el.style.setProperty('--dx', (x - x0) + 'px');
+              m.el.style.top = (9 + r * ROW) + 'px';
+              m.el.dataset.row = r;
+              placed = true;
+              break;
+            }
+          }
+        }
+      });
+      if (cfg.onPending) cfg.onPending({ count: pending, marks: marks, rows: rows.length });
+    })();
 
     /* 拖拽 / 点击轨道 */
     var dragging = false;
@@ -1498,107 +1731,625 @@ GS.timeline = (function () {
 /* ================= 数据（构建期内联，见 data/*.json） ================= */
 var GEO = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"W. Sahara"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-8.67,27.66],[-8.66,27.59],[-8.67,27.5],[-8.81,27.5],[-8.82,27.66],[-8.67,27.66]]]]}},{"type":"Feature","properties":{"name":"Russia"},"geometry":{"type":"MultiPolygon","coordinates":[[[[43.5,48.5],[43.5,42.83],[42.4,43.22],[40.92,43.38],[40.08,43.55],[39.95,43.44],[38.68,44.28],[37.54,44.66],[36.68,45.24],[37.4,45.41],[38.23,46.24],[37.67,46.64],[39.15,47.05],[39.12,47.26],[38.22,47.1],[38.26,47.55],[38.77,47.83],[39.74,47.9],[39.9,48.23],[39.79,48.5],[43.5,48.5]]],[[[33.44,45.97],[33.7,46.22],[34.41,46],[34.73,45.97],[34.86,45.77],[35.01,45.74],[35.02,45.65],[35.51,45.41],[36.53,45.47],[36.33,45.11],[35.24,44.94],[33.88,44.36],[33.33,44.57],[33.55,45.03],[32.45,45.33],[32.63,45.52],[33.59,45.85],[33.44,45.97]]]]}},{"type":"Feature","properties":{"name":"France"},"geometry":{"type":"MultiPolygon","coordinates":[[[[7.72,48.5],[7.59,48.33],[7.47,47.62],[7.19,47.45],[6.74,47.54],[6.77,47.29],[6.04,46.73],[6.02,46.27],[6.5,46.43],[6.84,45.99],[6.8,45.71],[7.1,45.33],[6.75,45.03],[7.01,44.25],[7.55,44.13],[7.44,43.69],[6.53,43.13],[4.56,43.4],[3.1,43.07],[2.99,42.47],[1.83,42.34],[0.7,42.8],[0.34,42.58],[-1.5,43.03],[-1.9,43.42],[-1.38,44.02],[-1.19,46.01],[-2.23,47.06],[-2.96,47.57],[-4.49,47.95],[-4.57,48.5],[7.72,48.5]]],[[[8.75,42.63],[9.39,43.01],[9.56,42.15],[9.23,41.38],[8.78,41.58],[8.54,42.26],[8.75,42.63]]]]}},{"type":"Feature","properties":{"name":"Israel"},"geometry":{"type":"MultiPolygon","coordinates":[[[[35.72,32.71],[35.54,32.39],[35.18,32.53],[34.98,31.87],[35.22,31.75],[34.97,31.62],[34.93,31.35],[35.4,31.49],[35.42,31.1],[34.92,29.5],[34.82,29.76],[34.27,31.22],[34.55,31.55],[34.49,31.61],[34.75,32.07],[34.95,32.83],[35.1,33.08],[35.13,33.09],[35.46,33.09],[35.55,33.26],[35.82,33.28],[35.84,32.87],[35.7,32.72],[35.72,32.71]]]]}},{"type":"Feature","properties":{"name":"Lebanon"},"geometry":{"type":"MultiPolygon","coordinates":[[[[35.82,33.28],[35.55,33.26],[35.46,33.09],[35.13,33.09],[35.48,33.91],[35.98,34.61],[36,34.65],[36.45,34.59],[36.61,34.2],[36.07,33.82],[35.82,33.28]]]]}},{"type":"Feature","properties":{"name":"Palestine"},"geometry":{"type":"MultiPolygon","coordinates":[[[[35.4,31.49],[34.93,31.35],[34.97,31.62],[35.22,31.75],[34.98,31.87],[35.18,32.53],[35.54,32.39],[35.54,31.78],[35.4,31.49]]]]}},{"type":"Feature","properties":{"name":"Tunisia"},"geometry":{"type":"MultiPolygon","coordinates":[[[[9.48,30.31],[9.06,32.1],[8.44,32.51],[8.43,32.75],[7.61,33.34],[7.53,34.1],[8.14,34.66],[8.38,35.48],[8.22,36.43],[8.42,36.95],[9.51,37.35],[10.21,37.23],[10.18,36.72],[11.03,37.09],[11.1,36.9],[10.6,36.41],[10.59,35.95],[10.94,35.7],[10.81,34.83],[10.15,34.33],[10.34,33.79],[10.86,33.77],[11.11,33.29],[11.49,33.14],[11.43,32.37],[10.95,32.08],[10.64,31.76],[9.95,31.38],[10.06,30.96],[9.97,30.54],[9.48,30.31]]]]}},{"type":"Feature","properties":{"name":"Algeria"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-8.67,27.5],[-8.66,27.59],[-8.67,27.66],[-8.67,28.84],[-7.06,29.58],[-6.06,29.73],[-5.24,30],[-4.86,30.5],[-3.69,30.9],[-3.65,31.64],[-3.07,31.72],[-2.62,32.09],[-1.31,32.26],[-1.13,32.65],[-1.39,32.86],[-1.73,33.92],[-1.79,34.53],[-2.17,35.17],[-1.21,35.72],[-0.13,35.89],[0.5,36.3],[1.47,36.61],[3.16,36.78],[4.82,36.86],[5.32,36.72],[6.26,37.11],[7.33,37.12],[7.74,36.89],[8.42,36.95],[8.22,36.43],[8.38,35.48],[8.14,34.66],[7.53,34.1],[7.61,33.34],[8.43,32.75],[8.44,32.51],[9.06,32.1],[9.48,30.31],[9.8,29.42],[9.86,28.96],[9.68,28.14],[9.76,27.69],[9.71,27.5],[-8.67,27.5]]]]}},{"type":"Feature","properties":{"name":"Jordan"},"geometry":{"type":"MultiPolygon","coordinates":[[[[35.54,32.39],[35.72,32.71],[36.83,32.31],[38.79,33.38],[39.2,32.16],[39,32.01],[37,31.51],[38,30.51],[37.67,30.34],[37.5,30],[36.74,29.87],[36.5,29.51],[36.07,29.2],[34.95,29.36],[34.92,29.5],[35.42,31.1],[35.4,31.49],[35.54,31.78],[35.54,32.39]]]]}},{"type":"Feature","properties":{"name":"Iraq"},"geometry":{"type":"MultiPolygon","coordinates":[[[[39.2,32.16],[38.79,33.38],[41.01,34.42],[41.38,35.63],[41.29,36.36],[41.84,36.61],[42.35,37.23],[42.78,37.39],[43.5,37.31],[43.5,30.04],[41.89,31.19],[40.4,31.89],[39.2,32.16]]]]}},{"type":"Feature","properties":{"name":"Syria"},"geometry":{"type":"MultiPolygon","coordinates":[[[[35.72,32.71],[35.7,32.72],[35.84,32.87],[35.82,33.28],[36.07,33.82],[36.61,34.2],[36.45,34.59],[36,34.65],[35.9,35.41],[36.15,35.82],[36.42,36.04],[36.69,36.26],[36.74,36.82],[37.07,36.62],[38.17,36.9],[38.7,36.71],[39.52,36.72],[40.68,37.09],[41.21,37.07],[42.35,37.23],[41.84,36.61],[41.29,36.36],[41.38,35.63],[41.01,34.42],[38.79,33.38],[36.83,32.31],[35.72,32.71]]]]}},{"type":"Feature","properties":{"name":"Ukraine"},"geometry":{"type":"MultiPolygon","coordinates":[[[[39.79,48.5],[39.9,48.23],[39.74,47.9],[38.77,47.83],[38.26,47.55],[38.22,47.1],[37.42,47.02],[36.76,46.7],[35.82,46.65],[34.96,46.27],[35.01,45.74],[34.86,45.77],[34.73,45.97],[34.41,46],[33.7,46.22],[33.44,45.97],[33.3,46.08],[31.74,46.33],[31.67,46.71],[30.75,46.58],[30.38,46.03],[29.6,45.29],[29.15,45.46],[28.68,45.3],[28.23,45.49],[28.49,45.6],[28.66,45.94],[28.94,46.26],[28.86,46.44],[29.07,46.52],[29.17,46.38],[29.76,46.35],[30.03,46.42],[29.84,46.53],[29.91,46.67],[29.56,46.93],[29.41,47.35],[29.05,47.51],[29.12,47.85],[28.67,48.12],[28.26,48.16],[27.52,48.47],[26.86,48.37],[26.62,48.22],[26.2,48.22],[25.95,47.99],[25.21,47.89],[24.87,47.74],[24.4,47.98],[23.76,47.99],[23.14,48.1],[22.71,47.88],[22.64,48.15],[22.08,48.42],[22.12,48.5],[39.79,48.5]]]]}},{"type":"Feature","properties":{"name":"Austria"},"geometry":{"type":"MultiPolygon","coordinates":[[[[16.98,48.12],[16.9,47.72],[16.34,47.71],[16.53,47.5],[16.2,46.85],[16.01,46.68],[15.14,46.66],[14.63,46.43],[13.81,46.51],[12.38,46.77],[12.15,47.11],[11.17,46.94],[11.05,46.75],[10.44,46.89],[9.93,46.92],[9.48,47.1],[9.63,47.35],[9.6,47.52],[9.89,47.58],[10.4,47.3],[10.54,47.57],[11.42,47.52],[12.14,47.7],[12.62,47.67],[12.93,47.47],[13.03,47.64],[12.88,48.29],[13.24,48.42],[13.31,48.5],[16.9,48.5],[16.88,48.47],[16.98,48.12]]]]}},{"type":"Feature","properties":{"name":"Hungary"},"geometry":{"type":"MultiPolygon","coordinates":[[[[22.08,48.42],[22.64,48.15],[22.71,47.88],[22.1,47.67],[21.63,46.99],[21.02,46.32],[20.22,46.13],[19.6,46.17],[18.83,45.91],[18.46,45.76],[17.63,45.95],[16.88,46.38],[16.57,46.5],[16.37,46.84],[16.2,46.85],[16.53,47.5],[16.34,47.71],[16.9,47.72],[16.98,48.12],[17.49,47.87],[17.86,47.76],[18.7,47.88],[18.78,48.08],[19.18,48.11],[19.66,48.27],[19.77,48.2],[20.24,48.33],[20.41,48.5],[21.24,48.5],[21.87,48.32],[22.08,48.42]]]]}},{"type":"Feature","properties":{"name":"Moldova"},"geometry":{"type":"MultiPolygon","coordinates":[[[[26.62,48.22],[26.86,48.37],[27.52,48.47],[28.26,48.16],[28.67,48.12],[29.12,47.85],[29.05,47.51],[29.41,47.35],[29.56,46.93],[29.91,46.67],[29.84,46.53],[30.03,46.42],[29.76,46.35],[29.17,46.38],[29.07,46.52],[28.86,46.44],[28.94,46.26],[28.66,45.94],[28.49,45.6],[28.23,45.49],[28.05,45.95],[28.16,46.37],[28.13,46.81],[27.55,47.41],[27.23,47.83],[26.92,48.12],[26.62,48.22]]]]}},{"type":"Feature","properties":{"name":"Romania"},"geometry":{"type":"MultiPolygon","coordinates":[[[[28.23,45.49],[28.68,45.3],[29.15,45.46],[29.6,45.29],[29.63,45.04],[29.14,44.82],[28.84,44.91],[28.56,43.71],[27.97,43.81],[27.24,44.18],[26.07,43.94],[25.57,43.69],[24.1,43.74],[23.33,43.9],[22.94,43.82],[22.66,44.24],[22.47,44.41],[22.71,44.58],[22.46,44.7],[22.15,44.48],[21.56,44.77],[21.48,45.18],[20.87,45.42],[20.76,45.74],[20.22,46.13],[21.02,46.32],[21.63,46.99],[22.1,47.67],[22.71,47.88],[23.14,48.1],[23.76,47.99],[24.4,47.98],[24.87,47.74],[25.21,47.89],[25.95,47.99],[26.2,48.22],[26.62,48.22],[26.92,48.12],[27.23,47.83],[27.55,47.41],[28.13,46.81],[28.16,46.37],[28.05,45.95],[28.23,45.49]]]]}},{"type":"Feature","properties":{"name":"Germany"},"geometry":{"type":"MultiPolygon","coordinates":[[[[13.31,48.5],[13.24,48.42],[12.88,48.29],[13.03,47.64],[12.93,47.47],[12.62,47.67],[12.14,47.7],[11.42,47.52],[10.54,47.57],[10.4,47.3],[9.89,47.58],[9.6,47.52],[8.52,47.83],[8.32,47.61],[7.47,47.62],[7.59,48.33],[7.72,48.5],[13.31,48.5]]]]}},{"type":"Feature","properties":{"name":"Bulgaria"},"geometry":{"type":"MultiPolygon","coordinates":[[[[22.66,44.24],[22.94,43.82],[23.33,43.9],[24.1,43.74],[25.57,43.69],[26.07,43.94],[27.24,44.18],[27.97,43.81],[28.56,43.71],[28.04,43.29],[27.68,42.58],[28,42.01],[27.14,42.14],[26.12,41.83],[26.11,41.33],[25.2,41.23],[24.49,41.58],[23.69,41.31],[22.95,41.34],[22.88,42],[22.38,42.32],[22.55,42.46],[22.44,42.58],[22.61,42.9],[22.98,43.21],[22.5,43.64],[22.41,44.01],[22.66,44.24]]]]}},{"type":"Feature","properties":{"name":"Greece"},"geometry":{"type":"MultiPolygon","coordinates":[[[[26.29,35.3],[26.16,35],[24.72,34.92],[24.73,35.09],[23.51,35.28],[23.7,35.71],[24.25,35.37],[25.03,35.43],[25.77,35.35],[25.75,35.18],[26.29,35.3]]],[[[22.95,41.34],[23.69,41.31],[24.49,41.58],[25.2,41.23],[26.11,41.33],[26.12,41.83],[26.6,41.56],[26.29,40.94],[26.06,40.82],[25.45,40.85],[24.92,40.95],[23.72,40.69],[24.41,40.12],[23.9,39.96],[23.34,39.96],[22.82,40.48],[22.63,40.26],[22.85,39.66],[23.35,39.19],[22.97,38.97],[23.53,38.51],[24.02,38.22],[24.04,37.65],[23.11,37.92],[23.41,37.41],[22.78,37.3],[23.15,36.42],[22.49,36.41],[21.67,36.84],[21.3,37.64],[21.12,38.31],[20.73,38.77],[20.22,39.34],[20.15,39.63],[20.62,40.11],[20.67,40.44],[21,40.58],[21.02,40.84],[21.67,40.93],[22.06,41.15],[22.6,41.13],[22.76,41.3],[22.95,41.34]]]]}},{"type":"Feature","properties":{"name":"Turkey"},"geometry":{"type":"MultiPolygon","coordinates":[[[[43.5,37.31],[42.78,37.39],[42.35,37.23],[41.21,37.07],[40.68,37.09],[39.52,36.72],[38.7,36.71],[38.17,36.9],[37.07,36.62],[36.74,36.82],[36.69,36.26],[36.42,36.04],[36.15,35.82],[35.78,36.28],[36.16,36.65],[35.55,36.56],[34.71,36.8],[34.03,36.22],[32.51,36.11],[31.7,36.64],[30.62,36.68],[30.39,36.26],[29.7,36.15],[28.73,36.68],[27.64,36.66],[27.05,37.65],[26.32,38.21],[26.8,38.99],[26.17,39.46],[27.28,40.42],[28.82,40.46],[29.24,41.22],[31.15,41.09],[32.35,41.74],[33.51,42.02],[35.17,42.04],[36.91,41.33],[38.35,40.95],[39.51,41.1],[40.37,41.01],[41.55,41.54],[42.62,41.58],[43.5,41.14],[43.5,37.31]]],[[[26.12,41.83],[27.14,42.14],[28,42.01],[28.11,41.62],[28.99,41.3],[28.81,41.06],[27.62,41],[27.19,40.69],[26.36,40.15],[26.04,40.62],[26.06,40.82],[26.29,40.94],[26.6,41.56],[26.12,41.83]]]]}},{"type":"Feature","properties":{"name":"Albania"},"geometry":{"type":"MultiPolygon","coordinates":[[[[21.02,40.84],[21,40.58],[20.67,40.44],[20.62,40.11],[20.15,39.63],[19.98,39.69],[19.96,39.91],[19.41,40.25],[19.32,40.73],[19.4,41.41],[19.54,41.72],[19.37,41.88],[19.31,42.2],[19.74,42.69],[19.8,42.5],[20.07,42.59],[20.28,42.32],[20.52,42.22],[20.59,41.86],[20.46,41.52],[20.6,41.09],[21.02,40.84]]]]}},{"type":"Feature","properties":{"name":"Croatia"},"geometry":{"type":"MultiPolygon","coordinates":[[[[16.57,46.5],[16.88,46.38],[17.63,45.95],[18.46,45.76],[18.83,45.91],[19.07,45.52],[19.39,45.24],[19.01,44.86],[18.55,45.08],[17.86,45.07],[17,45.23],[16.53,45.21],[16.32,45],[15.96,45.23],[15.75,44.82],[16.24,44.35],[16.46,44.04],[16.91,43.67],[17.3,43.45],[17.67,43.03],[18.56,42.65],[18.45,42.48],[17.51,42.85],[16.93,43.21],[16.01,43.51],[15.18,44.24],[15.38,44.32],[14.92,44.74],[14.9,45.08],[14.26,45.23],[13.95,44.8],[13.66,45.14],[13.68,45.48],[13.71,45.5],[14.41,45.47],[14.6,45.64],[14.93,45.47],[15.33,45.45],[15.32,45.73],[15.67,45.83],[15.77,46.24],[16.57,46.5]]]]}},{"type":"Feature","properties":{"name":"Switzerland"},"geometry":{"type":"MultiPolygon","coordinates":[[[[9.6,47.52],[9.63,47.35],[9.48,47.1],[9.93,46.92],[10.44,46.89],[10.36,46.48],[9.92,46.31],[9.18,46.44],[8.97,46.04],[8.49,46],[8.32,46.16],[7.76,45.82],[7.27,45.78],[6.84,45.99],[6.5,46.43],[6.02,46.27],[6.04,46.73],[6.77,47.29],[6.74,47.54],[7.19,47.45],[7.47,47.62],[8.32,47.61],[8.52,47.83],[9.6,47.52]]]]}},{"type":"Feature","properties":{"name":"Portugal"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-9.03,41.88],[-8.67,42.14],[-8.26,42.28],[-8.01,41.79],[-7.42,41.79],[-7.25,41.92],[-6.67,41.88],[-6.39,41.38],[-6.85,41.11],[-6.86,40.33],[-7.03,40.19],[-7.07,39.71],[-7.5,39.63],[-7.1,39.03],[-7.37,38.37],[-7.03,38.08],[-7.17,37.8],[-7.54,37.43],[-7.45,37.1],[-7.86,36.84],[-8.38,36.98],[-8.9,36.87],[-8.75,37.65],[-8.84,38.27],[-9.29,38.36],[-9.53,38.74],[-9.45,39.39],[-9.05,39.76],[-8.98,40.16],[-8.77,40.76],[-8.79,41.18],[-8.99,41.54],[-9.03,41.88]]]]}},{"type":"Feature","properties":{"name":"Spain"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-7.45,37.1],[-7.54,37.43],[-7.17,37.8],[-7.03,38.08],[-7.37,38.37],[-7.1,39.03],[-7.5,39.63],[-7.07,39.71],[-7.03,40.19],[-6.86,40.33],[-6.85,41.11],[-6.39,41.38],[-6.67,41.88],[-7.25,41.92],[-7.42,41.79],[-8.01,41.79],[-8.26,42.28],[-8.67,42.14],[-9.03,41.88],[-8.98,42.59],[-9.39,43.03],[-7.98,43.75],[-6.76,43.57],[-5.41,43.57],[-4.35,43.4],[-3.52,43.46],[-1.9,43.42],[-1.5,43.03],[0.34,42.58],[0.7,42.8],[1.83,42.34],[2.99,42.47],[3.04,41.89],[2.09,41.23],[0.81,41.01],[0.72,40.68],[0.11,40.12],[-0.28,39.31],[0.11,38.74],[-0.47,38.29],[-0.68,37.64],[-1.44,37.44],[-2.15,36.67],[-3.41,36.66],[-4.37,36.68],[-5,36.32],[-5.38,35.95],[-5.87,36.03],[-6.24,36.37],[-6.52,36.94],[-7.45,37.1]]]]}},{"type":"Feature","properties":{"name":"Italy"},"geometry":{"type":"MultiPolygon","coordinates":[[[[10.44,46.89],[11.05,46.75],[11.17,46.94],[12.15,47.11],[12.38,46.77],[13.81,46.51],[13.7,46.02],[13.94,45.59],[13.14,45.74],[12.33,45.38],[12.38,44.89],[12.26,44.6],[12.59,44.09],[13.53,43.59],[14.03,42.76],[15.14,41.96],[15.92,41.96],[16.17,41.74],[15.89,41.54],[16.79,41.18],[17.52,40.88],[18.38,40.36],[18.48,40.17],[18.29,39.81],[17.74,40.28],[16.87,40.44],[16.45,39.8],[17.17,39.43],[17.05,38.9],[16.63,38.84],[16.1,37.99],[15.68,37.91],[15.69,38.22],[15.89,38.75],[16.11,38.96],[15.72,39.54],[15.41,40.05],[15,40.17],[14.7,40.61],[14.06,40.79],[13.63,41.19],[12.89,41.25],[12.11,41.71],[11.19,42.36],[10.51,42.93],[10.2,43.92],[9.7,44.04],[8.89,44.37],[8.43,44.23],[7.85,43.77],[7.44,43.69],[7.55,44.13],[7.01,44.25],[6.75,45.03],[7.1,45.33],[6.8,45.71],[6.84,45.99],[7.27,45.78],[7.76,45.82],[8.32,46.16],[8.49,46],[8.97,46.04],[9.18,46.44],[9.92,46.31],[10.36,46.48],[10.44,46.89]]],[[[14.76,38.14],[15.52,38.23],[15.16,37.44],[15.31,37.13],[15.1,36.62],[14.33,37],[13.83,37.1],[12.43,37.61],[12.57,38.13],[13.74,38.04],[14.76,38.14]]],[[[8.71,40.9],[9.21,41.21],[9.81,40.5],[9.67,39.18],[9.21,39.24],[8.81,38.91],[8.43,39.17],[8.39,40.38],[8.16,40.95],[8.71,40.9]]]]}},{"type":"Feature","properties":{"name":"Georgia"},"geometry":{"type":"MultiPolygon","coordinates":[[[[39.95,43.44],[40.08,43.55],[40.92,43.38],[42.4,43.22],[43.5,42.83],[43.5,41.14],[42.62,41.58],[41.55,41.54],[41.7,41.96],[41.45,42.64],[40.88,43.01],[40.32,43.13],[39.95,43.44]]]]}},{"type":"Feature","properties":{"name":"Slovenia"},"geometry":{"type":"MultiPolygon","coordinates":[[[[13.81,46.51],[14.63,46.43],[15.14,46.66],[16.01,46.68],[16.2,46.85],[16.37,46.84],[16.57,46.5],[15.77,46.24],[15.67,45.83],[15.32,45.73],[15.33,45.45],[14.93,45.47],[14.6,45.64],[14.41,45.47],[13.71,45.5],[13.94,45.59],[13.7,46.02],[13.81,46.51]]]]}},{"type":"Feature","properties":{"name":"Slovakia"},"geometry":{"type":"MultiPolygon","coordinates":[[[[22.12,48.5],[22.08,48.42],[21.87,48.32],[21.24,48.5],[20.41,48.5],[20.24,48.33],[19.77,48.2],[19.66,48.27],[19.18,48.11],[18.78,48.08],[18.7,47.88],[17.86,47.76],[17.49,47.87],[16.98,48.12],[16.88,48.47],[16.9,48.5],[22.12,48.5]]]]}},{"type":"Feature","properties":{"name":"Saudi Arabia"},"geometry":{"type":"MultiPolygon","coordinates":[[[[34.95,29.36],[36.07,29.2],[36.5,29.51],[36.74,29.87],[37.5,30],[37.67,30.34],[38,30.51],[37,31.51],[39,32.01],[39.2,32.16],[40.4,31.89],[41.89,31.19],[43.5,30.04],[43.5,27.5],[35.55,27.5],[35.13,28.06],[34.63,28.06],[34.79,28.61],[34.83,28.96],[34.95,29.36]]]]}},{"type":"Feature","properties":{"name":"N. Cyprus"},"geometry":{"type":"MultiPolygon","coordinates":[[[[32.73,35.14],[32.8,35.14],[32.95,35.39],[33.67,35.37],[34.58,35.67],[33.9,35.25],[33.98,35.06],[33.87,35.09],[33.68,35.02],[33.53,35.04],[33.47,35],[33.46,35.1],[33.38,35.16],[33.19,35.17],[32.92,35.09],[32.73,35.14]]]]}},{"type":"Feature","properties":{"name":"Cyprus"},"geometry":{"type":"MultiPolygon","coordinates":[[[[32.73,35.14],[32.92,35.09],[33.19,35.17],[33.38,35.16],[33.46,35.1],[33.47,35],[33.53,35.04],[33.68,35.02],[33.87,35.09],[33.98,35.06],[34,34.98],[32.98,34.57],[32.49,34.7],[32.26,35.1],[32.73,35.14]]]]}},{"type":"Feature","properties":{"name":"Morocco"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-2.17,35.17],[-1.79,34.53],[-1.73,33.92],[-1.39,32.86],[-1.13,32.65],[-1.31,32.26],[-2.62,32.09],[-3.07,31.72],[-3.65,31.64],[-3.69,30.9],[-4.86,30.5],[-5.24,30],[-6.06,29.73],[-7.06,29.58],[-8.67,28.84],[-8.67,27.66],[-8.82,27.66],[-8.81,27.5],[-11.5,27.5],[-11.5,28.31],[-10.9,28.83],[-10.4,29.1],[-9.56,29.93],[-9.82,31.18],[-9.43,32.04],[-9.3,32.57],[-8.66,33.24],[-7.66,33.7],[-6.91,34.11],[-6.24,35.15],[-5.93,35.76],[-5.19,35.76],[-4.59,35.33],[-3.64,35.4],[-2.6,35.18],[-2.17,35.17]]]]}},{"type":"Feature","properties":{"name":"Egypt"},"geometry":{"type":"MultiPolygon","coordinates":[[[[25,27.5],[25,29.24],[24.7,30.04],[24.96,30.66],[24.8,31.09],[25.17,31.57],[26.49,31.59],[27.46,31.32],[28.45,31.03],[28.91,30.87],[29.68,31.19],[30.09,31.47],[30.98,31.56],[31.69,31.43],[31.96,30.93],[32.19,31.26],[32.99,31.02],[33.77,30.97],[34.27,31.22],[34.82,29.76],[34.92,29.5],[34.64,29.1],[34.43,28.34],[34.16,27.82],[33.92,27.65],[33.59,27.97],[33.14,28.42],[32.42,29.85],[32.32,29.76],[32.73,28.7],[33.35,27.7],[33.45,27.5],[25,27.5]]]]}},{"type":"Feature","properties":{"name":"Libya"},"geometry":{"type":"MultiPolygon","coordinates":[[[[9.71,27.5],[9.76,27.69],[9.68,28.14],[9.86,28.96],[9.8,29.42],[9.48,30.31],[9.97,30.54],[10.06,30.96],[9.95,31.38],[10.64,31.76],[10.95,32.08],[11.43,32.37],[11.49,33.14],[12.66,32.79],[13.08,32.88],[13.92,32.71],[15.24,32.27],[15.71,31.38],[16.61,31.18],[18.02,30.76],[19.09,30.27],[19.58,30.53],[20.05,30.99],[19.82,31.75],[20.13,32.24],[20.85,32.71],[21.54,32.84],[22.89,32.64],[23.24,32.19],[23.61,32.19],[23.93,32.02],[24.92,31.9],[25.17,31.57],[24.8,31.09],[24.96,30.66],[24.7,30.04],[25,29.24],[25,27.5],[9.71,27.5]]]]}},{"type":"Feature","properties":{"name":"Bosnia and Herz."},"geometry":{"type":"MultiPolygon","coordinates":[[[[18.56,42.65],[17.67,43.03],[17.3,43.45],[16.91,43.67],[16.46,44.04],[16.24,44.35],[15.75,44.82],[15.96,45.23],[16.32,45],[16.53,45.21],[17,45.23],[17.86,45.07],[18.55,45.08],[19.01,44.86],[19.37,44.86],[19.12,44.42],[19.6,44.04],[19.45,43.57],[19.22,43.52],[19.03,43.43],[18.71,43.2],[18.56,42.65]]]]}},{"type":"Feature","properties":{"name":"Macedonia"},"geometry":{"type":"MultiPolygon","coordinates":[[[[22.38,42.32],[22.88,42],[22.95,41.34],[22.76,41.3],[22.6,41.13],[22.06,41.15],[21.67,40.93],[21.02,40.84],[20.6,41.09],[20.46,41.52],[20.59,41.86],[20.72,41.85],[20.76,42.05],[21.35,42.21],[21.58,42.25],[21.92,42.3],[22.38,42.32]]]]}},{"type":"Feature","properties":{"name":"Serbia"},"geometry":{"type":"MultiPolygon","coordinates":[[[[18.83,45.91],[19.6,46.17],[20.22,46.13],[20.76,45.74],[20.87,45.42],[21.48,45.18],[21.56,44.77],[22.15,44.48],[22.46,44.7],[22.71,44.58],[22.47,44.41],[22.66,44.24],[22.41,44.01],[22.5,43.64],[22.98,43.21],[22.61,42.9],[22.44,42.58],[22.55,42.46],[22.38,42.32],[21.92,42.3],[21.58,42.25],[21.54,42.32],[21.66,42.44],[21.77,42.68],[21.63,42.68],[21.44,42.86],[21.27,42.91],[21.14,43.07],[20.96,43.13],[20.81,43.27],[20.63,43.22],[20.5,42.88],[20.26,42.81],[20.34,42.9],[19.96,43.11],[19.63,43.21],[19.49,43.35],[19.22,43.52],[19.45,43.57],[19.6,44.04],[19.12,44.42],[19.37,44.86],[19.01,44.86],[19.39,45.24],[19.07,45.52],[18.83,45.91]]]]}},{"type":"Feature","properties":{"name":"Montenegro"},"geometry":{"type":"MultiPolygon","coordinates":[[[[20.07,42.59],[19.8,42.5],[19.74,42.69],[19.31,42.2],[19.37,41.88],[19.16,41.96],[18.88,42.28],[18.45,42.48],[18.56,42.65],[18.71,43.2],[19.03,43.43],[19.22,43.52],[19.49,43.35],[19.63,43.21],[19.96,43.11],[20.34,42.9],[20.26,42.81],[20.07,42.59]]]]}},{"type":"Feature","properties":{"name":"Kosovo"},"geometry":{"type":"MultiPolygon","coordinates":[[[[20.59,41.86],[20.52,42.22],[20.28,42.32],[20.07,42.59],[20.26,42.81],[20.5,42.88],[20.63,43.22],[20.81,43.27],[20.96,43.13],[21.14,43.07],[21.27,42.91],[21.44,42.86],[21.63,42.68],[21.77,42.68],[21.66,42.44],[21.54,42.32],[21.58,42.25],[21.35,42.21],[20.76,42.05],[20.72,41.85],[20.59,41.86]]]]}},{"type":"Feature","properties":{"name":"Malta"},"geometry":{"type":"MultiPolygon","coordinates":[[[[14.19,36.08],[14.45,35.82],[14.58,35.85],[14.53,35.93],[14.35,36.02],[14.19,36.08]]]]}}]};
 var CHAPTERS = [
-  { "id": "ch1", "name": "第一次传道旅程", "years": "AD 46–48", "range": "徒 13–14、徒 15", "from": 46, "to": 48, "color": "#8fa3b8" },
-  { "id": "ch2", "name": "第二次传道旅程", "years": "AD 49–52", "range": "徒 15:36–18:22", "from": 49, "to": 52, "color": "#8fa79a" },
-  { "id": "ch3", "name": "第三次传道旅程", "years": "AD 52–57", "range": "徒 18:23–21:17", "from": 52, "to": 57, "color": "#b39c8a" },
-  { "id": "ch4", "name": "被捕与受审", "years": "AD 57–59", "range": "徒 21–26", "from": 57, "to": 59, "color": "#a34a33" },
-  { "id": "ch5", "name": "赴罗马航程", "years": "AD 59–60", "range": "徒 27–28:16", "from": 59, "to": 60, "color": "#a493b6" },
-  { "id": "ch6", "name": "罗马被囚与尾声", "years": "AD 60–67", "range": "徒 28:17-31 及书信", "from": 60, "to": 67, "color": "#7d6b5d" }
+  {
+    "id": "ch1",
+    "name": "第一次传道旅程",
+    "years": "AD 46–48",
+    "range": "徒 13–14、徒 15",
+    "from": 46,
+    "to": 48,
+    "color": "#8fa3b8",
+    "area": "塞浦路斯与安纳托利亚南部"
+  },
+  {
+    "id": "ch2",
+    "name": "第二次传道旅程",
+    "years": "AD 49–52",
+    "range": "徒 15:36–18:22",
+    "from": 49,
+    "to": 52,
+    "color": "#8fa79a",
+    "area": "安纳托利亚与地中海东部"
+  },
+  {
+    "id": "ch3",
+    "name": "第三次传道旅程",
+    "years": "AD 52–57",
+    "range": "徒 18:23–21:17",
+    "from": 52,
+    "to": 57,
+    "color": "#b39c8a",
+    "area": "小亚细亚、希腊与爱琴海"
+  },
+  {
+    "id": "ch4",
+    "name": "被捕与受审",
+    "years": "AD 57–59",
+    "range": "徒 21–26",
+    "from": 57,
+    "to": 59,
+    "color": "#a34a33",
+    "area": "耶路撒冷与该撒利亚海岸"
+  },
+  {
+    "id": "ch5",
+    "name": "赴罗马航程",
+    "years": "AD 59–60",
+    "range": "徒 27–28:16",
+    "from": 59,
+    "to": 60,
+    "color": "#a493b6",
+    "area": "亚历山大里亚到马耳他岛"
+  },
+  {
+    "id": "ch6",
+    "name": "罗马被囚与尾声",
+    "years": "AD 60–67",
+    "range": "徒 28:17-31 及书信",
+    "from": 60,
+    "to": 67,
+    "color": "#7d6b5d",
+    "area": "罗马城郊与拉丁教会"
+  }
 ]
 ;
 var PLACES = [
-  { "id": "antioch-syria", "cn": "安提阿", "en": "Antioch of Syria", "modern": "今土耳其安塔基亚", "ll": [36.2021, 36.1606],
-    "note": "叙利亚的安提阿。门徒称为「基督徒」是从这里起头（徒 11:26），保罗三次传道旅程皆由此出发并归回。" },
-  { "id": "seleucia", "cn": "西流基", "en": "Seleucia Pieria", "modern": "今土耳其", "ll": [35.93, 36.10],
-    "note": "安提阿的地中海港口，第一次旅程的起锚之地（徒 13:4）。" },
-  { "id": "salamis", "cn": "撒拉米", "en": "Salamis", "modern": "今塞浦路斯", "ll": [35.1836, 33.8978],
-    "note": "居比路东岸城市。保罗和巴拿巴在犹太人的各会堂里传讲神的道（徒 13:5）。" },
-  { "id": "paphos", "cn": "帕弗", "en": "Paphos", "modern": "今塞浦路斯帕福斯", "ll": [34.7571, 32.4057],
-    "note": "居比路罗马总督驻地。方伯士求保罗在此信主；遗址出土的马赛克与碑刻为这段历史提供了考古背景。" },
-  { "id": "perga", "cn": "别加", "en": "Perga", "modern": "今土耳其", "ll": [36.9612, 30.8536],
-    "note": "旁非利亚城市。约翰马可在此离开二人，回耶路撒冷去（徒 13:13）。" },
-  { "id": "antioch-pisidia", "cn": "彼西底的安提阿", "en": "Antioch in Pisidia", "modern": "今土耳其", "ll": [38.3047, 31.1900],
-    "note": "加拉太地区城市，与叙利亚的安提阿同名。保罗在此会堂留下旅程中最长的一次讲论（徒 13:16-41）。" },
-  { "id": "iconium", "cn": "以哥念", "en": "Iconium", "modern": "今土耳其孔亚", "ll": [37.8746, 32.4932],
-    "note": "弗吕家城市。二人住多日、倚靠主放胆讲道，后被逼离开（徒 14:1-6）。" },
-  { "id": "lystra", "cn": "路司得", "en": "Lystra", "modern": "今土耳其", "ll": [37.5833, 32.4500],
-    "note": "加拉太南部小城。生来瘸腿者在此得医治，保罗也在此被石头打（徒 14:8-19）；少年提摩太的家乡。" },
-  { "id": "derbe", "cn": "特庇", "en": "Derbe", "modern": "今土耳其", "ll": [37.3442, 33.2772],
-    "note": "第一次旅程所到最远处。二人于此传福音、教导了好些人（徒 14:21）。" },
-  { "id": "jerusalem", "cn": "耶路撒冷", "en": "Jerusalem", "modern": "今以色列 / 巴勒斯坦", "ll": [31.7683, 35.2137],
-    "note": "犹太教与初期教会的中心。耶路撒冷会议在此裁定外邦信徒的规矩（徒 15 章）。" },
-  { "id": "tarsus", "cn": "大数", "en": "Tarsus", "modern": "今土耳其", "ll": [36.9167, 34.8833], "ctx": true,
-    "note": "基利家名城，保罗的故乡（徒 21:39）。" },
-  { "id": "damascus", "cn": "大马士革", "en": "Damascus", "modern": "今叙利亚", "ll": [33.5138, 36.2769], "ctx": true,
-    "note": "保罗归主的城市（徒 9 章）；在本故事线范围之外，仅作地图上下文。" }
+  {
+    "id": "antioch-syria",
+    "cn": "安提阿",
+    "en": "Antioch of Syria",
+    "modern": "今土耳其安塔基亚",
+    "ll": [
+      36.2021,
+      36.1606
+    ],
+    "note": "叙利亚的安提阿。门徒称为「基督徒」是从这里起头（徒 11:26），保罗三次传道旅程皆由此出发并归回。",
+    "gloss": "安提阿（叙利亚）：叙利亚首府，犹太与外邦信徒混合的教会据点。教会被称作「基督徒」（徒 11:26）。"
+  },
+  {
+    "id": "seleucia",
+    "cn": "西流基",
+    "en": "Seleucia Pieria",
+    "modern": "今土耳其",
+    "ll": [
+      35.93,
+      36.1
+    ],
+    "note": "安提阿的地中海港口，第一次旅程的起锚之地（徒 13:4）。",
+    "gloss": "西流基：塞浦路斯岛东岸海口，安提阿的港口。"
+  },
+  {
+    "id": "salamis",
+    "cn": "撒拉米",
+    "en": "Salamis",
+    "modern": "今塞浦路斯",
+    "ll": [
+      35.1836,
+      33.8978
+    ],
+    "note": "居比路东岸城市。保罗和巴拿巴在犹太人的各会堂里传讲神的道（徒 13:5）。",
+    "gloss": "撒拉米：塞浦路斯岛东岸城市，犹太人口较多，有会堂聚集。"
+  },
+  {
+    "id": "paphos",
+    "cn": "帕弗",
+    "en": "Paphos",
+    "modern": "今塞浦路斯帕福斯",
+    "ll": [
+      34.7571,
+      32.4057
+    ],
+    "note": "居比路罗马总督驻地。方伯士求保罗在此信主；遗址出土的马赛克与碑刻为这段历史提供了考古背景。",
+    "gloss": "帕弗：塞浦路斯岛西南岸的城市，岛上总督（方伯）驻节之地。"
+  },
+  {
+    "id": "perga",
+    "cn": "别加",
+    "en": "Perga",
+    "modern": "今土耳其",
+    "ll": [
+      36.9612,
+      30.8536
+    ],
+    "note": "旁非利亚城市。约翰马可在此离开二人，回耶路撒冷去（徒 13:13）。",
+    "gloss": "别加：旁非利亚平原的主要城市，希腊化程度较高。"
+  },
+  {
+    "id": "antioch-pisidia",
+    "cn": "彼西底的安提阿",
+    "en": "Antioch in Pisidia",
+    "modern": "今土耳其",
+    "ll": [
+      38.3047,
+      31.19
+    ],
+    "note": "加拉太地区城市，与叙利亚的安提阿同名。保罗在此会堂留下旅程中最长的一次讲论（徒 13:16-41）。",
+    "gloss": "彼西底的安提阿：罗马公民 colony（殖民地城市），位于高地上，是通往高原行省的门户。会堂：犹太教聚礼诵经的会堂建筑，亦用于城市公共事务。"
+  },
+  {
+    "id": "iconium",
+    "cn": "以哥念",
+    "en": "Iconium",
+    "modern": "今土耳其孔亚",
+    "ll": [
+      37.8746,
+      32.4932
+    ],
+    "note": "弗吕家城市。二人住多日、倚靠主放胆讲道，后被逼离开（徒 14:1-6）。",
+    "gloss": "以哥念：皮西idia与卡帕多细亚之间的希腊化城市。"
+  },
+  {
+    "id": "lystra",
+    "cn": "路司得",
+    "en": "Lystra",
+    "modern": "今土耳其",
+    "ll": [
+      37.5833,
+      32.45
+    ],
+    "note": "加拉太南部小城。生来瘸腿者在此得医治，保罗也在此被石头打（徒 14:8-19）；少年提摩太的家乡。",
+    "gloss": "路司得：卡帕多细亚境内的希腊化小城，在山麓。"
+  },
+  {
+    "id": "derbe",
+    "cn": "特庇",
+    "en": "Derbe",
+    "modern": "今土耳其",
+    "ll": [
+      37.3442,
+      33.2772
+    ],
+    "note": "第一次旅程所到最远处。二人于此传福音、教导了好些人（徒 14:21）。",
+    "gloss": "特庇：本次旅程最东端的城市，属吕卡onia边地。"
+  },
+  {
+    "id": "jerusalem",
+    "cn": "耶路撒冷",
+    "en": "Jerusalem",
+    "modern": "今以色列 / 巴勒斯坦",
+    "ll": [
+      31.7683,
+      35.2137
+    ],
+    "note": "犹太教与初期教会的中心。耶路撒冷会议在此裁定外邦信徒的规矩（徒 15 章）。",
+    "gloss": "耶路撒冷：犹太教圣殿所在地，也是初代教会最初的据点。公会堂（议会）：犹太最高议事机构。"
+  },
+  {
+    "id": "tarsus",
+    "cn": "大数",
+    "en": "Tarsus",
+    "modern": "今土耳其",
+    "ll": [
+      36.9167,
+      34.8833
+    ],
+    "ctx": true,
+    "note": "基利家名城，保罗的故乡（徒 21:39）。"
+  },
+  {
+    "id": "damascus",
+    "cn": "大马士革",
+    "en": "Damascus",
+    "modern": "今叙利亚",
+    "ll": [
+      33.5138,
+      36.2769
+    ],
+    "ctx": true,
+    "note": "保罗归主的城市（徒 9 章）；在本故事线范围之外，仅作地图上下文。"
+  }
 ]
 ;
 var ROUTES = [
-  { "id": "j1", "name": "第一次传道旅程", "years": "AD 46–48", "from": 46, "to": 48, "color": "#8fa3b8",
+  {
+    "id": "j1",
+    "name": "第一次传道旅程",
+    "years": "AD 46–48",
+    "from": 46,
+    "to": 48,
+    "color": "#8fa3b8",
     "desc": "安提阿 → 西流基 → 撒拉米 → 帕弗 → 别加 → 彼西底的安提阿 → 以哥念 → 路司得 → 特庇 → 原路返回",
     "stops": [
-      { "cn": "安提阿", "ll": [36.2021, 36.1606] },
-      { "cn": "西流基", "ll": [35.93, 36.10] },
-      { "cn": "撒拉米", "ll": [35.1836, 33.8978] },
-      { "cn": "帕弗", "ll": [34.7571, 32.4057] },
-      { "cn": "别加", "ll": [36.9612, 30.8536] },
-      { "cn": "彼西底的安提阿", "ll": [38.3047, 31.1900] },
-      { "cn": "以哥念", "ll": [37.8746, 32.4932] },
-      { "cn": "路司得", "ll": [37.5833, 32.4500] },
-      { "cn": "特庇", "ll": [37.3442, 33.2772] },
-      { "cn": "路司得", "ll": [37.5833, 32.4500] },
-      { "cn": "以哥念", "ll": [37.8746, 32.4932] },
-      { "cn": "彼西底的安提阿", "ll": [38.3047, 31.1900] },
-      { "cn": "亚大利", "ll": [36.8846, 30.7050] },
-      { "cn": "安提阿", "ll": [36.2021, 36.1606] }
-    ] },
-  { "id": "j2", "name": "第二次传道旅程", "years": "AD 49–52", "from": 49, "to": 52, "color": "#8fa79a",
+      {
+        "cn": "安提阿",
+        "ll": [
+          36.2021,
+          36.1606
+        ],
+        "p": "antioch-syria"
+      },
+      {
+        "cn": "西流基",
+        "ll": [
+          35.93,
+          36.1
+        ],
+        "p": "seleucia"
+      },
+      {
+        "cn": "撒拉米",
+        "ll": [
+          35.1836,
+          33.8978
+        ],
+        "p": "salamis"
+      },
+      {
+        "cn": "帕弗",
+        "ll": [
+          34.7571,
+          32.4057
+        ],
+        "p": "paphos"
+      },
+      {
+        "cn": "别加",
+        "ll": [
+          36.9612,
+          30.8536
+        ],
+        "p": "perga"
+      },
+      {
+        "cn": "彼西底的安提阿",
+        "ll": [
+          38.3047,
+          31.19
+        ],
+        "p": "antioch-pisidia"
+      },
+      {
+        "cn": "以哥念",
+        "ll": [
+          37.8746,
+          32.4932
+        ],
+        "p": "iconium"
+      },
+      {
+        "cn": "路司得",
+        "ll": [
+          37.5833,
+          32.45
+        ],
+        "p": "lystra"
+      },
+      {
+        "cn": "特庇",
+        "ll": [
+          37.3442,
+          33.2772
+        ],
+        "p": "derbe"
+      },
+      {
+        "cn": "路司得",
+        "ll": [
+          37.5833,
+          32.45
+        ],
+        "p": "lystra"
+      },
+      {
+        "cn": "以哥念",
+        "ll": [
+          37.8746,
+          32.4932
+        ],
+        "p": "iconium"
+      },
+      {
+        "cn": "彼西底的安提阿",
+        "ll": [
+          38.3047,
+          31.19
+        ],
+        "p": "antioch-pisidia"
+      },
+      {
+        "cn": "亚大利",
+        "ll": [
+          36.8846,
+          30.705
+        ]
+      },
+      {
+        "cn": "安提阿",
+        "ll": [
+          36.2021,
+          36.1606
+        ],
+        "p": "antioch-syria"
+      }
+    ]
+  },
+  {
+    "id": "j2",
+    "name": "第二次传道旅程",
+    "years": "AD 49–52",
+    "from": 49,
+    "to": 52,
+    "color": "#8fa79a",
     "desc": "经基利家重访加拉太，渡海入欧：腓立比 → 帖撒罗尼迦 → 庇哩亚 → 雅典 → 哥林多 → 以弗所 → 归回",
     "stops": [
-      { "cn": "安提阿", "ll": [36.2021, 36.1606] },
-      { "cn": "大数", "ll": [36.9167, 34.8833] },
-      { "cn": "特庇", "ll": [37.3442, 33.2772] },
-      { "cn": "路司得", "ll": [37.5833, 32.4500] },
-      { "cn": "特罗亚", "ll": [39.50, 26.1667] },
-      { "cn": "腓立比", "ll": [41.0128, 24.4189] },
-      { "cn": "帖撒罗尼迦", "ll": [40.6401, 22.9444] },
-      { "cn": "庇哩亚", "ll": [40.5244, 22.2022] },
-      { "cn": "雅典", "ll": [37.9838, 23.7275] },
-      { "cn": "哥林多", "ll": [37.9060, 22.8797] },
-      { "cn": "以弗所", "ll": [37.9394, 27.3417] },
-      { "cn": "凯撒利亚", "ll": [32.5000, 34.8833] },
-      { "cn": "耶路撒冷", "ll": [31.7683, 35.2137] },
-      { "cn": "安提阿", "ll": [36.2021, 36.1606] }
-    ] },
-  { "id": "j3", "name": "第三次传道旅程", "years": "AD 52–57", "from": 52, "to": 57, "color": "#b39c8a",
+      {
+        "cn": "安提阿",
+        "ll": [
+          36.2021,
+          36.1606
+        ],
+        "p": "antioch-syria"
+      },
+      {
+        "cn": "大数",
+        "ll": [
+          36.9167,
+          34.8833
+        ],
+        "p": "tarsus"
+      },
+      {
+        "cn": "特庇",
+        "ll": [
+          37.3442,
+          33.2772
+        ],
+        "p": "derbe"
+      },
+      {
+        "cn": "路司得",
+        "ll": [
+          37.5833,
+          32.45
+        ],
+        "p": "lystra"
+      },
+      {
+        "cn": "特罗亚",
+        "ll": [
+          39.5,
+          26.1667
+        ]
+      },
+      {
+        "cn": "腓立比",
+        "ll": [
+          41.0128,
+          24.4189
+        ]
+      },
+      {
+        "cn": "帖撒罗尼迦",
+        "ll": [
+          40.6401,
+          22.9444
+        ]
+      },
+      {
+        "cn": "庇哩亚",
+        "ll": [
+          40.5244,
+          22.2022
+        ]
+      },
+      {
+        "cn": "雅典",
+        "ll": [
+          37.9838,
+          23.7275
+        ]
+      },
+      {
+        "cn": "哥林多",
+        "ll": [
+          37.906,
+          22.8797
+        ]
+      },
+      {
+        "cn": "以弗所",
+        "ll": [
+          37.9394,
+          27.3417
+        ]
+      },
+      {
+        "cn": "凯撒利亚",
+        "ll": [
+          32.5,
+          34.8833
+        ]
+      },
+      {
+        "cn": "耶路撒冷",
+        "ll": [
+          31.7683,
+          35.2137
+        ],
+        "p": "jerusalem"
+      },
+      {
+        "cn": "安提阿",
+        "ll": [
+          36.2021,
+          36.1606
+        ],
+        "p": "antioch-syria"
+      }
+    ]
+  },
+  {
+    "id": "j3",
+    "name": "第三次传道旅程",
+    "years": "AD 52–57",
+    "from": 52,
+    "to": 57,
+    "color": "#b39c8a",
     "desc": "以弗所约三年 → 马其顿 → 哥林多 → 米利都 → 推罗 → 凯撒利亚 → 耶路撒冷",
     "stops": [
-      { "cn": "安提阿", "ll": [36.2021, 36.1606] },
-      { "cn": "以哥念", "ll": [37.8746, 32.4932] },
-      { "cn": "以弗所", "ll": [37.9394, 27.3417] },
-      { "cn": "特罗亚", "ll": [39.50, 26.1667] },
-      { "cn": "腓立比", "ll": [41.0128, 24.4189] },
-      { "cn": "哥林多", "ll": [37.9060, 22.8797] },
-      { "cn": "腓立比", "ll": [41.0128, 24.4189] },
-      { "cn": "特罗亚", "ll": [39.50, 26.1667] },
-      { "cn": "米利都", "ll": [37.53, 27.28] },
-      { "cn": "推罗", "ll": [33.2705, 35.2038] },
-      { "cn": "凯撒利亚", "ll": [32.5000, 34.8833] },
-      { "cn": "耶路撒冷", "ll": [31.7683, 35.2137] }
-    ] },
-  { "id": "j4", "name": "赴罗马航程", "years": "AD 59–60", "from": 59, "to": 60, "color": "#a493b6",
+      {
+        "cn": "安提阿",
+        "ll": [
+          36.2021,
+          36.1606
+        ],
+        "p": "antioch-syria"
+      },
+      {
+        "cn": "以哥念",
+        "ll": [
+          37.8746,
+          32.4932
+        ],
+        "p": "iconium"
+      },
+      {
+        "cn": "以弗所",
+        "ll": [
+          37.9394,
+          27.3417
+        ]
+      },
+      {
+        "cn": "特罗亚",
+        "ll": [
+          39.5,
+          26.1667
+        ]
+      },
+      {
+        "cn": "腓立比",
+        "ll": [
+          41.0128,
+          24.4189
+        ]
+      },
+      {
+        "cn": "哥林多",
+        "ll": [
+          37.906,
+          22.8797
+        ]
+      },
+      {
+        "cn": "腓立比",
+        "ll": [
+          41.0128,
+          24.4189
+        ]
+      },
+      {
+        "cn": "特罗亚",
+        "ll": [
+          39.5,
+          26.1667
+        ]
+      },
+      {
+        "cn": "米利都",
+        "ll": [
+          37.53,
+          27.28
+        ]
+      },
+      {
+        "cn": "推罗",
+        "ll": [
+          33.2705,
+          35.2038
+        ]
+      },
+      {
+        "cn": "凯撒利亚",
+        "ll": [
+          32.5,
+          34.8833
+        ]
+      },
+      {
+        "cn": "耶路撒冷",
+        "ll": [
+          31.7683,
+          35.2137
+        ],
+        "p": "jerusalem"
+      }
+    ]
+  },
+  {
+    "id": "j4",
+    "name": "赴罗马航程",
+    "years": "AD 59–60",
+    "from": 59,
+    "to": 60,
+    "color": "#a493b6",
     "desc": "凯撒利亚 → 西顿 → 每拉 → 克里特佳澳 → 马耳他（船难）→ 叙拉古 → 雷吉姆 → 部丢利 → 罗马",
     "stops": [
-      { "cn": "凯撒利亚", "ll": [32.5000, 34.8833] },
-      { "cn": "西顿", "ll": [33.5633, 35.3700] },
-      { "cn": "每拉", "ll": [36.2567, 29.9833] },
-      { "cn": "佳澳", "ll": [34.9333, 24.8167] },
-      { "cn": "马耳他", "ll": [35.90, 14.40] },
-      { "cn": "叙拉古", "ll": [37.0755, 15.2866] },
-      { "cn": "雷吉姆", "ll": [38.1100, 15.6500] },
-      { "cn": "部丢利", "ll": [40.8217, 14.1217] },
-      { "cn": "罗马", "ll": [41.9028, 12.4964] }
-    ] }
+      {
+        "cn": "凯撒利亚",
+        "ll": [
+          32.5,
+          34.8833
+        ]
+      },
+      {
+        "cn": "西顿",
+        "ll": [
+          33.5633,
+          35.37
+        ]
+      },
+      {
+        "cn": "每拉",
+        "ll": [
+          36.2567,
+          29.9833
+        ]
+      },
+      {
+        "cn": "佳澳",
+        "ll": [
+          34.9333,
+          24.8167
+        ]
+      },
+      {
+        "cn": "马耳他",
+        "ll": [
+          35.9,
+          14.4
+        ]
+      },
+      {
+        "cn": "叙拉古",
+        "ll": [
+          37.0755,
+          15.2866
+        ]
+      },
+      {
+        "cn": "雷吉姆",
+        "ll": [
+          38.11,
+          15.65
+        ]
+      },
+      {
+        "cn": "部丢利",
+        "ll": [
+          40.8217,
+          14.1217
+        ]
+      },
+      {
+        "cn": "罗马",
+        "ll": [
+          41.9028,
+          12.4964
+        ]
+      }
+    ]
+  }
 ]
 ;
 var EVENTS = [
@@ -1608,13 +2359,16 @@ var EVENTS = [
     "type": "arrival",
     "from": 46,
     "to": 46,
-    "title": "安提阿受差遣",
-    "en": "Sent Out from Antioch",
+    "title": "受差遣前往",
+    "en": "Called Out to Preach",
     "place": "antioch-syria",
     "brief": "圣灵分派巴拿巴与扫罗，第一次旅程开始",
     "narrative": "安提阿教会的先知与教师事奉主、禁食的时候，圣灵说：「要为我分派巴拿巴和扫罗，去作我召他们所作的工。」于是教会禁食祷告，按手在二人头上，打发他们出发。保罗的第一次传道旅程由此开始；安提阿此后也成为他三次宣教事工的基地。",
     "verses": [
-      { "ref": "使徒行传 13:2-3", "text": "他们事奉主、禁食的时候，圣灵说：「要为我分派巴拿巴和扫罗，去作我召他们所作的工。」于是禁食祷告，按手在他们头上，就打发他们去了。" }
+      {
+        "ref": "使徒行传 13:2-3",
+        "text": "他们事奉主、禁食的时候，圣灵说：「要为我分派巴拿巴和扫罗，去作我召他们所作的工。」于是禁食祷告，按手在他们头上，就打发他们去了。"
+      }
     ],
     "media": []
   },
@@ -1624,16 +2378,30 @@ var EVENTS = [
     "type": "preach",
     "from": 46,
     "to": 46,
-    "title": "帕弗：士求保罗信主",
+    "title": "士求保罗信主",
     "en": "Sergius Paulus Believes",
     "place": "paphos",
     "brief": "以吕马受罚，方伯信主；扫罗始称保罗",
-    "narrative": "保罗和巴拿巴经居比路的撒拉米进入帕弗，在会堂里遇见方伯士求保罗——一位「通达人」——与术士巴耶稣（以吕马）。保罗当面斥责以吕马「充满各样诡诈奸恶，混乱主的正道」，方伯看见所发生的事就信了。路加从此处起改称扫罗为保罗：他以罗马名的姿态，进入罗马人的世界。",
+    "narrative": "保罗和巴拿巴经居比路的撒拉米进入帕弗，在会堂（犹太教聚礼诵经的会堂建筑）里遇见方伯（罗马殖民地的总督）士求保罗——一位「通达人」——与术士巴耶稣（以吕马）。保罗当面斥责以吕马「充满各样诡诈奸恶，混乱主的正道」，方伯看见所发生的事就信了。路加从此处起改称扫罗为保罗：他以罗马名的姿态，进入罗马人的世界。",
     "verses": [
-      { "ref": "使徒行传 13:9", "text": "扫罗，又名保罗，被圣灵充满，定睛看他" },
-      { "ref": "使徒行传 13:12", "text": "方伯看见所作的事，就信了，很希奇主的道。" }
+      {
+        "ref": "使徒行传 13:9",
+        "text": "扫罗，又名保罗，被圣灵充满，定睛看他"
+      },
+      {
+        "ref": "使徒行传 13:12",
+        "text": "方伯看见所作的事，就信了，很希奇主的道。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "art",
+        "title": "帕弗出土马赛克《丽达与天鹅》（公元 4 世纪出土于帕弗附近）",
+        "src": null,
+        "credit": "Unknown author · Public domain · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Leda_mosaic.jpg"
+      }
+    ]
   },
   {
     "id": "antioch-pisidia-sermon",
@@ -1641,16 +2409,30 @@ var EVENTS = [
     "type": "preach",
     "from": 46,
     "to": 47,
-    "title": "彼西底的安提阿：会堂讲道",
-    "en": "Sermon in the Synagogue",
+    "title": "会堂讲道",
+    "en": "Preaching in the Synagogue",
     "place": "antioch-pisidia",
     "brief": "赦罪的道唯靠基督，不在摩西律法",
-    "narrative": "在彼西底的安提阿，保罗应会堂管家的邀请在安息日讲道：从出埃及的历史讲到基督的复活，宣告赦罪的道唯有靠着基督，不在摩西的律法。讲道结束后，外邦人欢喜领受，犹太人中也有人跟随——这欢喜也埋下了下一场逼迫的引线。",
+    "narrative": "在彼西底的安提阿，保罗应会堂（犹太教聚会场所）管家的邀请在安息日讲道：从出埃及的历史讲到基督的复活，宣告赦罪的道唯有靠着基督，不在摩西的律法。讲道结束后，外邦人欢喜领受，犹太人中也有人跟随——这欢喜也埋下了下一场逼迫的引线。",
     "verses": [
-      { "ref": "使徒行传 13:38-39", "text": "所以，弟兄们，你们当晓得：赦罪的道是由这人传给你们的。你们靠摩西的律法，在一切不得称义的事上信靠这人，就都得称义了。" },
-      { "ref": "使徒行传 13:48", "text": "外邦人听见这话，就欢喜了，赞美神的道；凡预定得永生的人都信了。" }
+      {
+        "ref": "使徒行传 13:38-39",
+        "text": "所以，弟兄们，你们当晓得：赦罪的道是由这人传给你们的。你们靠摩西的律法，在一切不得称义的事上信靠这人，就都得称义了。"
+      },
+      {
+        "ref": "使徒行传 13:48",
+        "text": "外邦人听见这话，就欢喜了，赞美神的道；凡预定得永生的人都信了。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "photo",
+        "title": "彼西底的安提阿：奥古斯都神庙遗址",
+        "src": null,
+        "credit": "Dosseman · CC BY-SA 4.0 · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Antioch_in_Pisidia_Augustus_Temple_2937.jpg"
+      }
+    ]
   },
   {
     "id": "antioch-pisidia-expelled",
@@ -1658,15 +2440,26 @@ var EVENTS = [
     "type": "persecution",
     "from": 47,
     "to": 47,
-    "title": "安提阿：被赶出境",
-    "en": "Driven Out",
+    "title": "被赶出境",
+    "en": "Expelled from Pisidian Antioch",
     "place": "antioch-pisidia",
     "brief": "犹太人挑唆逼迫，二人跺脚尘土往以哥念",
     "narrative": "不信的犹太人挑唆虔敬的妇女和城内有名望的人，又怂恿众人把保罗和巴拿巴赶出境外。二人对着众人跺下脚上的尘土，声明神的道已先传给他们；他们前往以哥念，留下满心喜乐、被圣灵充满的门徒。",
     "verses": [
-      { "ref": "使徒行传 13:51-52", "text": "二人对着众人跺下脚上的尘土，就往以哥念去了。门徒满心喜乐，又被圣灵充满。" }
+      {
+        "ref": "使徒行传 13:51-52",
+        "text": "二人对着众人跺下脚上的尘土，就往以哥念去了。门徒满心喜乐，又被圣灵充满。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "photo",
+        "title": "彼西底的安提阿：古剧场——保罗讲道后人群聚集于此",
+        "src": null,
+        "credit": "Dosseman · CC BY-SA 4.0 · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Antioch_in_Pisidia_Theatre_2963.jpg"
+      }
+    ]
   },
   {
     "id": "iconium-stay",
@@ -1674,13 +2467,16 @@ var EVENTS = [
     "type": "preach",
     "from": 47,
     "to": 47,
-    "title": "以哥念：放胆讲道",
-    "en": "Bold Speech in Iconium",
+    "title": "放胆讲道",
+    "en": "Speaking Boldly in Iconium",
     "place": "iconium",
     "brief": "住了多日，主借他们的手施行神迹",
     "narrative": "保罗和巴拿巴照例进入以哥念犹太人的会堂讲道，使许多犹太人和希腊人都信了。那不信的犹太人耸动外邦人的心，叫他们恼恨弟兄；二人仍在那里住了多日，倚靠主放胆讲道，主借他们的手施行神迹奇事，见证他恩惠的道。",
     "verses": [
-      { "ref": "使徒行传 14:3", "text": "二人在那里住了多日，倚靠主放胆讲道；主藉他们的手施行神迹奇事，证明他恩惠的道。" }
+      {
+        "ref": "使徒行传 14:3",
+        "text": "二人在那里住了多日，倚靠主放胆讲道；主藉他们的手施行神迹奇事，证明他恩惠的道。"
+      }
     ],
     "media": []
   },
@@ -1690,13 +2486,16 @@ var EVENTS = [
     "type": "miracle",
     "from": 47,
     "to": 47,
-    "title": "路司得：瘸腿行走",
+    "title": "瘸腿行走",
     "en": "The Lame Man Walks",
     "place": "lystra",
     "brief": "生来瘸腿的跳起来行走，众人当作神",
     "narrative": "在路司得，保罗医治了一个生来瘸腿、从来没有走过的人。众人看见这事，用本地话高声说：「有神借着人形降临在我们中间了」——称巴拿巴为丢斯，称保罗为希耳米，同城的祭司甚至牵着牛、拿着花圈，要到城门口向他们献祭。",
     "verses": [
-      { "ref": "使徒行传 14:10", "text": "就大声说：「你起来，两脚站直！」那人就跳起来，而且行走。" }
+      {
+        "ref": "使徒行传 14:10",
+        "text": "就大声说：「你起来，两脚站直！」那人就跳起来，而且行走。"
+      }
     ],
     "media": []
   },
@@ -1706,15 +2505,26 @@ var EVENTS = [
     "type": "persecution",
     "from": 47,
     "to": 47,
-    "title": "路司得：石头之难",
-    "en": "Stoned and Left for Dead",
+    "title": "石头之难",
+    "en": "Almost Stoned at Lystra",
     "place": "lystra",
     "brief": "众人石头打保罗，以为他死了便拖到城外",
     "narrative": "有从安提阿和以哥念来的犹太人挑唆众人，用石头打保罗，以为他是死了，便拖到城外。门徒正围着他的时候，他竟起来，走进城去；次日同巴拿巴往特庇去。保罗后来追忆此事，正应了他自己所说的话：「我们进入神的国，必须经历许多艰难。」",
     "verses": [
-      { "ref": "使徒行传 14:19-20", "text": "但有些犹太人从安提阿和以哥念来，挑唆众人，就用石头打保罗，以为他是死了，便拖到城外。门徒正围着他，他就起来，走进城去。第二天，同巴拿巴往特庇去。" }
+      {
+        "ref": "使徒行传 14:19-20",
+        "text": "但有些犹太人从安提阿和以哥念来，挑唆众人，就用石头打保罗，以为他是死了，便拖到城外。门徒正围着他，他就起来，走进城去。第二天，同巴拿巴往特庇去。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "art",
+        "title": "《路司得的献祭》：保罗一行被误当神明献祭的场景（ Pieter Coecke van Aelst，约 1529–1530）",
+        "src": null,
+        "credit": "Pieter Coecke van Aelst (Flemish、1502 - 1550)  – artist (Flemish) · Public domain · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Pieter_Coecke_van_Aelst_(Flemish_-_The_Sacrifice_at_Lystra_-_Google_Art_Project.jpg"
+      }
+    ]
   },
   {
     "id": "derbe-teaching",
@@ -1722,13 +2532,16 @@ var EVENTS = [
     "type": "preach",
     "from": 47,
     "to": 47,
-    "title": "特庇：旅程最远处",
-    "en": "Teaching in Derbe",
+    "title": "旅程最远处",
+    "en": "Preaching in Derbe",
     "place": "derbe",
     "brief": "传福音、教导多人，此后原路返回",
     "narrative": "在特庇——第一次旅程所到最远之处——保罗和巴拿巴传了福音，教导了好些人作门徒。此后二人不再前行，而是原路返回，逐一坚固这一路上新建立的教会。",
     "verses": [
-      { "ref": "使徒行传 14:21", "text": "对那城里的人传了福音，使好些人作门徒，就回路司得、以哥念、安提阿去。" }
+      {
+        "ref": "使徒行传 14:21",
+        "text": "对那城里的人传了福音，使好些人作门徒，就回路司得、以哥念、安提阿去。"
+      }
     ],
     "media": []
   },
@@ -1739,14 +2552,25 @@ var EVENTS = [
     "from": 47,
     "to": 48,
     "title": "回访诸城",
-    "en": "Strengthening the Churches",
+    "en": "Revisiting the Cities",
     "place": "lystra",
     "brief": "坚固门徒、选立长老、交托所信的主",
     "narrative": "二人回路司得、以哥念、安提阿去，坚固门徒的心，劝他们恒守所信的道，并说：「我们进入神的国，必须经历许多艰难。」又在各教会中选立长老，禁食祷告，把他们交托所信的主——新教会的骨架就此立定。",
     "verses": [
-      { "ref": "使徒行传 14:22-23", "text": "坚固门徒的心，劝他们恒守所信的道；又说：「我们进入神的国，必须经历许多艰难。」二人在各教会中选立了长老，又禁食祷告，就把他们交托所信的主。" }
+      {
+        "ref": "使徒行传 14:22-23",
+        "text": "坚固门徒的心，劝他们恒守所信的道；又说：「我们进入神的国，必须经历许多艰难。」二人在各教会中选立了长老，又禁食祷告，就把他们交托所信的主。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "photo",
+        "title": "撒拉米：罗马时期遗址与 basilica 遗迹",
+        "src": null,
+        "credit": "George Groutas · CC BY 2.0 · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Salamis_Ruins,_Cyprus.jpg"
+      }
+    ]
   },
   {
     "id": "antioch-report",
@@ -1754,15 +2578,26 @@ var EVENTS = [
     "type": "arrival",
     "from": 48,
     "to": 48,
-    "title": "归回安提阿",
-    "en": "Report to the Church",
+    "title": "归回报信",
+    "en": "Report Back to Antioch",
     "place": "antioch-syria",
     "brief": "述说神所行的一切事，旅程完成",
     "narrative": "二人回到叙利亚的安提阿，聚集教会，述说神借他们所行的一切事，以及神怎样为外邦人开了信道的门。第一次传道旅程至此完成，历时约两年；外邦人的教会自此站稳，保罗的视野也完全转向小亚细亚与更远的欧洲。",
     "verses": [
-      { "ref": "使徒行传 14:27", "text": "到了那里，聚集了会众，就述说神藉他们所行的一切事，并神怎样为外邦人开了信道的门。" }
+      {
+        "ref": "使徒行传 14:27",
+        "text": "到了那里，聚集了会众，就述说神藉他们所行的一切事，并神怎样为外邦人开了信道的门。"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "art",
+        "title": "加拉太地区在罗马帝国行省图中的位置",
+        "src": null,
+        "credit": "Immanuel Giel · Public domain · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Galatia_(Imperium_Romanum).png"
+      }
+    ]
   },
   {
     "id": "galatians-letter",
@@ -1771,13 +2606,16 @@ var EVENTS = [
     "from": 48,
     "to": 49,
     "title": "写《加拉太书》",
-    "en": "The Letter to the Galatians",
+    "en": "Writing to Galatia",
     "place": "antioch-syria",
     "brief": "为因信称义的福音急切辩护，最早的书信",
     "narrative": "第一次旅程之后不久，保罗写下《加拉太书》，为因信称义的福音急切辩护——若有人传「别的福音」，就应当被咒诅。此书一般推定写于耶路撒冷会议前后，是保罗现存最早的书信。",
     "note": "写作地点与年代学界有争议：主流推定写于叙利亚的安提阿（AD 48–49），另有以弗所说与哥林多说。",
     "verses": [
-      { "ref": "加拉太书 1:8", "text": "但无论是我们，是天上来的使者，若传福音给你们，与我们所传给你们的不同，他就应当被咒诅。" }
+      {
+        "ref": "加拉太书 1:8",
+        "text": "但无论是我们，是天上来的使者，若传福音给你们，与我们所传给你们的不同，他就应当被咒诅。"
+      }
     ],
     "media": []
   },
@@ -1793,26 +2631,53 @@ var EVENTS = [
     "brief": "外邦信徒不受割礼之约束，通往欧洲的大门打开",
     "narrative": "耶路撒冷会议裁定：外邦信徒不必受割礼、守摩西律法，只须禁戒祭偶像之物、血、勒死的牲畜和奸淫。决议的书信随保罗、巴拿巴带到安提阿，教会大得安慰。这次会议也成全了保罗的下一步——第二次传道旅程将首次进入欧洲。",
     "verses": [
-      { "ref": "使徒行传 15:19-20", "text": "所以据我的意见，不可难为那归服神的外邦人；只要写信，吩咐他们禁戒偶像的污秽和奸淫，并勒死的牲畜和血。" },
-      { "ref": "使徒行传 15:28-29", "text": "因为圣灵和我们定意不将别的重担放在你们身上；惟有几件事是不可少的，就是禁戒祭偶像的物和血，并勒死的牲畜和奸淫。这几件你们若能自己禁戒不犯就好了。愿你们平安！" }
+      {
+        "ref": "使徒行传 15:19-20",
+        "text": "所以据我的意见，不可难为那归服神的外邦人；只要写信，吩咐他们禁戒偶像的污秽和奸淫，并勒死的牲畜和血。"
+      },
+      {
+        "ref": "使徒行传 15:28-29",
+        "text": "因为圣灵和我们定意不将别的重担放在你们身上；惟有几件事是不可少的，就是禁戒祭偶像的物和血，并勒死的牲畜和奸淫。这几件你们若能自己禁戒不犯就好了。愿你们平安！"
+      }
     ],
-    "media": []
+    "media": [
+      {
+        "kind": "photo",
+        "title": "耶路撒冷第二圣殿时期模型（圣殿与公会堂的格局）",
+        "src": null,
+        "credit": "Daniel Ventura · CC BY-SA 4.0 · Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Model_of_Jerusalem_in_the_Late_Second_Temple_Period_09.jpg"
+      }
+    ]
   }
 ]
 ;
 
 /* 事件类型元数据：颜色与图例文案 */
 var TYPE_META = {
-  arrival:     { cn: '启程 / 抵达',  color: '#8fa3b8' },
-  preach:      { cn: '传道 / 教导',  color: '#8fa79a' },
-  miracle:     { cn: '神迹',         color: '#b39c8a' },
-  persecution: { cn: '逼迫 / 骚乱',  color: '#a34a33' },
-  trial:       { cn: '被捕 / 审讯',  color: '#7d6b5d' },
-  letter:      { cn: '书信写作',     color: '#a493b6' },
-  council:     { cn: '教会决议',     color: '#6f7f74' }
+  arrival:     { cn: '启程 / 抵达',  color: '#8fa3b8', icon: 'M3 13h18M12 13V4M12 4 6.5 9.5M12 4l5.5 5.5M4 17v3M20 17v3' },
+  preach:      { cn: '传道 / 教导',  color: '#8fa79a', icon: 'M12 6c-2.5-2-6-2.2-9-1.2v13c3-1 6.5-.8 9 1.2 2.5-2 6-2.2 9-1.2v-13c-3-1-6.5-.8-9 1.2Z M12 6v13' },
+  miracle:     { cn: '神迹',         color: '#b39c8a', icon: 'M12 2.5 14 9l6.5 2-6.5 2-2 6.5-2-6.5L3.5 11 10 9Z' },
+  persecution: { cn: '逼迫 / 骚乱',  color: '#a34a33', icon: 'M12 2.5c3.5 4 5.5 6.5 5.5 9.5a5.5 5.5 0 1 1-11 0c0-3 2-5.5 5.5-9.5Z' },
+  trial:       { cn: '被捕 / 审讯',  color: '#7d6b5d', icon: 'M12 3v18M5 7h14M7.5 7 4 14h7ZM16.5 7 13 14h7ZM8 21h8' },
+  letter:      { cn: '书信写作',     color: '#a493b6', icon: 'M3 6h18v12H3zM3 7l9 6.5L21 7' },
+  council:     { cn: '教会决议',     color: '#6f7f74', icon: 'M3 20h18M5 20V9m4.5 11V9M14.5 20V9M19 20V9M2 9h20L12 3Z' }
 };
+function typeIcon(type, size) {
+  var d = (TYPE_META[type] || TYPE_META.preach).icon;
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"' + (size ? ' width="' + size + '" height="' + size + '"' : '') + '><path d="' + d + '"/></svg>';
+}
 
-var D0 = 46, D1 = 67;
+/* 时间轴量程：动态上界 =已上线事件的最晚年份 + 余量（下限 D0+8）。
+ * 固定用 AD 67 会让M1 的12 个事件（AD 46–49）挤在左侧 14%，
+ * 拖到中段却无新事件发生，产生「时间过半故事结束」的进度错觉。
+ * 随章节数据补齐，上界自动扩展到 AD 67。*/
+var D0 = 46;
+var D1 = Math.max(
+  Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); })) + 5,
+  D0 + 8
+);
+var SCALE_STEPS = 3;                    /* 刻度标签数量 */
 var DWELL = 5200;                 /* 播放时每个事件的停留时长（ms，1×） */
 var SPEEDS = [1, 2, 0.5];
 
@@ -1835,12 +2700,32 @@ EVENTS.forEach(function (e) {
   e.typeMeta = TYPE_META[e.type] || TYPE_META.preach;
 });
 ROUTES.forEach(function (r) { R_BY[r.id] = r; });
-var SEQ = EVENTS.slice().sort(function (a, b) { return a.from - b.from || (a.id < b.id ? -1 : 1); });
+var SEQ = EVENTS.map(function (e, i) { return { e: e, i: i }; })
+  .sort(function (a, b) { return a.e.from - b.e.from || a.i - b.i; })
+  .map(function (x) { return x.e; });   /* 同年事件保持 events.json 手工叙事顺序（勿按 id 字典序） */
 
 var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, chapter: null, speed: 1, speedIdx: 0 };
 
+/* 初始视野：由「有事件的地方」自动聚合，而非写死整个地中海。
+   取所有事件地点的经纬范围 + 12%留白；随章节数据增加自动扩展（耶路撒冷/罗马/马耳他纳入后自然变宽）。 */
+var STORY_FIT = (function () {
+  var pts = [];
+  EVENTS.forEach(function (e) { if (PLACE_BY[e.place]) pts.push(PLACE_BY[e.place].ll); });
+  if (pts.length < 2) return null;
+  var la = pts.map(function (p) { return p[0]; }), ln = pts.map(function (p) { return p[1]; });
+  var s = Math.max(Math.max.apply(null, la) - Math.min.apply(null, la),
+                   Math.max.apply(null, ln) - Math.min.apply(null, ln)) * 0.12;
+  s = Math.max(s, 0.6);   /* 至少留 0.6° 边距，避免单点聚集时过度放大 */
+  return [[Math.min.apply(null, la) - s, Math.min.apply(null, ln) - s],
+          [Math.max.apply(null, la) + s, Math.max.apply(null, ln) + s]];
+})();
+
 /* ================= 地图与图层 ================= */
-var mapCore = GS.mapCore.init({ geo: GEO });
+var mapCore = GS.mapCore.init({
+  geo: GEO,
+  fit: STORY_FIT,
+  onReady: function () { mapCore.placeLabels(labelItems); }  /* 尺寸稳定后重算标签避位 */
+});
 var map = mapCore.map();
 var routesLayer = L.layerGroup().addTo(map);
 var placeLayer = L.layerGroup().addTo(map);
@@ -1871,7 +2756,7 @@ PLACES.forEach(function (p) {
     return;
   }
   var evs = EVENTS.filter(function (e) { return e.place === p.id; });
-  var BOX = 78, R = 26;
+  var BOX = 96, R = 34;
   var html = '<div class="place" data-place="' + p.id + '"><span class="glow"></span><span class="ring"></span><span class="core" title="' + esc(p.cn) + '"></span></div>';
   var icon = L.divIcon({ className: 'place-icon', html: html, iconSize: [BOX, BOX], iconAnchor: [BOX / 2, BOX / 2] });
   var mk = L.marker(p.ll, { icon: icon, riseOnHover: true, keyboard: false }).addTo(placeLayer);
@@ -1888,13 +2773,13 @@ PLACES.forEach(function (p) {
     var x = BOX / 2 + R * Math.cos(a), y = BOX / 2 + R * Math.sin(a);
     var d = document.createElement('button');
     d.className = 'ev-dot';
-    d.style.left = (x - 6) + 'px';
-    d.style.top = (y - 6) + 'px';
+    d.style.left = x + 'px';   /* 居中由 CSS margin:-6px 负责，勿在此再减 */
+    d.style.top = y + 'px';
     d.style.setProperty('--c', ev.typeMeta.color);
     d.setAttribute('data-ev', ev.id);
     d.title = ev.title + ' · AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '');
     d.setAttribute('aria-label', ev.title);
-    d.innerHTML = '<span class="ev-label">' + esc(ev.title) + '</span>';
+    d.innerHTML = typeIcon(ev.type) + '<span class="ev-label">' + esc(ev.title) + '</span>';
     pel.appendChild(d);
     dotEls[ev.id] = d;
     d.addEventListener('click', function (e) { e.stopPropagation(); openEvent(ev.id); });
@@ -1905,20 +2790,27 @@ PLACES.forEach(function (p) {
 
 /* ================= 侧栏：统计 / 章节 / 列表 ================= */
 function renderStats() {
-  var online = CHAPTERS.filter(function (c) { return EVENTS.some(function (e) { return e.ch === c.id; }); }).length;
+  var Y = EVENTS.map(function (e) { return Math.max(e.from, e.to); });
+  var lo = Math.min.apply(null, EVENTS.map(function (e) { return Math.min(e.from, e.to); }));
+  var hi = Math.max.apply(null, Y);
+  var places = {};
+  EVENTS.forEach(function (e) { places[e.place] = 1; });
   $('stats').innerHTML =
     '<div class="stat"><b>' + EVENTS.length + '</b><span>个事件</span></div>' +
-    '<div class="stat"><b>' + online + ' / ' + CHAPTERS.length + '</b><span>章节已上线</span></div>' +
-    '<div class="stat"><b>' + ROUTES.length + '</b><span>段传道旅程</span></div>' +
-    '<div class="stat"><b>22</b><span>年 · AD 46–67</span></div>';
+    /* L-2：改为内容视角（覆盖年代 + 章节名），「N/6 章节已上线」是产品进度，对读者是误导 */
+    '<div class="stat"><b>' + EVENTS.filter(function (e) { return e.ch === 'ch1'; }).length + '</b><span>第一次传道旅程</span></div>' +
+    '<div class="stat"><b>' + Object.keys(places).length + '</b><span>处地点</span></div>' +
+    '<div class="stat"><b>' + (hi - lo + 1) + '</b><span>年 · AD ' + lo + '–' + hi + '</span></div>';
 }
 
 function renderChapters() {
   var html = '';
   CHAPTERS.forEach(function (c) {
     var n = EVENTS.filter(function (e) { return e.ch === c.id; }).length;
-    html += '<button class="ch-chip' + (n ? '' : ' empty') + (state.chapter === c.id ? ' on' : '') + '" data-ch="' + c.id + '" style="--c:' + c.color + '">' +
-      '<i></i><span>' + c.name + '</span><em>' + (n ? n + ' 个事件' : '待补充') + '</em></button>';
+    /* M-1：地理范围进 title 与 aria，读者悬停即可建立空间直觉，不额外占版面 */
+    var tip = c.area ? c.name + ' · ' + c.years + ' · ' + c.area : c.name + ' · ' + c.years;
+    html += '<button class="ch-chip' + (n ? '' : ' empty') + (state.chapter === c.id ? ' on' : '') + '" data-ch="' + c.id + '" style="--c:' + c.color + '" title="' + esc(tip) + '" aria-label="' + esc(tip) + '">' +
+      '<i></i><span>' + esc(c.name) + '</span><em>' + (n ? n + ' 个事件' : '待补充') + '</em></button>';
   });
   $('chapterbar').innerHTML = html;
   $('chapterbar').querySelectorAll('.ch-chip').forEach(function (b) {
@@ -1944,7 +2836,7 @@ function renderList() {
     html += '<div class="ch-head" style="--c:' + c.color + '"><i></i>' + c.name + '<span>' + c.years + '</span></div>';
     evs.forEach(function (ev) {
       html += '<div class="ev' + (state.detail === ev.id ? ' active' : '') + '" data-ev="' + ev.id + '">' +
-        '<i class="ev-tdot" style="background:' + ev.typeMeta.color + '"></i>' +
+        '<i class="ev-tdot" style="color:' + ev.typeMeta.color + '">' + typeIcon(ev.type) + '</i>' +
         '<div class="ev-yr">AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '') + '</div>' +
         '<div class="ev-mid"><div class="ev-cn">' + esc(ev.title) + '</div><div class="ev-en">' + esc(ev.en) + '</div></div>' +
         '<div class="ev-place">' + esc(PLACE_BY[ev.place].cn) + '</div></div>';
@@ -1978,6 +2870,7 @@ function renderFilter() {
 }
 function setFilter(pid) {
   state.filter = pid;
+  setStoryEnd(false);
   renderFilter(); renderList();
   if (pid) {
     var p = PLACE_BY[pid];
@@ -1990,24 +2883,43 @@ function setFilter(pid) {
 
 /* ================= 详情 ================= */
 function mrow(k, v) { return '<div class="m-row"><span>' + k + '</span><b>' + v + '</b></div>'; }
+/* 图像区块：按 kind 分类小标题（今日遗存 / 历史艺术），无图时给出降级说明
+ * 避免「整块消失」被误读为「该事件没有资料」。 */
 function renderMedia(media) {
-  if (!media || !media.length) return '';
-  return media.map(function (m) {
+  if (!media || !media.length) {
+    return '<div class="d-h">图 像</div>' +
+      '<div class="d-media empty"><p class="d-mnote">图像整理中 · 本条事件的照片与艺术作品尚在编集，可先阅读上方经文与背景资料。</p>' +
+      '<a class="m-link" href="https://commons.wikimedia.org/wiki/Category:Paul_the_Apostle" target="_blank" rel="noopener">' +
+      '<b>前往维基共享资源检索</b><span>Wikimedia Commons · Public Domain / CC ↗</span></a></div>';
+  }
+  var groups = [
+    { kind: 'photo', label: '今 日 遗 存', items: [] },
+    { kind: 'art', label: '历 史 艺 术', items: [] },
+    { kind: null, label: '相 关 资 料', items: [] }
+  ];
+  media.forEach(function (m) {
+    var g = groups.filter(function (x) { return x.kind === (m.kind || null); })[0];
+    if (!m.src && !m.url) return;
     if (m.src) {
-      return '<figure class="m-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '" loading="lazy">' +
-        '<figcaption>' + esc(m.title) + (m.credit ? '<span>' + esc(m.credit) + '</span>' : '') + '</figcaption></figure>';
+      g.items.push('<figure class="m-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '" loading="lazy">' +
+        '<figcaption>' + esc(m.title) + (m.credit ? '<span>' + esc(m.credit) + '</span>' : '') + '</figcaption></figure>');
+    } else {
+      g.items.push('<a class="m-link" href="' + esc(m.url) + '" target="_blank" rel="noopener"><b>' + esc(m.title) + '</b>' +
+        '<span>' + (m.credit ? esc(m.credit) + ' · ' : '') + '在线查看 ↗</span></a>');
     }
-    if (m.url) {
-      return '<a class="m-link" href="' + esc(m.url) + '" target="_blank" rel="noopener"><b>' + esc(m.title) + '</b>' +
-        '<span>' + (m.credit ? esc(m.credit) + ' · ' : '') + '在线查看 ↗</span></a>';
-    }
-    return '';
-  }).join('');
+  });
+  var html = '<div class="d-h">图 像</div><div class="d-media">';
+  groups.forEach(function (g) {
+    if (!g.items.length) return;
+    html += '<div class="d-mgroup"><h5>' + g.label + '</h5>' + g.items.join('') + '</div>';
+  });
+  return html + '</div>';
 }
 function openEvent(id) {
   var ev = EV_BY[id];
   if (!ev) return;
   state.detail = id;
+  setStoryEnd(false);
   pause();
   timeline.setYear(ev.from);
   var p = PLACE_BY[ev.place], c = CH_BY[ev.ch];
@@ -2017,35 +2929,36 @@ function openEvent(id) {
   var media = renderMedia(ev.media);
   $('detail').innerHTML =
     '<button class="back" id="backBtn">← 返回列表</button>' +
-    '<div class="d-type" style="--c:' + ev.typeMeta.color + '"><i></i>' + ev.typeMeta.cn + ' · ' + esc(c.name) + '</div>' +
+    '<div class="d-type" style="--c:' + ev.typeMeta.color + '">' + typeIcon(ev.type, 12) + esc(ev.typeMeta.cn) + ' · ' + esc(c.name) + '</div>' +
     '<div class="d-cn">' + esc(ev.title) + '</div>' +
     '<div class="d-en">' + esc(ev.en) + '</div>' +
     '<div class="d-meta">' +
       mrow('年代', 'AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '')) +
       mrow('地点', p.cn + ' · ' + p.en) +
       mrow('今天所在', p.modern) +
+      /* M-2：场所释义随 places.json 的 gloss 字段配置化，不硬编码在模板里 */
+      (p.gloss ? mrow('场所说明', p.gloss) : '') +
+      (c.area ? mrow('本章区域', c.area) : '') +
     '</div>' +
     '<div class="d-h">缘 起</div><p class="d-bg">' + esc(ev.narrative) + '</p>' +
     (ev.note ? '<div class="d-note">※ ' + esc(ev.note) + '</div>' : '') +
     (verses ? '<div class="d-h">经 文 · 和合本</div>' + verses : '') +
     (media ? '<div class="d-h">图 像</div><div class="d-media">' + media + '</div>' : '') +
-    '<button class="locate" id="locateBtn">在地图上定位' +
-    '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+    '<button class="locate" id="locateBtn">放大查看该地点' +
+    '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M7 2.2v9.6M2.2 7h9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
   $('list').classList.add('hidden');
   $('filterbar').classList.add('hidden');
   var detail = $('detail');
   detail.classList.remove('hidden');
   detail.classList.remove('in'); void detail.offsetWidth; detail.classList.add('in');
   $('scroll').scrollTop = 0;
-  /* 地图侧：事件点亮为当前 + 飞行定位 */
-  EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
-  var d0 = dotEls[id];
-  if (d0) d0.classList.add('on', 'cur');
+  /* 地图侧：事件点亮为当前 + 飞行定位（标记状态交由 applyReveal 统一收口） */
   state.focus = id;
+  applyReveal(state.year);
   mapCore.lit(ev.ll, ev.typeMeta.color, true);
-  mapCore.flyTo(ev.ll, 6.4, 1.0);
+  mapCore.flyTo(ev.ll, 6.4, .7);   /* M-5：1.0s → 0.7s，点击到视觉反馈控制在 300ms 内 */
   $('backBtn').addEventListener('click', closeEvent);
-  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, 6.8, .9); });
+  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, 6.8, .7); });
   renderList();
   try { history.replaceState(null, '', '#e/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
   GS.fx.emit('event:open', ev);
@@ -2062,27 +2975,37 @@ function closeEvent() {
   GS.fx.emit('event:close');
 }
 
-/* ================= 年份驱动：事件点显隐 + 路线点亮 ================= */
+/* ================= 年份驱动：事件点显隐 + 路线点亮 + 标记状态唯一收口 ====
+ * M-5：.cur / .dim / .on / .ahead 全部在此统一计算，revealEvent 与 openEvent
+ * 只设state.focus 后调用本函数，避免两条路径手工增删类造成状态分叉。 */
 function applyReveal(y) {
   var n = 0;
   EVENTS.forEach(function (ev) {
     var on = y >= ev.from - 1e-9;
     if (on) n++;
+    var cur = ev.id === state.focus;
     var d = dotEls[ev.id];
     if (d) {
-      if (on && !d.classList.contains('on')) {
-        d.classList.add('on');
-        if (state.auto && !state.boot) {
-          d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
-        }
-      } else if (!on && d.classList.contains('on')) {
-        d.classList.remove('on', 'pop', 'cur');
+      var wasOn = d.classList.contains('on');
+      d.classList.toggle('on', on);
+      if (on && !wasOn && state.auto && !state.boot) {
+        d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
       }
+      if (!on) d.classList.remove('pop');
+      d.classList.toggle('cur', cur && on);
+      /* 播放中：非当前、非未来事件压暗，让当前事件独占视觉焦点 */
+      d.classList.toggle('dim', state.playing && on && !cur);
+      d.classList.toggle('ahead', state.playing && !on);
     }
     if (ev.dotEl) ev.dotEl.classList.toggle('on', on);
   });
   $('tlCount').textContent = n + ' / ' + EVENTS.length + ' 事件';
   routes.applyTime(y);
+}
+
+/* 播放结束（或首次进入）后隐藏事件图标，回到干净底图；任何交互即恢复 */
+function setStoryEnd(on) {
+  document.body.classList.toggle('story-end', !!on);
 }
 
 /* ================= 事件卡（播放中） ================= */
@@ -2110,17 +3033,15 @@ function syncPlayBtn() {
   $('playLb').textContent = state.playing ? '暂停' : '播放';
 }
 function revealEvent(ev) {
-  EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
-  var d = dotEls[ev.id];
-  if (d) {
-    d.classList.add('on', 'cur');
-    d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
-  }
+  setStoryEnd(false);
   state.focus = ev.id;
   /* 智能跟随：事件地点不在当前视口内才飞行 */
   var b = map.getBounds().pad(-0.15);
-  if (!b.contains(L.latLng(ev.ll))) mapCore.flyTo(ev.ll, 6.2, 1.1);
+  if (!b.contains(L.latLng(ev.ll))) mapCore.flyTo(ev.ll, 6.2, 1.4);
   mapCore.lit(ev.ll, ev.typeMeta.color);
+  /* 描线沿路径渐进生长到事件地点（去程/回程自动区分），耗时与年份推进同步 */
+  routes.seek(ev, 2200 / state.speed);
+  applyReveal(state.year);   /* 标记状态唯一收口：当前 .cur / 其余 .dim */
   showCard(ev);
   GS.fx.emit('event:arrive', ev);
 }
@@ -2128,24 +3049,29 @@ function startPlay() {
   if (state.playing) return;
   if (state.detail) closeEvent();
   hideCard();
+  setStoryEnd(false);
+  routes.release();   /* 从年份驱动切换到事件驱动描线 */
   var ahead = SEQ.filter(function (e) { return e.from >= state.year - 1e-9; });
   if (!ahead.length) { timeline.setYear(D0); ahead = SEQ; }
   state.playing = true; state.auto = true;
   syncPlayBtn();
+  applyReveal(state.year);
   timeline.playEvents(ahead, {
     speed: state.speed,
     dwell: DWELL,
-    travel: 1500,
+    travel: 2600,
     onEvent: function (ev) { revealEvent(ev); },
     onLeave: function (ev) {
       var d = dotEls[ev.id];
       if (d && state.detail !== ev.id) d.classList.remove('cur');
       hideCard();
+      applyReveal(state.year);
     },
     onEnd: function () {
       state.playing = false; state.auto = false;
       syncPlayBtn();
-      toast('AD 46–67', '故事播放完毕 · 点击任意事件可回看详情');
+      setStoryEnd(true);   /* 播完隐藏事件图标，回到干净底图 */
+      toast('AD 46–67', '故事播放完毕 · 拖动时间轴或点击事件可回看');
       GS.fx.emit('play:end');
     }
   });
@@ -2155,8 +3081,10 @@ function pause() {
   var was = state.playing;
   timeline.pause();
   state.playing = false; state.auto = false;
+  routes.release();   /* 暂停后描线交还年份驱动 */
   syncPlayBtn();
   hideCard();
+  applyReveal(state.year);   /* 清除 dim */
   if (was) GS.fx.emit('play:pause');
 }
 function togglePlay() { state.playing ? pause() : startPlay(); }
@@ -2199,7 +3127,7 @@ function toast(big, html) {
 function renderLegend() {
   var th = '';
   Object.keys(TYPE_META).forEach(function (k) {
-    th += '<div class="lg-row"><span class="dot-sw" style="background:' + TYPE_META[k].color + '"></span>' + TYPE_META[k].cn + '</div>';
+    th += '<div class="lg-row"><span class="ic-sw" style="color:' + TYPE_META[k].color + '">' + typeIcon(k) + '</span>' + TYPE_META[k].cn + '</div>';
   });
   $('typeLegend').innerHTML = th;
   var jh = '';
@@ -2212,6 +3140,18 @@ function renderLegend() {
     j.rowEl = row;
     row.addEventListener('click', function () { replayJourney(j); });
   });
+  /* L-1：折叠摘要只统计「已含事件」的旅程，避免把待补充章节算进来 */
+  var evMaxFrom = Math.max.apply(null, EVENTS.map(function (e) { return e.from; }));
+  var liveRoute = ROUTES.filter(function (j) { return j.from <= evMaxFrom; }).length;
+  $('lgSum').textContent = Object.keys(TYPE_META).length + ' 类事件 · ' + liveRoute + ' 段旅程 · 点击展开';
+  $('lgToggle').addEventListener('click', function () {
+    var lg = $('legend');
+    lg.classList.toggle('open');
+    $('lgToggle').setAttribute('aria-expanded', lg.classList.contains('open') ? 'true' : 'false');
+  });
+  /* 播放中自动展开一次（读者此刻最需要知道图标含义），播完再收起 */
+  GS.fx.on('play:start', function () { $('legend').classList.add('open'); });
+  GS.fx.on('play:end', function () { $('legend').classList.remove('open'); });
 }
 function replayJourney(j) {
   pause();
@@ -2250,6 +3190,15 @@ document.addEventListener('keydown', function (e) {
 });
 
 /* ================= 时间轴 ================= */
+/* 刻度：按动态量程均分（AD 46 / 50 / 54 …），末段留白即「后续章节待补充」 */
+(function renderScale() {
+  var h = '';
+  for (var i = 0; i < SCALE_STEPS; i++) {
+    h += '<span>AD ' + Math.round(D0 + (D1 - D0) * i / (SCALE_STEPS - 1)) + '</span>';
+  }
+  $('tlScale').innerHTML = h;
+})();
+
 var tlMarks = EVENTS.map(function (e) {
   return { id: e.id, from: e.from, color: e.typeMeta.color, title: e.title + ' · ' + PLACE_BY[e.place].cn };
 });
@@ -2263,9 +3212,20 @@ var timeline = GS.timeline.init({
     return { id: c.id, name: c.name, years: c.years, from: c.from, to: c.to, color: c.color };
   }),
   marks: tlMarks,
-  onYear: function (y) { state.year = y; applyReveal(y); },
+  onYear: function (y) {
+    state.year = y;
+    if (!state.playing) { routes.release(); setStoryEnd(false); }  /* 拖拽/步进：恢复年份驱动并显回图标 */
+    applyReveal(y);
+  },
   onMark: function (m) { pause(); openEvent(m.id); },
   onBand: function (b) { jumpChapter(b.id); },
+  /* 轨道高度随圆点实际行数自适应，避免留大片空白或压住章节色带 */
+  onPending: function (info) {
+    var rows = info.rows || 3;
+    $('tlTrack').style.height = (9 + rows * 13 + 12) + 'px';
+    var bands = $('tlTrack').querySelectorAll('.tl-band');
+    for (var i = 0; i < bands.length; i++) bands[i].style.top = (9 + rows * 13 + 6) + 'px';
+  },
   onState: function (playing) { state.playing = playing; state.auto = playing; syncPlayBtn(); }
 });
 EVENTS.forEach(function (e) {
@@ -2294,18 +3254,50 @@ function handleHash() {
 }
 window.addEventListener('hashchange', handleHash);
 
+/* ================= 首屏引导（H-2） ================= */
+var GUIDE_KEY = 'gs.guide.seen.v1';
+function dismissGuide(silent) {
+  var g = $('guide');
+  if (!g || g.classList.contains('hidden')) return;
+  g.classList.add('out');
+  setTimeout(function () { g.classList.add('hidden'); }, 420);
+  $('playBtn').classList.remove('hint');   /* 播放按钮恢复常规样式 */
+  if (!silent) { try { sessionStorage.setItem(GUIDE_KEY, '1'); } catch (e) { /* 隐私模式忽略 */ } }
+}
+function maybeShowGuide() {
+  var seen = false;
+  try { seen = sessionStorage.getItem(GUIDE_KEY) === '1'; } catch (e) { seen = false; }
+  if (seen || (location.hash || '').length > 1) return;   /* 深链进入不给引导 */
+  var g = $('guide');
+  $('guideN').textContent = EVENTS.length;
+  $('guideSpan').textContent = 'AD ' + D0 + '–' + Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); }));
+  g.classList.remove('hidden', 'out');
+  void g.offsetWidth;
+  $('playBtn').classList.add('hint');
+  g.addEventListener('click', function () { dismissGuide(); startPlay(); });
+}
+$('playBtn').addEventListener('click', dismissGuide);
+window.addEventListener('keydown', function (e) {
+  if (e.key === ' ' || e.key === 'Enter') dismissGuide(true);
+}, true);
+['pointerdown', 'wheel'].forEach(function (t) {
+  window.addEventListener(t, function () { dismissGuide(true); }, { passive: true });
+});
+
 /* ================= 启动 ================= */
 renderStats();
 renderChapters();
 renderLegend();
 renderFilter();
 renderList();
-mapCore.placeLabels(labelItems);
+mapCore.placeLabels(labelItems);   /* 兜底初始调用；尺寸稳定后 onReady 会重算 */
 timeline.setYear(D0);
 routes.drawAll(170);
 setTimeout(function () {
-  toast('AD 46–67', '按 <b>空格</b> 播放故事 · 点击事件标记查看详情');
+  toast('AD ' + D0 + '–' + Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); })),
+    '按 <b>空格</b> 播放故事 · 点击事件标记查看详情');
 }, 1300);
+setTimeout(maybeShowGuide, 1900);   /* 让首帧与toast 先落定，引导卡后置入场 */
 GS.fx.emit('app:ready');
 handleHash();
 
@@ -2316,7 +3308,7 @@ window.GS_APP = {
   state: state,
   open: openEvent, close: closeEvent, play: startPlay, pause: pause,
   step: stepEvent, jumpChapter: jumpChapter, setFilter: setFilter,
-  dotEls: dotEls
+  dotEls: dotEls, map: map, timeline: timeline, setYear: function (y) { timeline.setYear(y); }
 };
 
 })();
