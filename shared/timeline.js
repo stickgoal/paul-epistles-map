@@ -121,7 +121,12 @@ GS.timeline = (function () {
   }
 
   /* ===== 事件序列播放 =====
-   * items: 事件数组（已按年代排序）；opts: { yearOf, travel, dwell, speed, onEvent, onLeave, onEnd } */
+   * items: 事件数组（已按年代排序）；opts: { yearOf, travel, dwell, speed, onEvent, onLeave, onEnd }
+   *
+   * travel 现在是「事件之间的过渡时长」而非单纯的年代插值时长：M1 的 12 个事件
+   * 集中在 AD 46–49，相邻事件 from 相同 → 年代跨度为 0，旧实现直接 setYear+done，
+   * 过渡耗时 0ms，路线描线与相机跟随（各需约 2s）刚起步就被下一轮重置。
+   * 故 span≈0 时也保证 travel 的过渡窗口，让「线在画 + 镜头在跟」有时间跑完。 */
   function playEvents(items, opts) {
     stopSeq();
     opts = opts || {};
@@ -137,7 +142,14 @@ GS.timeline = (function () {
     function animateTo(target, dur, done) {
       var start = state.year, t0 = performance.now();
       var span = target - start;
-      if (Math.abs(span) < 1e-6 || dur <= 0) { setYear(target); done(); return; }
+      if (Math.abs(span) < 1e-6) {
+        setYear(target);
+        /* 同年事件：保底一个过渡窗口，否则描线/相机补间刚开始就被打断 */
+        if (dur > 0) seq.timer = setTimeout(function () { if (seq.active) done(); }, dur);
+        else done();
+        return;
+      }
+      if (dur <= 0) { setYear(target); done(); return; }
       (function frame(t) {
         if (!seq.active) return;
         var p = Math.min(1, (t - t0) / dur);

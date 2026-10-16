@@ -113,11 +113,27 @@ GS.routeEngine = (function () {
   /* 事件驱动描线：把路线进度推到 ev 对应站点（place id 匹配 stops.p）。
    * 同一地点出现多次时（去程/回程），取「当前进度之后」的最近站点——
    * 回访事件因此自然落到回程段；无匹配（地点不在该旅程上）则保持当前进度。
-   * dur > 0 时补间渐变（沿线"画"过去），dur = 0 即瞬移（拖拽/步进场景）。 */
+   * dur > 0 时补间渐变（沿线"画"过去），dur = 0 即瞬移（拖拽/步进场景）。
+   *
+   * onFrame(headLatLng, t, plan)：逐帧回调，t ∈ [0,1] 为缓动后进度。
+   * 这是「相机与描线同一时钟」的接缝 —— 描线每推进一帧，相机就用同一个 ll
+   * 重新定位，两者不可能再错拍。此前相机只在事件前后各自 flyTo 一次，
+   * 与 2.2s 的描线补间完全独立，因此用户看到「线在走、镜头不动」。 */
   var seekRaf = 0;
   function cancelSeek() { if (seekRaf) { cancelAnimationFrame(seekRaf); seekRaf = 0; } }
 
-  function seek(ev, dur) {
+  /* 路径上按里程取插值点（比直接取 path[k] 平滑，相机跟随才不会一顿一顿） */
+  function pointAt(j, dist) {
+    var target = Math.max(0, Math.min(j.total, dist));
+    var k = 0;
+    while (k < j.cum.length - 2 && j.cum[k + 1] <= target) k++;
+    var seg = j.cum[k + 1] - j.cum[k];
+    var u = seg > 0 ? (target - j.cum[k]) / seg : 0;
+    return [j.path[k][0] + (j.path[k + 1][0] - j.path[k][0]) * u,
+            j.path[k][1] + (j.path[k + 1][1] - j.path[k][1]) * u];
+  }
+
+  function seek(ev, dur, onFrame) {
     if (!ev || !ev.place) return;
     cancelSeek();
     var plan = [];
@@ -137,14 +153,20 @@ GS.routeEngine = (function () {
       if (!pick) pick = cands[cands.length - 1];
       plan.push({ j: j, from: from, to: pick.d / j.total });
     });
-    if (!plan.length) return;
+    if (!plan.length) { if (onFrame) onFrame(ev.ll, 1, []); return; }
 
     if (!(dur > 0)) {
       plan.forEach(function (x) { x.j.hold = x.to; });
       applyTime(getYear());
+      /* dur = 0 是「步进」场景：相机由调用方直接 flyTo 定位，不参与跟帧 */
       return;
     }
-    /* 只前进不后退：回程事件若落在已描线之后则前进，否则直接定位 */
+    /* 只前进不后退：回程事件若落在已描线之后则前进，否则直接定位。
+     * 主路线 = 本次推进里程最长的那段，相机跟随它（多段并行时的视觉主角）。 */
+    var main = plan[0];
+    plan.forEach(function (x) {
+      if (Math.abs(x.to - x.from) > Math.abs(main.to - main.from)) main = x;
+    });
     var t0 = performance.now();
     (function frame(t) {
       var p = Math.min(1, (t - t0) / dur);
@@ -154,6 +176,7 @@ GS.routeEngine = (function () {
         x.j.hold = (x.to > x.from) ? Math.max(x.from, tgt) : x.to;
       });
       applyTime(getYear());
+      if (onFrame) onFrame(pointAt(main.j, main.j.hold * main.j.total), e, plan);
       if (p < 1) seekRaf = requestAnimationFrame(frame);
       else seekRaf = 0;
     })(t0);
