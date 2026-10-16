@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>保罗故事地图 · 三次传道旅程与赴罗马</title>
+<style>
+@@LEAFLET_CSS@@
+
+:root{
+  --bg:#f6f6f4;
+  --panel:#fbfbf9;
+  --ink:#1b1d20;
+  --ink-2:#565c64;
+  --ink-3:#989ea6;
+  --hair:#e7e7e1;
+  --hair-2:#f0f1ec;
+  --accent:#c2593f;
+  --accent-deep:#a34a33;
+  --accent-soft:#f6e9e4;
+  --land:#fdfdfb;
+  --border-land:#d8dad3;
+  --j1:#8fa3b8;
+  --j2:#8fa79a;
+  --j3:#b39c8a;
+  --j4:#a493b6;
+  --shadow:0 1px 2px rgba(20,20,18,.04),0 10px 30px rgba(20,20,18,.07);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --cjk-serif:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,SimSun,serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  overflow:hidden;
+}
+::selection{background:var(--accent-soft)}
+button{font-family:inherit;border:none;background:none}
+.hidden{display:none!important}
+
+.app{display:flex;height:100vh;height:100dvh;width:100vw}
+
+/* ============ 侧栏 ============ */
+.sidebar{
+  width:424px;flex:none;height:100%;background:var(--panel);
+  border-right:1px solid var(--hair);display:flex;flex-direction:column;z-index:10;
+}
+.hd{padding:30px 30px 22px;border-bottom:1px solid var(--hair)}
+.eyebrow{font-size:11px;letter-spacing:.14em;color:var(--ink-3);font-weight:600;margin-bottom:14px}
+.hd h1{font-size:27px;font-weight:700;letter-spacing:-.01em;line-height:1.15}
+.sub{margin-top:7px;font-size:12.5px;color:var(--ink-2);font-family:var(--serif);font-style:italic}
+.stats{display:flex;margin-top:20px;border:1px solid var(--hair);border-radius:12px;overflow:hidden;background:#fff}
+.stat{flex:1;padding:11px 6px 10px;text-align:center;border-left:1px solid var(--hair-2)}
+.stat:first-child{border-left:none}
+.stat b{display:block;font-size:17px;font-weight:700;letter-spacing:-.01em;font-feature-settings:"tnum"}
+.stat span{display:block;font-size:10.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.02em}
+
+.scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;min-height:0}
+.scroll::-webkit-scrollbar{width:8px}
+.scroll::-webkit-scrollbar-thumb{background:#dcdcd4;border-radius:4px;border:2px solid var(--panel)}
+.scroll::-webkit-scrollbar-track{background:transparent}
+
+/* 章节选择 */
+.chapterbar{display:flex;gap:7px;padding:14px 18px 4px;flex-wrap:wrap}
+.ch-chip{display:flex;align-items:center;gap:7px;border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 12px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s}
+.ch-chip i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.ch-chip em{font-style:normal;font-size:10.5px;color:var(--ink-3);font-feature-settings:"tnum"}
+.ch-chip:hover{border-color:#cfcfc6;color:var(--ink)}
+.ch-chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.ch-chip.on em{color:rgba(255,255,255,.62)}
+.ch-chip.empty{opacity:.5}
+.ch-chip.empty:hover{opacity:.8}
+
+.filterbar{display:flex;align-items:center;justify-content:space-between;margin:12px 18px 0;padding:8px 6px 8px 13px;background:var(--accent-soft);border-radius:10px;font-size:12.5px;color:var(--accent-deep)}
+.filterbar button{color:var(--accent-deep);cursor:pointer;font-size:12px;padding:3px 7px;border-radius:6px}
+.filterbar button:hover{background:rgba(194,89,63,.14)}
+
+.list{padding:6px 14px 16px}
+.ch-head{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.1em;color:var(--ink-3);font-weight:600;padding:14px 12px 6px}
+.ch-head i{width:14px;height:3px;border-radius:2px;background:var(--c);flex:none}
+.ch-head span{margin-left:auto;font-weight:500;letter-spacing:.02em}
+
+.ev{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;cursor:pointer;transition:background .18s;position:relative}
+.ev:hover{background:#f1f1ed}
+.ev.active{background:var(--accent-soft)}
+.ev + .ev::before{content:'';position:absolute;top:0;left:12px;right:12px;height:1px;background:var(--hair-2)}
+.ev-tdot{flex:none;width:9px;height:9px;border-radius:50%}
+.ev-yr{flex:none;width:74px;font-size:11px;color:var(--ink-3);font-feature-settings:"tnum";letter-spacing:.01em}
+.ev-mid{flex:1;min-width:0}
+.ev-cn{font-size:14.5px;font-weight:600;letter-spacing:.01em}
+.ev-en{font-size:11.5px;color:var(--ink-3);font-family:var(--serif);font-style:italic;margin-top:1px}
+.ev-place{flex:none;font-size:11.5px;color:var(--ink-2);background:#fff;border:1px solid var(--hair);padding:3px 9px;border-radius:999px;transition:.18s}
+.ev:hover .ev-place,.ev.active .ev-place{border-color:var(--accent);color:var(--accent-deep)}
+
+.empty{padding:36px 20px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.9}
+.empty span{font-size:11.5px}
+
+.detail{padding:20px 26px 26px}
+.detail.in{animation:slidein .35s cubic-bezier(.2,.7,.3,1)}
+@keyframes slidein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.back{color:var(--ink-2);font-size:12.5px;cursor:pointer;padding:4px 0;margin-bottom:12px}
+.back:hover{color:var(--accent)}
+.d-type{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2);background:#fff;border:1px solid var(--hair);padding:4px 11px;border-radius:999px;margin-bottom:12px}
+.d-type i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.d-cn{font-size:24px;font-weight:700;letter-spacing:-.01em}
+.d-en{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-3);margin-top:3px}
+.d-meta{margin:18px 0 6px;border-top:1px solid var(--hair)}
+.m-row{display:flex;gap:14px;padding:9px 2px;border-bottom:1px solid var(--hair-2);font-size:13px}
+.m-row span{flex:none;width:64px;color:var(--ink-3);font-size:12px;padding-top:1px}
+.m-row b{font-weight:600;color:var(--ink);line-height:1.5}
+.d-h{font-size:11px;letter-spacing:.12em;color:var(--ink-3);font-weight:600;margin:18px 0 8px}
+.d-bg{font-size:13.5px;line-height:1.9;color:#33383e}
+.d-note{margin-top:12px;font-size:12px;line-height:1.75;color:#8a5a48;background:#faf3f0;border-left:2px solid var(--accent);padding:9px 12px;border-radius:0 8px 8px 0}
+.d-verse{margin:10px 0 0;padding:16px 18px;background:#fff;border:1px solid var(--hair);border-radius:12px}
+.d-verse p{font-family:var(--cjk-serif);font-size:15px;line-height:2.0;color:#2a2e33}
+.d-verse cite{display:block;margin-top:10px;font-size:11.5px;color:var(--ink-3);font-style:normal;letter-spacing:.03em}
+.d-media{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.m-fig{margin:0;border:1px solid var(--hair);border-radius:10px;overflow:hidden;background:#fff}
+.m-fig img{width:100%;display:block;aspect-ratio:4/3;object-fit:cover}
+.m-fig figcaption{padding:8px 10px;font-size:11px;color:var(--ink-2);line-height:1.5}
+.m-fig figcaption span{display:block;color:var(--ink-3);font-size:10px;margin-top:2px}
+.m-link{grid-column:1/-1;display:flex;flex-direction:column;gap:2px;border:1px dashed var(--hair);border-radius:10px;padding:11px 13px;font-size:12.5px;color:var(--ink);text-decoration:none;transition:.2s}
+.m-link:hover{border-color:var(--accent);color:var(--accent-deep)}
+.m-link span{font-size:10.5px;color:var(--ink-3)}
+.locate{margin-top:16px;width:100%;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:10px;padding:11px;font-size:13px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.locate:hover{background:#000;border-color:#000}
+
+.note{margin:8px 26px 26px;font-size:11px;line-height:1.85;color:var(--ink-3)}
+
+/* ============ 时间轴 ============ */
+.tl{border-top:1px solid var(--hair);padding:14px 26px 16px;background:var(--panel)}
+.tl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px}
+.tl-cap{font-size:11px;letter-spacing:.1em;color:var(--ink-3);font-weight:600;white-space:nowrap}
+.tl-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.tl-count{font-size:11px;color:var(--ink-3);font-feature-settings:"tnum";white-space:nowrap}
+.tl-year{font-size:15px;font-weight:700;font-feature-settings:"tnum";letter-spacing:-.01em;min-width:56px;text-align:right}
+.play{display:flex;align-items:center;gap:6px;border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 13px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s}
+.play:hover{border-color:var(--ink-3);color:var(--ink)}
+.play.playing{background:var(--ink);border-color:var(--ink);color:#fff}
+.play .i-pause{display:none}
+.play.playing .i-play{display:none}
+.play.playing .i-pause{display:block}
+.tl-step{border:1px solid var(--hair);background:#fff;border-radius:999px;width:28px;height:28px;font-size:9px;color:var(--ink-2);cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+.tl-step:hover{border-color:var(--ink-3);color:var(--ink)}
+.tl-speed{border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 10px;font-size:11px;color:var(--ink-2);cursor:pointer;transition:.2s;font-feature-settings:"tnum";flex:none}
+.tl-speed:hover{border-color:var(--ink-3);color:var(--ink)}
+.tl-track{position:relative;height:36px;cursor:pointer;touch-action:none;margin-top:2px}
+.tl-rail{position:absolute;left:0;right:0;top:14px;height:2px;background:var(--hair);border-radius:2px}
+.tl-band{position:absolute;top:26px;height:3px;border-radius:1.5px;pointer-events:none;opacity:.34;transition:opacity .35s,filter .35s;cursor:pointer}
+.tl-band:hover{opacity:.7}
+.tl-band.on{opacity:1;filter:saturate(1.35) brightness(.88)}
+.tl-band.past{opacity:.62}
+.tl-band.future{opacity:.18}
+.tl-prog{position:absolute;left:0;top:14px;height:2px;background:var(--ink);border-radius:2px;width:100%}
+.tl-dot{position:absolute;top:9px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#fff;border:2px solid var(--c,#c3c6bd);transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .25s,border-color .25s;cursor:pointer;padding:0}
+.tl-dot:hover{transform:scale(1.35)}
+.tl-dot.on{background:var(--c,#c2593f);border-color:var(--c,#c2593f)}
+.tl-knob{position:absolute;top:4px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#fff;border:1px solid var(--hair);box-shadow:0 2px 10px rgba(20,20,18,.16);display:flex;align-items:center;justify-content:center;transition:transform .15s;pointer-events:none}
+.tl-track:active .tl-knob{transform:scale(1.12)}
+.tl-knob::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ink)}
+.tl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-feature-settings:"tnum";margin-top:2px}
+.tl-keys{margin-top:10px;font-size:10.5px;color:var(--ink-3);letter-spacing:.02em}
+
+/* ============ 地图 ============ */
+#map{flex:1;position:relative;background:radial-gradient(1100px 720px at 32% 18%,#eef0ec,#e5e8e2)}
+.leaflet-container{background:transparent;font-family:inherit}
+
+.chips{position:absolute;left:16px;top:16px;display:flex;gap:8px;z-index:1200;flex-wrap:wrap;max-width:calc(100% - 32px)}
+.chip{border:1px solid var(--hair);background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:7px 13px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s;display:flex;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(20,20,18,.04)}
+.chip:hover{border-color:#cfcfc6;color:var(--ink)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.ghost{background:rgba(255,255,255,.75)}
+
+.legend{position:absolute;left:16px;bottom:16px;z-index:1200;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:13px 15px 11px;box-shadow:var(--shadow);min-width:212px}
+.legend h4{font-size:10.5px;color:var(--ink-3);letter-spacing:.12em;margin-bottom:9px;font-weight:600}
+.lg-row{display:flex;align-items:center;gap:9px;padding:3px 0;color:var(--ink-2);font-size:12px}
+.dot-sw{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;margin:0 4.5px}
+.lg-j{display:flex;align-items:center;gap:9px;padding:4px 7px;margin:1px -7px;color:var(--ink-2);font-size:12px;border-radius:8px;cursor:pointer;transition:.15s}
+.lg-j:hover{background:#f1f1ed;color:var(--ink)}
+.lg-j i{width:16px;height:3px;border-radius:2px;flex:none}
+.lg-j em{font-style:normal;color:var(--ink-3);font-size:10.5px;margin-left:auto;font-feature-settings:"tnum";padding-left:8px}
+.lg-j::after{content:'\25B6';font-size:7px;color:#c3c6bd;flex:none}
+.lg-j:hover::after{color:var(--accent)}
+.lg-j.on{background:var(--accent-soft);color:var(--accent-deep)}
+.lg-j.on::after{color:var(--accent)}
+.lg-j.on i{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.lg-j.past{opacity:.66}
+.lg-j.future{opacity:.38}
+.lg-hint{margin-top:9px;padding-top:9px;border-top:1px solid var(--hair-2);font-size:10.5px;color:var(--ink-3)}
+
+/* 播放中的事件卡 */
+.now{position:absolute;left:50%;bottom:24px;transform:translate(-50%,16px);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:12px 16px 11px;box-shadow:var(--shadow);opacity:0;transition:opacity .35s,transform .35s cubic-bezier(.2,.7,.3,1);pointer-events:none;z-index:1250;max-width:min(480px,calc(100% - 40px))}
+.now.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.card-bar{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--ink-3)}
+.card-bar i{width:8px;height:8px;border-radius:50%;flex:none}
+.card-bar .yr{font-weight:700;color:var(--ink);font-feature-settings:"tnum"}
+.card-bar .card-t{font-size:13.5px;font-weight:600;color:var(--ink)}
+.card-bar .card-p{margin-left:auto;font-size:11px;background:#fff;border:1px solid var(--hair);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.card-b{font-size:12px;color:var(--ink-2);line-height:1.55;margin-top:5px}
+.card-dwell{height:2px;background:var(--hair-2);border-radius:1px;margin-top:9px;overflow:hidden}
+.card-dwell i{display:block;height:100%;background:var(--accent);width:100%}
+@keyframes dwell{from{width:100%}to{width:0}}
+.card-more{margin-top:9px;font-size:11.5px;color:var(--accent-deep);cursor:pointer;font-weight:600}
+.card-more:hover{text-decoration:underline}
+
+.attri{position:absolute;right:12px;bottom:10px;z-index:1200;font-size:10px;color:var(--ink-3);letter-spacing:.02em}
+
+/* Leaflet 控件样式覆盖 */
+.leaflet-top.leaflet-right{margin-top:14px;margin-right:14px}
+.leaflet-bar{border:1px solid var(--hair)!important;border-radius:10px!important;box-shadow:var(--shadow)!important;overflow:hidden}
+.leaflet-bar a{background:rgba(255,255,255,.94)!important;color:var(--ink-2)!important;border-bottom:1px solid var(--hair-2)!important;width:32px!important;height:32px!important;line-height:31px!important;font-size:17px!important}
+.leaflet-bar a:last-child{border-bottom:none!important}
+.leaflet-bar a:hover{background:#fff!important;color:var(--ink)!important}
+.leaflet-control-scale-line{border-color:#c3c6bd!important;color:var(--ink-2);background:rgba(255,255,255,.75);border-radius:2px;font-size:10px;padding:1px 5px}
+.leaflet-bottom.leaflet-right{margin-bottom:6px}
+
+.leaflet-tooltip.city-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink);font-size:12.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;pointer-events:none}
+.leaflet-tooltip.city-tip::before{display:none}
+.city-tip .en{display:block;font-size:10px;font-weight:500;color:var(--ink-3);letter-spacing:.05em;margin-top:1px}
+.city-tip .cnt{font-weight:500;color:var(--accent);font-size:11px;margin-left:6px;font-feature-settings:"tnum"}
+.leaflet-tooltip.ctx-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink-3);font-size:11px;font-weight:500;white-space:nowrap;pointer-events:none}
+.leaflet-tooltip.ctx-tip::before{display:none}
+.hide-labels .leaflet-tooltip{display:none}
+
+/* 地点标记（核心 + 事件点） */
+.place-icon{pointer-events:none}
+.place{position:relative;width:78px;height:78px}
+.place .glow{position:absolute;left:50%;top:50%;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 6%,transparent) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
+.place.lit .glow{opacity:1}
+.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:pulse 3s cubic-bezier(.2,.6,.4,1) infinite;pointer-events:none;opacity:.5}
+.place .core{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#fff;border:3.5px solid #b9bdb4;box-shadow:0 1px 5px rgba(20,20,18,.25);cursor:pointer;pointer-events:auto;transition:transform .25s cubic-bezier(.34,1.56,.64,1),border-color .3s;z-index:4}
+.place:hover .core{transform:scale(1.25);border-color:var(--accent)}
+.ev-dot{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#fff;border:2.5px solid var(--c);cursor:pointer;pointer-events:auto;transform:scale(.2);opacity:0;transition:opacity .3s,transform .45s cubic-bezier(.34,1.56,.64,1),background .25s,box-shadow .25s;padding:0;z-index:3}
+.ev-dot.on{opacity:1;transform:scale(1)}
+.ev-dot.on:hover{transform:scale(1.3)}
+.ev-dot.cur{background:var(--c);box-shadow:0 0 0 5px color-mix(in srgb,var(--c) 22%,transparent)}
+.ev-dot.hl{box-shadow:0 0 0 6px var(--accent-soft)}
+.ev-dot.pop{animation:dotpop .55s cubic-bezier(.34,1.56,.64,1)}
+@keyframes dotpop{0%{transform:scale(.2)}55%{transform:scale(1.4)}100%{transform:scale(1)}}
+.ev-label{position:absolute;left:50%;bottom:15px;transform:translate(-50%,6px);background:rgba(255,255,255,.97);border:1px solid var(--hair);border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s cubic-bezier(.2,.7,.3,1);z-index:6}
+.ev-dot.cur .ev-label{opacity:1;transform:translate(-50%,0)}
+body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
+
+/* 上下文地点 */
+.ctx-icon{pointer-events:none}
+.ctx{width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #b9bdb4;box-shadow:0 1px 3px rgba(20,20,18,.15)}
+
+/* 点亮特效 */
+.fx-ic{pointer-events:none}
+.fx-glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin .45s ease-out forwards}
+@keyframes fxin{to{opacity:1}}
+
+/* 旅程动画 */
+.travel-ic{pointer-events:none}
+.td{width:15px;height:15px;margin:-7.5px 0 0 -7.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 5px color-mix(in srgb,var(--c,#c2593f) 22%,transparent),0 0 16px color-mix(in srgb,var(--c,#c2593f) 55%,transparent);position:relative}
+.td::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.55;animation:pulse 1.7s ease-out infinite}
+.route-flow{animation:dashflow 2.6s linear infinite}
+@keyframes dashflow{to{stroke-dashoffset:-28}}
+@keyframes pulse{0%{transform:scale(1);opacity:.5}70%{transform:scale(3.4);opacity:0}100%{transform:scale(3.4);opacity:0}}
+.rh-ic{pointer-events:none}
+.rh{width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#c2593f) 20%,transparent),0 0 14px color-mix(in srgb,var(--c,#c2593f) 65%,transparent);position:relative}
+.rh::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.5;animation:pulse 1.7s ease-out infinite}
+
+/* 响应式 */
+@media (max-width: 960px){
+  .app{flex-direction:column}
+  #map{height:56dvh;flex:none}
+  .sidebar{width:100%;height:auto;flex:1;min-height:0;border-right:none;border-top:1px solid var(--hair)}
+  .legend{display:none}
+  .hd{padding:20px 22px 16px}
+  .hd h1{font-size:23px}
+  .tl{padding:12px 22px 14px}
+  .chips{top:10px;left:10px;gap:6px}
+  .chip{padding:6px 11px;font-size:11.5px}
+  .now{bottom:14px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <header class="hd">
+      <div class="eyebrow">新约 · 使徒行传与保罗书信</div>
+      <h1>保罗故事地图</h1>
+      <div class="sub">Three Missionary Journeys and the Voyage to Rome</div>
+      <div class="stats" id="stats"></div>
+    </header>
+
+    <div class="scroll" id="scroll">
+      <div class="chapterbar" id="chapterbar"></div>
+      <div class="filterbar hidden" id="filterbar"></div>
+      <div class="list" id="list"></div>
+      <div class="detail hidden" id="detail"></div>
+      <p class="note" id="note">注：年代与地点采用学界主流推定，争议处在事件详情中标注；经文引自和合本。目前上线第一幕「第一次传道旅程」，后续章节将随里程碑补充。地图数据 © Natural Earth。</p>
+    </div>
+
+    <footer class="tl">
+      <div class="tl-top">
+        <span class="tl-cap">时间轴 · 事件发生之时</span>
+        <div class="tl-right">
+          <span class="tl-count" id="tlCount">0 / 0 事件</span>
+          <button class="tl-step" id="prevBtn" title="上一事件" aria-label="上一事件">◀</button>
+          <button class="play" id="playBtn" aria-label="播放故事">
+            <svg class="i-play" viewBox="0 0 12 12" width="9" height="9"><path d="M2.5 1.2 10 6l-7.5 4.8z" fill="currentColor"/></svg>
+            <svg class="i-pause" viewBox="0 0 12 12" width="9" height="9"><rect x="2" y="1.5" width="3" height="9" rx="1" fill="currentColor"/><rect x="7" y="1.5" width="3" height="9" rx="1" fill="currentColor"/></svg>
+            <span id="playLb">播放</span>
+          </button>
+          <button class="tl-step" id="nextBtn" title="下一事件" aria-label="下一事件">▶</button>
+          <button class="tl-speed" id="speedBtn" title="播放速度">1×</button>
+          <span class="tl-year" id="tlYear">AD 46</span>
+        </div>
+      </div>
+      <div class="tl-track" id="tlTrack">
+        <div class="tl-rail"></div>
+        <div class="tl-prog" id="tlProg"></div>
+        <div class="tl-dots" id="tlDots"></div>
+        <div class="tl-knob" id="tlKnob"></div>
+      </div>
+      <div class="tl-scale"><span>AD 46</span><span>AD 57</span><span>AD 67</span></div>
+      <div class="tl-keys">空格 播放 / 暂停 · ← → 步进事件 · Esc 返回列表 · 点击事件标记查看详情</div>
+    </footer>
+  </aside>
+
+  <main id="map">
+    <div class="chips">
+      <button class="chip on" data-layer="routes">传道旅程</button>
+      <button class="chip on" data-layer="places">事件地点</button>
+      <button class="chip on" data-layer="labels">地名</button>
+      <button class="chip ghost" id="resetBtn">重置视图</button>
+    </div>
+    <div class="legend">
+      <h4>图例 · 事件类型</h4>
+      <div id="typeLegend"></div>
+      <h4 style="margin-top:11px">传道旅程</h4>
+      <div id="journeyLegend"></div>
+      <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
+    </div>
+    <div class="now" id="now"></div>
+    <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet · 经文引自和合本</div>
+  </main>
+</div>
+
+<script>
+@@LEAFLET_JS@@
+</script>
+<script>
+@@GS_FX@@
+</script>
+<script>
+@@GS_MAPCORE@@
+</script>
+<script>
+@@GS_ROUTES@@
+</script>
+<script>
+@@GS_TIMELINE@@
+</script>
+<script>
+(function () {
+'use strict';
+
+/* ================= 数据（构建期内联，见 data/*.json） ================= */
+var GEO = @@GEOJSON@@;
+var CHAPTERS = @@DATA_CHAPTERS@@;
+var PLACES = @@DATA_PLACES@@;
+var ROUTES = @@DATA_ROUTES@@;
+var EVENTS = @@DATA_EVENTS@@;
+
+/* 事件类型元数据：颜色与图例文案 */
+var TYPE_META = {
+  arrival:     { cn: '启程 / 抵达',  color: '#8fa3b8' },
+  preach:      { cn: '传道 / 教导',  color: '#8fa79a' },
+  miracle:     { cn: '神迹',         color: '#b39c8a' },
+  persecution: { cn: '逼迫 / 骚乱',  color: '#a34a33' },
+  trial:       { cn: '被捕 / 审讯',  color: '#7d6b5d' },
+  letter:      { cn: '书信写作',     color: '#a493b6' },
+  council:     { cn: '教会决议',     color: '#6f7f74' }
+};
+
+var D0 = 46, D1 = 67;
+var DWELL = 5200;                 /* 播放时每个事件的停留时长（ms，1×） */
+var SPEEDS = [1, 2, 0.5];
+
+/* ================= 工具 ================= */
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+/* ================= 索引 ================= */
+var CH_BY = {}, PLACE_BY = {}, EV_BY = {}, R_BY = {};
+CHAPTERS.forEach(function (c) { CH_BY[c.id] = c; });
+PLACES.forEach(function (p) { PLACE_BY[p.id] = p; });
+EVENTS.forEach(function (e) {
+  EV_BY[e.id] = e;
+  e.ll = PLACE_BY[e.place] ? PLACE_BY[e.place].ll : [0, 0];
+  e.year = (e.from + e.to) / 2;
+  e.typeMeta = TYPE_META[e.type] || TYPE_META.preach;
+});
+ROUTES.forEach(function (r) { R_BY[r.id] = r; });
+var SEQ = EVENTS.slice().sort(function (a, b) { return a.from - b.from || (a.id < b.id ? -1 : 1); });
+
+var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, chapter: null, speed: 1, speedIdx: 0 };
+
+/* ================= 地图与图层 ================= */
+var mapCore = GS.mapCore.init({ geo: GEO });
+var map = mapCore.map();
+var routesLayer = L.layerGroup().addTo(map);
+var placeLayer = L.layerGroup().addTo(map);
+var labelItems = [];
+var dotEls = {};    /* 事件 id -> 地图上的事件点 DOM */
+var placeEls = {};  /* 地点 id -> .place DOM */
+
+/* ================= 路线引擎 ================= */
+var routes = GS.routeEngine.init({
+  layer: routesLayer,
+  routes: ROUTES,
+  getYear: function () { return state.year; },
+  onState: function (j, st) {
+    if (j.rowEl) {
+      j.rowEl.classList.toggle('on', st === 'now');
+      j.rowEl.classList.toggle('past', st === 'past');
+      j.rowEl.classList.toggle('future', st === 'future');
+    }
+  }
+});
+
+/* ================= 地点与事件标记 ================= */
+PLACES.forEach(function (p) {
+  if (p.ctx) {
+    var ic = L.divIcon({ className: 'ctx-icon', html: '<div class="ctx"></div>', iconSize: [9, 9], iconAnchor: [4.5, 4.5] });
+    var m = L.marker(p.ll, { icon: ic, interactive: false, keyboard: false }).addTo(placeLayer);
+    m.bindTooltip(p.cn, { permanent: true, direction: 'right', offset: [9, 0], className: 'ctx-tip' });
+    return;
+  }
+  var evs = EVENTS.filter(function (e) { return e.place === p.id; });
+  var BOX = 78, R = 26;
+  var html = '<div class="place" data-place="' + p.id + '"><span class="glow"></span><span class="ring"></span><span class="core" title="' + esc(p.cn) + '"></span></div>';
+  var icon = L.divIcon({ className: 'place-icon', html: html, iconSize: [BOX, BOX], iconAnchor: [BOX / 2, BOX / 2] });
+  var mk = L.marker(p.ll, { icon: icon, riseOnHover: true, keyboard: false }).addTo(placeLayer);
+  var tip = '<div>' + esc(p.cn) + (evs.length ? '<span class="cnt">' + evs.length + ' 个事件</span>' : '') + '</div><div class="en">' + esc(p.en) + '</div>';
+  mk.bindTooltip(tip, { permanent: true, direction: 'right', offset: [16, 0], className: 'city-tip' });
+  labelItems.push({ marker: mk, html: tip });
+  var pel = mk.getElement();
+  placeEls[p.id] = pel.querySelector('.place');
+  pel.querySelector('.core').addEventListener('click', function () { setFilter(state.filter === p.id ? null : p.id); });
+
+  /* 事件点围绕核心均匀分布；第一个朝上 */
+  evs.forEach(function (ev, i) {
+    var a = (-90 + (evs.length > 1 ? i * 360 / evs.length : 0)) * Math.PI / 180;
+    var x = BOX / 2 + R * Math.cos(a), y = BOX / 2 + R * Math.sin(a);
+    var d = document.createElement('button');
+    d.className = 'ev-dot';
+    d.style.left = (x - 6) + 'px';
+    d.style.top = (y - 6) + 'px';
+    d.style.setProperty('--c', ev.typeMeta.color);
+    d.setAttribute('data-ev', ev.id);
+    d.title = ev.title + ' · AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '');
+    d.setAttribute('aria-label', ev.title);
+    d.innerHTML = '<span class="ev-label">' + esc(ev.title) + '</span>';
+    pel.appendChild(d);
+    dotEls[ev.id] = d;
+    d.addEventListener('click', function (e) { e.stopPropagation(); openEvent(ev.id); });
+    d.addEventListener('mouseenter', function () { hlRow(ev.id, true); });
+    d.addEventListener('mouseleave', function () { hlRow(ev.id, false); });
+  });
+});
+
+/* ================= 侧栏：统计 / 章节 / 列表 ================= */
+function renderStats() {
+  var online = CHAPTERS.filter(function (c) { return EVENTS.some(function (e) { return e.ch === c.id; }); }).length;
+  $('stats').innerHTML =
+    '<div class="stat"><b>' + EVENTS.length + '</b><span>个事件</span></div>' +
+    '<div class="stat"><b>' + online + ' / ' + CHAPTERS.length + '</b><span>章节已上线</span></div>' +
+    '<div class="stat"><b>' + ROUTES.length + '</b><span>段传道旅程</span></div>' +
+    '<div class="stat"><b>22</b><span>年 · AD 46–67</span></div>';
+}
+
+function renderChapters() {
+  var html = '';
+  CHAPTERS.forEach(function (c) {
+    var n = EVENTS.filter(function (e) { return e.ch === c.id; }).length;
+    html += '<button class="ch-chip' + (n ? '' : ' empty') + (state.chapter === c.id ? ' on' : '') + '" data-ch="' + c.id + '" style="--c:' + c.color + '">' +
+      '<i></i><span>' + c.name + '</span><em>' + (n ? n + ' 个事件' : '待补充') + '</em></button>';
+  });
+  $('chapterbar').innerHTML = html;
+  $('chapterbar').querySelectorAll('.ch-chip').forEach(function (b) {
+    b.addEventListener('click', function () { jumpChapter(b.getAttribute('data-ch')); });
+  });
+}
+function syncChapterChips() {
+  $('chapterbar').querySelectorAll('.ch-chip').forEach(function (b) {
+    b.classList.toggle('on', b.getAttribute('data-ch') === state.chapter);
+  });
+}
+
+var rowEls = {};
+function renderList() {
+  var html = '', shown = 0;
+  CHAPTERS.forEach(function (c) {
+    if (state.chapter && state.chapter !== c.id) return;
+    var evs = EVENTS.filter(function (e) {
+      return e.ch === c.id && (!state.filter || e.place === state.filter);
+    });
+    if (!evs.length) return;
+    shown += evs.length;
+    html += '<div class="ch-head" style="--c:' + c.color + '"><i></i>' + c.name + '<span>' + c.years + '</span></div>';
+    evs.forEach(function (ev) {
+      html += '<div class="ev' + (state.detail === ev.id ? ' active' : '') + '" data-ev="' + ev.id + '">' +
+        '<i class="ev-tdot" style="background:' + ev.typeMeta.color + '"></i>' +
+        '<div class="ev-yr">AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '') + '</div>' +
+        '<div class="ev-mid"><div class="ev-cn">' + esc(ev.title) + '</div><div class="ev-en">' + esc(ev.en) + '</div></div>' +
+        '<div class="ev-place">' + esc(PLACE_BY[ev.place].cn) + '</div></div>';
+    });
+  });
+  if (!shown) {
+    html = '<div class="empty">该筛选下暂无事件<br><span>' +
+      (state.filter ? '换个章节，或清除地点筛选' : '此章节的事件将在后续里程碑补充') + '</span></div>';
+  }
+  $('list').innerHTML = html;
+  rowEls = {};
+  $('list').querySelectorAll('.ev').forEach(function (r) {
+    var id = r.getAttribute('data-ev');
+    rowEls[id] = r;
+    r.addEventListener('click', function () { openEvent(id); });
+    r.addEventListener('mouseenter', function () { hlRow(id, true); });
+    r.addEventListener('mouseleave', function () { hlRow(id, false); });
+  });
+}
+function hlRow(id, on) {
+  var d = dotEls[id];
+  if (d) d.classList.toggle('hl', on);
+  var r = rowEls[id];
+  if (r) r.style.background = on ? '#f1f1ed' : '';
+}
+function renderFilter() {
+  if (!state.filter) { $('filterbar').classList.add('hidden'); $('filterbar').innerHTML = ''; return; }
+  $('filterbar').classList.remove('hidden');
+  $('filterbar').innerHTML = '<span>已筛选 · <b>' + esc(PLACE_BY[state.filter].cn) + '</b> 的事件</span><button id="clearFilter">清除筛选</button>';
+  $('clearFilter').addEventListener('click', function () { setFilter(null); });
+}
+function setFilter(pid) {
+  state.filter = pid;
+  renderFilter(); renderList();
+  if (pid) {
+    var p = PLACE_BY[pid];
+    mapCore.lit(p.ll, '#c2593f', true);
+    mapCore.flyTo(p.ll, 5.8, .9);
+  } else {
+    mapCore.clearLit();
+  }
+}
+
+/* ================= 详情 ================= */
+function mrow(k, v) { return '<div class="m-row"><span>' + k + '</span><b>' + v + '</b></div>'; }
+function renderMedia(media) {
+  if (!media || !media.length) return '';
+  return media.map(function (m) {
+    if (m.src) {
+      return '<figure class="m-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '" loading="lazy">' +
+        '<figcaption>' + esc(m.title) + (m.credit ? '<span>' + esc(m.credit) + '</span>' : '') + '</figcaption></figure>';
+    }
+    if (m.url) {
+      return '<a class="m-link" href="' + esc(m.url) + '" target="_blank" rel="noopener"><b>' + esc(m.title) + '</b>' +
+        '<span>' + (m.credit ? esc(m.credit) + ' · ' : '') + '在线查看 ↗</span></a>';
+    }
+    return '';
+  }).join('');
+}
+function openEvent(id) {
+  var ev = EV_BY[id];
+  if (!ev) return;
+  state.detail = id;
+  pause();
+  timeline.setYear(ev.from);
+  var p = PLACE_BY[ev.place], c = CH_BY[ev.ch];
+  var verses = ev.verses.map(function (v) {
+    return '<blockquote class="d-verse"><p>“' + esc(v.text) + '”</p><cite>' + esc(v.ref) + '</cite></blockquote>';
+  }).join('');
+  var media = renderMedia(ev.media);
+  $('detail').innerHTML =
+    '<button class="back" id="backBtn">← 返回列表</button>' +
+    '<div class="d-type" style="--c:' + ev.typeMeta.color + '"><i></i>' + ev.typeMeta.cn + ' · ' + esc(c.name) + '</div>' +
+    '<div class="d-cn">' + esc(ev.title) + '</div>' +
+    '<div class="d-en">' + esc(ev.en) + '</div>' +
+    '<div class="d-meta">' +
+      mrow('年代', 'AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '')) +
+      mrow('地点', p.cn + ' · ' + p.en) +
+      mrow('今天所在', p.modern) +
+    '</div>' +
+    '<div class="d-h">缘 起</div><p class="d-bg">' + esc(ev.narrative) + '</p>' +
+    (ev.note ? '<div class="d-note">※ ' + esc(ev.note) + '</div>' : '') +
+    (verses ? '<div class="d-h">经 文 · 和合本</div>' + verses : '') +
+    (media ? '<div class="d-h">图 像</div><div class="d-media">' + media + '</div>' : '') +
+    '<button class="locate" id="locateBtn">在地图上定位' +
+    '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+  $('list').classList.add('hidden');
+  $('filterbar').classList.add('hidden');
+  var detail = $('detail');
+  detail.classList.remove('hidden');
+  detail.classList.remove('in'); void detail.offsetWidth; detail.classList.add('in');
+  $('scroll').scrollTop = 0;
+  /* 地图侧：事件点亮为当前 + 飞行定位 */
+  EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
+  var d0 = dotEls[id];
+  if (d0) d0.classList.add('on', 'cur');
+  state.focus = id;
+  mapCore.lit(ev.ll, ev.typeMeta.color, true);
+  mapCore.flyTo(ev.ll, 6.4, 1.0);
+  $('backBtn').addEventListener('click', closeEvent);
+  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, 6.8, .9); });
+  renderList();
+  try { history.replaceState(null, '', '#e/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
+  GS.fx.emit('event:open', ev);
+}
+function closeEvent() {
+  if (!state.detail) return;
+  state.detail = null;
+  $('detail').classList.add('hidden');
+  $('list').classList.remove('hidden');
+  if (state.filter) $('filterbar').classList.remove('hidden');
+  EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
+  mapCore.clearLit();
+  renderList();
+  GS.fx.emit('event:close');
+}
+
+/* ================= 年份驱动：事件点显隐 + 路线点亮 ================= */
+function applyReveal(y) {
+  var n = 0;
+  EVENTS.forEach(function (ev) {
+    var on = y >= ev.from - 1e-9;
+    if (on) n++;
+    var d = dotEls[ev.id];
+    if (d) {
+      if (on && !d.classList.contains('on')) {
+        d.classList.add('on');
+        if (state.auto && !state.boot) {
+          d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
+        }
+      } else if (!on && d.classList.contains('on')) {
+        d.classList.remove('on', 'pop', 'cur');
+      }
+    }
+    if (ev.dotEl) ev.dotEl.classList.toggle('on', on);
+  });
+  $('tlCount').textContent = n + ' / ' + EVENTS.length + ' 事件';
+  routes.applyTime(y);
+}
+
+/* ================= 事件卡（播放中） ================= */
+function showCard(ev) {
+  var now = $('now');
+  now.innerHTML =
+    '<div class="card-bar"><i style="background:' + ev.typeMeta.color + '"></i>' +
+    '<span class="yr">AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '') + '</span>' +
+    '<span class="card-t">' + esc(ev.title) + '</span>' +
+    '<span class="card-p">' + esc(PLACE_BY[ev.place].cn) + '</span></div>' +
+    '<div class="card-b">' + esc(ev.brief) + '</div>' +
+    '<div class="card-dwell"><i id="dwellFill"></i></div>' +
+    '<button class="card-more" id="cardMore">查看详情 →</button>';
+  now.classList.add('show');
+  var fill = $('dwellFill');
+  fill.style.animation = 'none'; void fill.offsetWidth;
+  fill.style.animation = 'dwell ' + Math.round(DWELL / state.speed) + 'ms linear forwards';
+  $('cardMore').addEventListener('click', function () { pause(); openEvent(ev.id); });
+}
+function hideCard() { $('now').classList.remove('show'); }
+
+/* ================= 播放控制 ================= */
+function syncPlayBtn() {
+  $('playBtn').classList.toggle('playing', state.playing);
+  $('playLb').textContent = state.playing ? '暂停' : '播放';
+}
+function revealEvent(ev) {
+  EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
+  var d = dotEls[ev.id];
+  if (d) {
+    d.classList.add('on', 'cur');
+    d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
+  }
+  state.focus = ev.id;
+  /* 智能跟随：事件地点不在当前视口内才飞行 */
+  var b = map.getBounds().pad(-0.15);
+  if (!b.contains(L.latLng(ev.ll))) mapCore.flyTo(ev.ll, 6.2, 1.1);
+  mapCore.lit(ev.ll, ev.typeMeta.color);
+  showCard(ev);
+  GS.fx.emit('event:arrive', ev);
+}
+function startPlay() {
+  if (state.playing) return;
+  if (state.detail) closeEvent();
+  hideCard();
+  var ahead = SEQ.filter(function (e) { return e.from >= state.year - 1e-9; });
+  if (!ahead.length) { timeline.setYear(D0); ahead = SEQ; }
+  state.playing = true; state.auto = true;
+  syncPlayBtn();
+  timeline.playEvents(ahead, {
+    speed: state.speed,
+    dwell: DWELL,
+    travel: 1500,
+    onEvent: function (ev) { revealEvent(ev); },
+    onLeave: function (ev) {
+      var d = dotEls[ev.id];
+      if (d && state.detail !== ev.id) d.classList.remove('cur');
+      hideCard();
+    },
+    onEnd: function () {
+      state.playing = false; state.auto = false;
+      syncPlayBtn();
+      toast('AD 46–67', '故事播放完毕 · 点击任意事件可回看详情');
+      GS.fx.emit('play:end');
+    }
+  });
+  GS.fx.emit('play:start');
+}
+function pause() {
+  var was = state.playing;
+  timeline.pause();
+  state.playing = false; state.auto = false;
+  syncPlayBtn();
+  hideCard();
+  if (was) GS.fx.emit('play:pause');
+}
+function togglePlay() { state.playing ? pause() : startPlay(); }
+function stepEvent(dir) {
+  pause();
+  var idx = -1;
+  SEQ.forEach(function (e, i) { if (e.id === state.focus) idx = i; });
+  var ni = idx < 0 ? (dir > 0 ? 0 : SEQ.length - 1) : idx + dir;
+  if (ni < 0 || ni >= SEQ.length) return;
+  var ev = SEQ[ni];
+  timeline.setYear(ev.from);
+  revealEvent(ev);
+}
+function jumpChapter(id) {
+  pause();
+  state.chapter = state.chapter === id ? null : id;
+  syncChapterChips(); renderList();
+  var c = CH_BY[id];
+  var n = EVENTS.filter(function (e) { return e.ch === id; }).length;
+  if (state.chapter && n) {
+    timeline.setYear(c.from);
+    toast(c.years, '<b>' + c.name + '</b> · ' + n + ' 个事件');
+    GS.fx.emit('chapter:enter', c);
+  } else if (state.chapter && !n) {
+    toast(c.years, '<b>' + c.name + '</b> 的事件将在后续里程碑补充');
+  }
+}
+
+/* ================= Toast ================= */
+var toastQ = [], toastBusy = false, toastTimer = null;
+function toast(big, html) {
+  var now = $('now');
+  now.innerHTML = '<span class="yr">' + big + '</span><span class="card-b">' + html + '</span>';
+  now.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideCard, 2600);
+}
+
+/* ================= 图例 ================= */
+function renderLegend() {
+  var th = '';
+  Object.keys(TYPE_META).forEach(function (k) {
+    th += '<div class="lg-row"><span class="dot-sw" style="background:' + TYPE_META[k].color + '"></span>' + TYPE_META[k].cn + '</div>';
+  });
+  $('typeLegend').innerHTML = th;
+  var jh = '';
+  ROUTES.forEach(function (j) {
+    jh += '<div class="lg-j" data-j="' + j.id + '"><i style="background:' + j.color + '"></i><span>' + j.name + '</span><em>' + j.years + '</em></div>';
+  });
+  $('journeyLegend').innerHTML = jh;
+  $('journeyLegend').querySelectorAll('.lg-j').forEach(function (row) {
+    var j = R_BY[row.getAttribute('data-j')];
+    j.rowEl = row;
+    row.addEventListener('click', function () { replayJourney(j); });
+  });
+}
+function replayJourney(j) {
+  pause();
+  routes.replay(j);
+  toast(j.years, '<b>' + j.name + '</b> · ' + j.desc);
+}
+
+/* ================= 图层开关 / 重置 ================= */
+document.querySelectorAll('.chip[data-layer]').forEach(function (chip) {
+  chip.addEventListener('click', function () {
+    var on = chip.classList.toggle('on');
+    var layer = chip.getAttribute('data-layer');
+    if (layer === 'routes') { on ? map.addLayer(routesLayer) : map.removeLayer(routesLayer); }
+    if (layer === 'places') { on ? map.addLayer(placeLayer) : map.removeLayer(placeLayer); }
+    if (layer === 'labels') { mapCore.setLabelsVisible(on); }
+  });
+});
+$('resetBtn').addEventListener('click', function () {
+  pause();
+  routes.cancelTravel();
+  setFilter(null);
+  if (state.chapter) { state.chapter = null; syncChapterChips(); renderList(); }
+  closeEvent();
+  timeline.setYear(D0);
+  mapCore.resetView();
+});
+
+/* ================= 键盘 ================= */
+document.addEventListener('keydown', function (e) {
+  var t = e.target;
+  if (t && (t.tagName === 'BUTTON' || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); stepEvent(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); stepEvent(-1); }
+  else if (e.key === 'Escape') { closeEvent(); if (state.filter) setFilter(null); }
+});
+
+/* ================= 时间轴 ================= */
+var tlMarks = EVENTS.map(function (e) {
+  return { id: e.id, from: e.from, color: e.typeMeta.color, title: e.title + ' · ' + PLACE_BY[e.place].cn };
+});
+var timeline = GS.timeline.init({
+  from: D0, to: D1,
+  els: {
+    track: $('tlTrack'), dots: $('tlDots'), prog: $('tlProg'), knob: $('tlKnob'),
+    year: $('tlYear'), count: $('tlCount'), playBtn: $('playBtn'), playLb: $('playLb')
+  },
+  bands: CHAPTERS.map(function (c) {
+    return { id: c.id, name: c.name, years: c.years, from: c.from, to: c.to, color: c.color };
+  }),
+  marks: tlMarks,
+  onYear: function (y) { state.year = y; applyReveal(y); },
+  onMark: function (m) { pause(); openEvent(m.id); },
+  onBand: function (b) { jumpChapter(b.id); },
+  onState: function (playing) { state.playing = playing; state.auto = playing; syncPlayBtn(); }
+});
+EVENTS.forEach(function (e) {
+  for (var i = 0; i < tlMarks.length; i++) {
+    if (tlMarks[i].id === e.id) { e.dotEl = tlMarks[i].el; break; }
+  }
+});
+
+/* 速度切换 */
+$('speedBtn').addEventListener('click', function () {
+  state.speedIdx = (state.speedIdx + 1) % SPEEDS.length;
+  state.speed = SPEEDS[state.speedIdx];
+  $('speedBtn').textContent = state.speed + '×';
+});
+$('playBtn').addEventListener('click', togglePlay);
+$('prevBtn').addEventListener('click', function () { stepEvent(-1); });
+$('nextBtn').addEventListener('click', function () { stepEvent(1); });
+
+/* ================= 深链 ================= */
+function handleHash() {
+  var h = (location.hash || '').replace(/^#/, '');
+  var m;
+  if ((m = h.match(/^e\/(.+)$/)) && EV_BY[m[1]]) { setTimeout(function () { openEvent(m[1]); }, 900); }
+  else if ((m = h.match(/^ch\/(.+)$/)) && CH_BY[m[1]]) { setTimeout(function () { jumpChapter(m[1]); }, 900); }
+  else if ((m = h.match(/^(j[1-4])$/)) && R_BY[m[1]]) { setTimeout(function () { replayJourney(R_BY[m[1]]); }, 900); }
+}
+window.addEventListener('hashchange', handleHash);
+
+/* ================= 启动 ================= */
+renderStats();
+renderChapters();
+renderLegend();
+renderFilter();
+renderList();
+mapCore.placeLabels(labelItems);
+timeline.setYear(D0);
+routes.drawAll(170);
+setTimeout(function () {
+  toast('AD 46–67', '按 <b>空格</b> 播放故事 · 点击事件标记查看详情');
+}, 1300);
+GS.fx.emit('app:ready');
+handleHash();
+
+/* ================= 调试 / 验收钩子 =================
+ * 供 CDP 自动化验收与后续自动化测试使用；不影响正常交互。 */
+window.GS_APP = {
+  events: EVENTS, seq: SEQ, places: PLACES, routes: ROUTES, chapters: CHAPTERS,
+  state: state,
+  open: openEvent, close: closeEvent, play: startPlay, pause: pause,
+  step: stepEvent, jumpChapter: jumpChapter, setFilter: setFilter,
+  dotEls: dotEls
+};
+
+})();
+</script>
+</body>
+</html>
