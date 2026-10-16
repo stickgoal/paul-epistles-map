@@ -24,6 +24,7 @@
   --j2:#8fa79a;
   --j3:#b39c8a;
   --j4:#a493b6;
+  --sb:424px;         /* 侧栏宽度：引导卡水平定位依赖它，改动须同步 */
   --shadow:0 1px 2px rgba(20,20,18,.04),0 10px 30px rgba(20,20,18,.07);
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
   --cjk-serif:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,SimSun,serif;
@@ -45,7 +46,7 @@ button{font-family:inherit;border:none;background:none}
 
 /* ============ 侧栏 ============ */
 .sidebar{
-  width:424px;flex:none;height:100%;background:var(--panel);
+  width:var(--sb);flex:none;height:100%;background:var(--panel);
   border-right:1px solid var(--hair);display:flex;flex-direction:column;z-index:10;
 }
 .hd{padding:30px 30px 22px;border-bottom:1px solid var(--hair)}
@@ -58,7 +59,10 @@ button{font-family:inherit;border:none;background:none}
 .stat b{display:block;font-size:17px;font-weight:700;letter-spacing:-.01em;font-feature-settings:"tnum"}
 .stat span{display:block;font-size:10.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.02em}
 
-.scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;min-height:0}
+/* min-height 保证窄屏下事件列表区不被压成一条缝：侧栏在移动端是 column 布局的
+   flex:1 子项，内部 hd + .scroll + .tl 三段分配高度，若不给 .scroll 保底，
+   地图占位一大它就被挤到 0（曾实测仅剩 45px，列表整体不可见）。 */
+.scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;min-height:88px}
 .scroll::-webkit-scrollbar{width:8px}
 .scroll::-webkit-scrollbar-thumb{background:#dcdcd4;border-radius:4px;border:2px solid var(--panel)}
 .scroll::-webkit-scrollbar-track{background:transparent}
@@ -180,15 +184,20 @@ button{font-family:inherit;border:none;background:none}
 .tl-keys{margin-top:10px;font-size:11.5px;color:var(--ink-2);letter-spacing:.02em}
 
 /* ============ 首屏引导卡（H-2：让「可播放」可发现） ============ */
-.guide{position:absolute;left:50%;top:22%;transform:translate(-50%,-50%);z-index:900;width:min(400px,calc(100% - 48px));background:rgba(255,255,255,.94);backdrop-filter:saturate(1.5) blur(14px);-webkit-backdrop-filter:saturate(1.5) blur(14px);border:1px solid var(--hair);border-radius:16px;box-shadow:0 14px 44px rgba(20,20,18,.15);padding:22px 24px 20px;text-align:center;cursor:pointer;transition:opacity .4s,transform .4s cubic-bezier(.3,.8,.3,1);animation:guidein .55s cubic-bezier(.2,.9,.3,1)}
-.guide.out{opacity:0;transform:translate(-50%,calc(-50% - 12px)) scale(.97);pointer-events:none}
-@keyframes guidein{from{opacity:0;transform:translate(-50%,calc(-50% + 14px)) scale(.97)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-.guide h3{font-size:16.5px;font-weight:650;letter-spacing:-.01em;margin-bottom:7px}
-.guide p{font-size:12.5px;line-height:1.72;color:var(--ink-2);margin-bottom:15px}
-.guide .g-act{display:inline-flex;align-items:center;gap:7px;background:var(--ink);color:#fff;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:600;box-shadow:0 2px 12px rgba(20,20,18,.2)}
-.guide .g-alt{margin-top:11px;font-size:11.5px;color:var(--ink-3)}
-.guide .g-alt kbd{font:inherit;border:1px solid var(--hair);border-radius:4px;padding:1px 5px;background:#fff;color:var(--ink-2)}
-@media (max-width:767px){.guide{top:auto;bottom:96px;transform:translateX(-50%)}.guide.out{transform:translateX(-50%) scale(.97)}@keyframes guidein{from{opacity:0;transform:translateX(-50%) scale(.97)}to{opacity:1;transform:translateX(-50%) scale(1)}}}
+/* 首屏引导横幅：核心交互「时间轴故事播放」的可发现性（H-2）。
+   用流内元素而非 fixed 浮层 —— 旧版是居中浮层，正好盖住地图上事件标记最密集的
+   区域；改fixed 后挪到侧栏又压住事件列表行与播放按钮。流内横幅不覆盖任何东西：
+   占自己的布局高度，列表自然下移，地图完全不受影响。 */
+.guide{display:flex;align-items:center;gap:12px;margin:14px 18px 0;padding:11px 13px;background:linear-gradient(180deg,#fff,#fbfbf9);border:1px solid var(--hair);border-radius:12px;box-shadow:0 1px 2px rgba(20,20,18,.04);animation:guidein .45s cubic-bezier(.2,.9,.3,1)}
+.guide.out{display:none}
+@keyframes guidein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.guide .g-ic{flex:none;width:26px;height:26px;border-radius:8px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center}
+.guide .g-txt{flex:1;min-width:0}
+.guide .g-txt b{display:block;font-size:12.5px;font-weight:650;letter-spacing:-.005em;color:var(--ink)}
+.guide .g-txt span{display:block;font-size:11px;color:var(--ink-3);margin-top:1px;font-feature-settings:"tnum"}
+.guide .g-act{flex:none;display:inline-flex;align-items:center;gap:5px;background:var(--ink);color:#fff;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
+.guide .g-act:hover{background:#000}
+@media (max-width:960px){.guide{margin:12px 16px 0}}
 
 /* ============ 地图 ============ */
 #map{flex:1;position:relative;background:radial-gradient(1100px 720px at 32% 18%,#eef0ec,#e5e8e2)}
@@ -313,14 +322,40 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 /* 响应式 */
 @media (max-width: 960px){
   .app{flex-direction:column}
-  #map{height:56dvh;flex:none}
+  /* 移动端高度分配：侧栏至少要能容下 hd + 引导横幅 + 若干事件行 + 时间轴。
+     原 56dvh 会把 .scroll 压到 ~45px（列表整体不可见、横幅压住播放按钮），
+     故地图降到 40dvh 并压缩 hd 的纵向留白。 */
+  #map{height:37dvh;flex:none}
   .sidebar{width:100%;height:auto;flex:1;min-height:0;border-right:none;border-top:1px solid var(--hair)}
   .legend{display:none}
-  .hd{padding:20px 22px 16px}
-  .hd h1{font-size:23px}
-  .tl{padding:12px 22px 14px}
+  .hd{padding:13px 20px 10px}
+  .hd h1{font-size:20px;line-height:1.1}
+  .hd .sub{font-size:11.5px;margin-top:4px}
+  .eyebrow{margin-bottom:7px;font-size:10.5px}
+  /* 统计卡在窄屏折成两行紧凑布局，把纵向空间让给事件列表 */
+  .stats{margin-top:10px}
+  .stat{padding:6px 4px 5px}
+  .stat b{font-size:14px}
+  .stat span{font-size:9.5px;margin-top:2px}
+  /* 章节 chip 单行横向滚动，不换行 —— 换行会占掉两整行高度，
+     在窄屏上把事件列表挤到只剩一两行（scroll 区总共才 181px）。 */
+  .chapterbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:11px 16px 3px;align-items:center}
+  .chapterbar::-webkit-scrollbar{display:none}
+  /* flex:none 只固定了主轴（宽）尺寸，交叉轴仍被容器 align-items 拉伸；
+     nowrap 后容器高度由最高的 chip 决定，需钉死高度避免「一个 chip 撑高整行」。 */
+  .ch-chip{flex:none;white-space:nowrap;height:31px;padding:0 12px}
+  /* 窄屏隐藏事件计数：6 个 chip 带计数共999px 宽，只能横向滚动到看不全；
+     计数信息在时间轴「N / 12 事件」里已有。 */
+  .ch-chip em{display:none}
+  .list{padding:4px 12px 12px}
+  .tl{padding:10px 20px 12px}
   .chips{top:10px;left:10px;gap:6px}
   .chip{padding:6px 11px;font-size:11.5px}
+  .guide{margin:11px 16px 0;padding:9px 11px}
+  .guide .g-txt b{font-size:12px}
+  .guide .g-txt span{font-size:10.5px}
+  .guide .g-ic{width:23px;height:23px}
+  .guide .g-act{padding:5px 11px;font-size:11.5px}
   /* L-3：事件卡改顶部通栏，把底部留给地图；chips 同步让位 */
   .now{top:52px;left:12px;right:12px;bottom:auto;transform:translateY(-14px);max-width:none;border-radius:12px;padding:11px 14px 10px}
   .now.show{transform:translateY(0)}
@@ -342,6 +377,18 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
     </header>
 
     <div class="scroll" id="scroll">
+      <!-- 首屏引导横幅：核心交互「时间轴故事播放」的可发现性（H-2）。
+           sessionStorage 记忆，不重复打扰。流内元素，不覆盖地图或列表。 -->
+      <div class="guide hidden" id="guide">
+        <span class="g-ic">
+          <svg viewBox="0 0 12 12" width="11" height="11"><path d="M2.5 1.2 10 6l-7.5 4.8z" fill="currentColor"/></svg>
+        </span>
+        <span class="g-txt">
+          <b>按时间轴播放这段旅程</b>
+          <span>共 <i id="guideN">0</i> 个事件 · <i id="guideSpan">AD 46–49</i></span>
+        </span>
+        <span class="g-act" id="guideAct">开始播放</span>
+      </div>
       <div class="chapterbar" id="chapterbar"></div>
       <div class="filterbar hidden" id="filterbar"></div>
       <div class="list" id="list"></div>
@@ -401,17 +448,6 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
     <div class="now" id="now"></div>
     <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet · 经文引自和合本</div>
   </main>
-
-  <!-- 首屏引导：核心交互「时间轴故事播放」的可发现性（H-2）。sessionStorage 记忆，不重复打扰 -->
-  <div class="guide hidden" id="guide">
-    <h3>按时间轴播放这段旅程</h3>
-    <p>地图会随年代推移逐个点亮事件地点，并展开每个事件的经文与资料。<br>共 <b id="guideN">0</b> 个事件 · <span id="guideSpan">AD 46–49</span></p>
-    <span class="g-act">
-      <svg viewBox="0 0 12 12" width="10" height="10"><path d="M2.5 1.2 10 6l-7.5 4.8z" fill="currentColor"/></svg>
-      开始播放
-    </span>
-    <div class="g-alt">或点击地图标记查看详情 · 随时按 <kbd>空格</kbd> 开始</div>
-  </div>
 </div>
 
 <script>
@@ -466,6 +502,7 @@ var D1 = Math.max(
 );
 var SCALE_STEPS = 3;                    /* 刻度标签数量 */
 var DWELL = 5200;                 /* 播放时每个事件的停留时长（ms，1×） */
+var TRAVEL = 2600;               /* 事件之间的过渡时长（ms，1×）：描线补间与相机跟随共用 */
 var SPEEDS = [1, 2, 0.5];
 
 /* ================= 工具 ================= */
@@ -743,9 +780,9 @@ function openEvent(id) {
   state.focus = id;
   applyReveal(state.year);
   mapCore.lit(ev.ll, ev.typeMeta.color, true);
-  mapCore.flyTo(ev.ll, 6.4, .7);   /* M-5：1.0s → 0.7s，点击到视觉反馈控制在 300ms 内 */
+  mapCore.flyTo(ev.ll, CAM.zEvent, .7);   /* M-5：1.0s → 0.7s，点击到视觉反馈控制在 300ms 内 */
   $('backBtn').addEventListener('click', closeEvent);
-  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, 6.8, .7); });
+  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, CAM.zEvent + .4, .7); });
   renderList();
   try { history.replaceState(null, '', '#e/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
   GS.fx.emit('event:open', ev);
@@ -815,19 +852,27 @@ function showCard(ev) {
 function hideCard() { $('now').classList.remove('show'); }
 
 /* ================= 播放控制 ================= */
+/* 相机跟随：与路线描线共用 seek 的帧回调，两者严格同拍。
+ * 旧实现只在事件前后各 flyTo 一次、缩放硬编码 6.2，描线补间 2.2s 期间镜头静止
+ * —— 用户看到的正是「线在走、缩放不动」。现在每帧把镜头移到当前描线位置，
+ * 缩放随行程在「巡航高度」与「事件特写」之间插值：先拉远看全程，再推近落到事件。 */
+var CAM = { zEvent: 6.4, zCruise: 5.3 };
 function syncPlayBtn() {
   $('playBtn').classList.toggle('playing', state.playing);
   $('playLb').textContent = state.playing ? '暂停' : '播放';
 }
+/* seek 每帧回调：ll = 当前描线头的插值坐标，t = 缓动后进度 [0,1] */
+function camFollow(ll, t) {
+  if (!map.getSize().x) return;                    /* 容器尺寸未就绪，跳过本帧 */
+  var z = CAM.zCruise + (CAM.zEvent - CAM.zCruise) * Math.pow(Math.min(1, Math.max(0, t)), 1.6);
+  map.setView(ll, z, { animate: false });
+}
 function revealEvent(ev) {
   setStoryEnd(false);
   state.focus = ev.id;
-  /* 智能跟随：事件地点不在当前视口内才飞行 */
-  var b = map.getBounds().pad(-0.15);
-  if (!b.contains(L.latLng(ev.ll))) mapCore.flyTo(ev.ll, 6.2, 1.4);
   mapCore.lit(ev.ll, ev.typeMeta.color);
-  /* 描线沿路径渐进生长到事件地点（去程/回程自动区分），耗时与年份推进同步 */
-  routes.seek(ev, 2200 / state.speed);
+  /* 描线沿路径渐进生长到事件地点；相机在同一帧回调里跟随描线头（同一时钟，不可能错拍） */
+  routes.seek(ev, TRAVEL / state.speed, camFollow);
   applyReveal(state.year);   /* 标记状态唯一收口：当前 .cur / 其余 .dim */
   showCard(ev);
   GS.fx.emit('event:arrive', ev);
@@ -846,7 +891,7 @@ function startPlay() {
   timeline.playEvents(ahead, {
     speed: state.speed,
     dwell: DWELL,
-    travel: 2600,
+    travel: TRAVEL,
     onEvent: function (ev) { revealEvent(ev); },
     onLeave: function (ev) {
       var d = dotEls[ev.id];
@@ -858,7 +903,7 @@ function startPlay() {
       state.playing = false; state.auto = false;
       syncPlayBtn();
       setStoryEnd(true);   /* 播完隐藏事件图标，回到干净底图 */
-      toast('AD 46–67', '故事播放完毕 · 拖动时间轴或点击事件可回看');
+      toast('AD 46–67', '故事播放完毕 · 点击地图任意处或拖动时间轴可回看');
       GS.fx.emit('play:end');
     }
   });
@@ -883,7 +928,13 @@ function stepEvent(dir) {
   if (ni < 0 || ni >= SEQ.length) return;
   var ev = SEQ[ni];
   timeline.setYear(ev.from);
-  revealEvent(ev);
+  /* 步进无描线动画，但镜头仍须落到事件地点（否则点了下一事件地图不动） */
+  routes.seek(ev, 0);
+  mapCore.lit(ev.ll, ev.typeMeta.color, true);
+  mapCore.flyTo(ev.ll, CAM.zEvent, .8);
+  state.focus = ev.id;
+  applyReveal(state.year);
+  showCard(ev);
 }
 function jumpChapter(id) {
   pause();
@@ -1043,33 +1094,51 @@ window.addEventListener('hashchange', handleHash);
 
 /* ================= 首屏引导（H-2） ================= */
 var GUIDE_KEY = 'gs.guide.seen.v1';
+var GUIDE_EL = $('guide');
+var GUIDE_AUTO_MS = 14000;      /* 多久后自动让位（用户可能一直在看列表） */
+var guideTimer = null;
 function dismissGuide(silent) {
-  var g = $('guide');
+  var g = GUIDE_EL;
   if (!g || g.classList.contains('hidden')) return;
+  clearTimeout(guideTimer);
   g.classList.add('out');
-  setTimeout(function () { g.classList.add('hidden'); }, 420);
-  $('playBtn').classList.remove('hint');   /* 播放按钮恢复常规样式 */
+  /* 流内元素：out 即 display:none，列表立刻回弹，不需要等过渡 */
+  $('playBtn').classList.remove('hint');
   if (!silent) { try { sessionStorage.setItem(GUIDE_KEY, '1'); } catch (e) { /* 隐私模式忽略 */ } }
 }
 function maybeShowGuide() {
   var seen = false;
   try { seen = sessionStorage.getItem(GUIDE_KEY) === '1'; } catch (e) { seen = false; }
   if (seen || (location.hash || '').length > 1) return;   /* 深链进入不给引导 */
-  var g = $('guide');
+  var g = GUIDE_EL;
   $('guideN').textContent = EVENTS.length;
   $('guideSpan').textContent = 'AD ' + D0 + '–' + Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); }));
   g.classList.remove('hidden', 'out');
-  void g.offsetWidth;
   $('playBtn').classList.add('hint');
-  g.addEventListener('click', function () { dismissGuide(); startPlay(); });
+  $('guideAct').addEventListener('click', function () { dismissGuide(); startPlay(); });
+  guideTimer = setTimeout(function () { dismissGuide(true); }, GUIDE_AUTO_MS);
 }
-$('playBtn').addEventListener('click', dismissGuide);
+$('playBtn').addEventListener('click', function () { dismissGuide(); });
 window.addEventListener('keydown', function (e) {
   if (e.key === ' ' || e.key === 'Enter') dismissGuide(true);
 }, true);
+/* 用户开始探索地图/列表即让位。卡片自身是流内元素，不会挡住下方的点击，
+   但若在卡内按下就立即置 pointer-events:none，mouseup 会落到下层元素，
+   click 的 target 退化为共同祖先 →「开始播放」按钮收不到 click。 */
 ['pointerdown', 'wheel'].forEach(function (t) {
-  window.addEventListener(t, function () { dismissGuide(true); }, { passive: true });
+  window.addEventListener(t, function (e) {
+    if (GUIDE_EL && GUIDE_EL.contains(e.target)) return;
+    dismissGuide(true);
+  }, { passive: true });
 });
+
+/* ============ 播完后事件图标的恢复入口 ============
+ * body.story-end 让 .ev-dot 同时 opacity:0 与 pointer-events:none（干净底图）。
+ * 此前没有任何地图交互会摘掉这个类，导致播完一次后事件详情永久点不开。
+ * 必须在 pointerdown（捕获阶段）恢复：click 的命中测试发生在 pointerup 之后，
+ * 等到 click 再恢复的话，用户这一下仍然点不中标记。 */
+map.getContainer().addEventListener('pointerdown', function () { setStoryEnd(false); }, true);
+map.on('zoomstart', function () { setStoryEnd(false); });
 
 /* ================= 启动 ================= */
 renderStats();
