@@ -40,7 +40,8 @@ geo-story/
 | 里程碑 | 主题 | 状态 |
 |---|---|---|
 | M0 | 重构与引擎分层 | ✅ 完成（目录归档、shared/ 四件套） |
-| M1 | 第一次传道旅程端到端 | ✅ 完成（12 事件，CDP 验收 10/10 通过） |
+| M1 | 第一次传道旅程端到端 | ✅ 完成（12 事件，CDP 验收全绿） |
+| M1.1 | 交互失效修复 + 相机/路线同一时钟重构 | ✅ 完成（见 `docs/ux-review.md` §七） |
 | M2 | 第二、三次旅程 + 书信事件 | 待开始 |
 | M3 | 被捕受审 + 赴罗马航程 | 待开始 |
 | M4 | 富媒体与罗马被囚尾声 | 待开始 |
@@ -57,7 +58,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-cdp.ps1 verify.m
 # 可选窗口尺寸： ... run-cdp.ps1 verify.mjs 1280 800
 ```
 
-`verify.mjs` 覆盖 A–J 十项 + A2/A3/A4/A5/A6/A7/A8/A9 九条回归断言 + 控制台错误 + 截图 f1/f1b/f2/f3/f4/f5。
+`verify.mjs` 覆盖 A–J 十项 + A2–A11 / D3 / J2 十四条回归断言 + 控制台错误 + 截图 f1/f1b/f2/f3/f4/f5。
+
+> **写交互断言的硬性要求**：点击必须走**真实输入事件**（CDP `Input.dispatchMouseEvent`，
+> 见 `verify.mjs` 的 `realClick()`），**不要用 DOM 合成 `.click()`** —— 合成事件绕过浏览器命中测试，
+> 无法暴露「元素在 mousedown 与 mouseup 之间变得不可命中」这类缺陷。
+> 本项目曾因此让三个真实缺陷长期通过验收（`docs/ux-review.md` §7.1）。
+> 同理，凡是要量布局的断言，必须先确认元素处于**可见状态**，否则 `display:none` 后的
+> rect 全为 0，任何几何断言都会无条件通过。
 
 图像素材补全（需联网访问 Commons API）：
 

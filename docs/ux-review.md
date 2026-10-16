@@ -3,7 +3,8 @@
 评估对象：`geo-story.html`（M1，12 事件 / 第一次传道旅程）
 评估日期：2026-10-16
 方法：源码审阅 + CDP 实测（1280×800 桌面 / 430×932 移动端）+ 数据层统计
-**修复状态：11 项全部已解决（2026-10-16 当日），逐项落实见 §六。**
+**修复状态：第一轮 11 项全部已解决（§六）；第二轮 3 项交互/相机问题已解决（§七）。**
+**第二轮核心发现：验收脚本用 DOM 合成 `.click()` 绕过了命中测试，导致三个真实缺陷长期未被发现（详见 §7.1）。**
 
 ---
 
@@ -283,3 +284,79 @@
 - **CDP 表达式中的 `\u00b7`**：写在 `Runtime.evaluate` 表达式里的正则 `·` 会被二次转义导致静默不匹配，改用 `String.fromCharCode(183)` 才可靠。
 - **PowerShell 5.1 编码**：`bash` heredoc 写 `.ps1` 时若含非 ASCII 注释，PS 5.1 按 GBK 解码会乱码并导致整份脚本语法崩溃；`.ps1` 注释必须纯 ASCII。
 - **危险命令**：`taskkill /F /IM chrome.exe` 会终止**用户自己开着的所有 Chrome 窗口**（实测杀掉 11 个进程）。已改为 `scripts/run-cdp.ps1` 记录 PID 后 `taskkill /PID <pid> /T` 仅终止自身进程树。
+---
+
+## 七、二轮修复：交互失效与相机同步（2026-10-16 晚）
+
+用户实测反馈三个问题：**① 无法触发事件详情 ② 点击开始播放没有反应 ③ 缩放与路线播放不同步**。
+
+### 7.1 为什么自动化验收全绿却线上复现
+
+关键发现：现有 `verify.mjs` 的点击断言用的是 **DOM 合成 `.click()`**（`document.getElementById('guide').click()`），
+它**绕过浏览器的命中测试（hit testing）**，因此无法暴露「元素在 mousedown 与 mouseup 之间变得不可命中」这一类缺陷。
+改用 CDP `Input.dispatchMouseEvent`（真实鼠标事件）后，三个问题全部复现。
+
+**这本身是一条工程教训**：验收脚本的保真度决定了它能发现什么 bug。合成事件断言"看起来在测交互"，
+实际只测了"事件监听器绑没绑上"。
+
+### 7.2 P1 / P2 —— 无法触发事件详情、点击播放无反应
+
+| # | 根因 | 修复 |
+|---|---|---|
+| P1 | `window` 上的 `pointerdown` 监听在**按下瞬间**给引导卡加 `.out`（含 `pointer-events:none`），导致 `mouseup` 落到下层 `#map`，click 的 target 退化为 mousedown/mouseup 的**共同祖先**，引导卡的 click 监听**永不触发** | ① 按下点若在引导卡内则**不**关闭；② 引导卡改为**流内横幅**（`.scroll` 首个子元素）而非 fixed 浮层，占布局高度不覆盖任何元素；③ 只有 `#guideAct` 触发播放，卡片本身不可点 |
+| P2 | `body.story-end .ev-dot{pointer-events:none}`（播完隐藏图标）**只进不出**：没有任何地图交互恢复该 class，播完一次后事件详情**永久点不开** | 在地图容器 `pointerdown`（**捕获阶段**）+ `zoomstart` 时 `setStoryEnd(false)`。必须用 pointerdown 而非 click——click 的命中测试发生在 pointerup 之后，等到 click 才恢复的话用户这一下仍然点不中 |
+
+引导卡位置也是问题本身：旧版居中浮层正好盖住地图上事件标记最密集的区域，用户第一次点事件标记只会打到卡片。
+改流内横幅后 `A10b` 断言其与 map / playBtn / tlTrack / 事件列表行的交集面积**全为 0**。
+
+### 7.3 P3 —— 缩放与路线不同步（**已重构**）
+
+**原架构是「两个独立动画」**：
+- `routes.seek()` 自己跑一个 2.2s 的 rAF 补间画线
+- 相机只在事件地点出界时 `flyTo` 一次，缩放硬编码 `6.2`
+
+两者无共享时钟 → 描线在推进时镜头静止不动。
+
+**重构为「同一时钟」**：`route-engine.seek()` 新增 `onFrame(headLatLng, t)` 逐帧回调，
+回调里同步执行 `map.setView(ll, z)`——描线每推进一帧，相机就用**同一个插值坐标**重新定位，物理上不可能错拍。
+新增 `pointAt(j, dist)` 按里程在路径上取**插值点**（而非直接取 `path[k]`），消除相机逐帧 setView 的顿挫感。
+
+缩放策略：`CAM.zCruise 5.3 → CAM.zEvent 6.4` 按 `t^1.6` 插值——起手拉远看全程，接近事件时推近到特写。
+
+**附带修掉的隐藏缺陷**：M1 的 12 个事件集中在 AD 46–49，相邻事件 `from` 相同 → 年代跨度为 0，
+`timeline.animateTo` 走 `Math.abs(span) < 1e-6` 分支直接 `setYear+done`，**过渡耗时 0ms**，
+描线与相机补间刚开始就被下一轮重置。这也是"不同步"的第二个成因。
+现改为同年事件也保证 `travel` 的过渡窗口，并把 `travel` 提为 `TRAVEL` 常量与描线共用。
+
+`stepEvent`（步进）改走 `routes.seek(ev, 0)` + 显式 `flyTo`，保持无描线动画但镜头仍落到事件地点。
+
+### 7.4 顺带修复：移动端布局塌陷
+
+修引导卡时暴露一个**既有缺陷**：窄屏 `.scroll`（事件列表区）被压到仅 45px，事件列表整体不可见，
+且引导横幅会压住播放按钮。根因是 `#map{height:56dvh}` + `.scroll{min-height:0}` 的双重挤压。
+
+修复：地图降至 `37dvh`、压缩 header 留白、章节 chip 改**单行横向滚动**（并钉死 `height:31px`——
+`flex:none` 只固定主轴尺寸，交叉轴仍会被容器 `align-items` 拉伸，实测 chip 被拉到 96px 撑高整行）、
+窄屏隐藏 chip 计数（计数在时间轴「N / 12 事件」已有）。
+
+实测移动端可视事件行 **0 → 3 行**，`chapterbar` 高度 **110px → 45px**。
+
+### 7.5 新增回归断言
+
+| 断言 | 覆盖什么 | 修复前 | 修复后 |
+|---|---|---|---|
+| `A10` | **真实鼠标**点击引导卡 CTA 是否开始播放 | `playing: false` | `playing: true` |
+| `A10b` | 引导横幅是否遮挡任何可交互元素 | 覆盖地图标记区 | map/playBtn/tlTrack/listRows **全 0** |
+| `A11` | 播完后点事件标记能否打开详情 | `detailOpen: false` | `recovered: true, detailOpen: true` |
+| `D3` | 相机与描线同步（跨 travel 窗口连续采样 16 次） | 无此断言 | 中心距平均 **2px** / 最大 **7px**；缩放 5.5→6.5 变化；路线点数 1→40 同步生长 |
+| `J2` | 窄屏列表区可视行数 | 无此断言 | `visibleRows: 3, ok: true` |
+
+**关于假通过的排查**：首版 `A10b` 写在引导卡**已被关闭之后**才测，此时 `getBoundingClientRect()` 全为 0，
+无论实际位置如何都会得出"无重叠"。已移到可见时测量，并加 `if (hidden) return {skipped}` 显式短路。
+
+### 7.6 方法论沉淀
+
+> 交互类断言必须走**真实输入事件**（CDP `Input.dispatchMouseEvent` / Playwright `page.click()`），
+> 不能用 DOM 合成事件。合成事件绕过命中测试，而命中测试正是「元素何时可点」这一类缺陷的暴露窗口。
+> 断言里凡是要量布局，必须先断言元素**处于可见状态**，否则 `display:none` 后的 rect 全 0 会让任何
+> 几何断言无条件通过。
