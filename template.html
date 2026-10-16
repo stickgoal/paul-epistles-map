@@ -406,12 +406,17 @@ EVENTS.forEach(function (e) {
   e.typeMeta = TYPE_META[e.type] || TYPE_META.preach;
 });
 ROUTES.forEach(function (r) { R_BY[r.id] = r; });
-var SEQ = EVENTS.slice().sort(function (a, b) { return a.from - b.from || (a.id < b.id ? -1 : 1); });
+var SEQ = EVENTS.map(function (e, i) { return { e: e, i: i }; })
+  .sort(function (a, b) { return a.e.from - b.e.from || a.i - b.i; })
+  .map(function (x) { return x.e; });   /* 同年事件保持 events.json 手工叙事顺序（勿按 id 字典序） */
 
 var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, chapter: null, speed: 1, speedIdx: 0 };
 
 /* ================= 地图与图层 ================= */
-var mapCore = GS.mapCore.init({ geo: GEO });
+var mapCore = GS.mapCore.init({
+  geo: GEO,
+  onReady: function () { mapCore.placeLabels(labelItems); }  /* 尺寸稳定后重算标签避位 */
+});
 var map = mapCore.map();
 var routesLayer = L.layerGroup().addTo(map);
 var placeLayer = L.layerGroup().addTo(map);
@@ -459,8 +464,8 @@ PLACES.forEach(function (p) {
     var x = BOX / 2 + R * Math.cos(a), y = BOX / 2 + R * Math.sin(a);
     var d = document.createElement('button');
     d.className = 'ev-dot';
-    d.style.left = (x - 6) + 'px';
-    d.style.top = (y - 6) + 'px';
+    d.style.left = x + 'px';   /* 居中由 CSS margin:-6px 负责，勿在此再减 */
+    d.style.top = y + 'px';
     d.style.setProperty('--c', ev.typeMeta.color);
     d.setAttribute('data-ev', ev.id);
     d.title = ev.title + ' · AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '');
@@ -692,6 +697,7 @@ function revealEvent(ev) {
   var b = map.getBounds().pad(-0.15);
   if (!b.contains(L.latLng(ev.ll))) mapCore.flyTo(ev.ll, 6.2, 1.1);
   mapCore.lit(ev.ll, ev.typeMeta.color);
+  routes.seek(ev);   /* 描线同步推进到事件所在地点（去程/回程自动区分） */
   showCard(ev);
   GS.fx.emit('event:arrive', ev);
 }
@@ -699,6 +705,7 @@ function startPlay() {
   if (state.playing) return;
   if (state.detail) closeEvent();
   hideCard();
+  routes.release();   /* 从年份驱动切换到事件驱动描线 */
   var ahead = SEQ.filter(function (e) { return e.from >= state.year - 1e-9; });
   if (!ahead.length) { timeline.setYear(D0); ahead = SEQ; }
   state.playing = true; state.auto = true;
@@ -726,6 +733,7 @@ function pause() {
   var was = state.playing;
   timeline.pause();
   state.playing = false; state.auto = false;
+  routes.release();   /* 暂停后描线交还年份驱动 */
   syncPlayBtn();
   hideCard();
   if (was) GS.fx.emit('play:pause');
@@ -834,7 +842,11 @@ var timeline = GS.timeline.init({
     return { id: c.id, name: c.name, years: c.years, from: c.from, to: c.to, color: c.color };
   }),
   marks: tlMarks,
-  onYear: function (y) { state.year = y; applyReveal(y); },
+  onYear: function (y) {
+    state.year = y;
+    if (!state.playing) routes.release();  /* 拖拽/步进/章节跳转：恢复年份线性驱动 */
+    applyReveal(y);
+  },
   onMark: function (m) { pause(); openEvent(m.id); },
   onBand: function (b) { jumpChapter(b.id); },
   onState: function (playing) { state.playing = playing; state.auto = playing; syncPlayBtn(); }
@@ -871,7 +883,7 @@ renderChapters();
 renderLegend();
 renderFilter();
 renderList();
-mapCore.placeLabels(labelItems);
+mapCore.placeLabels(labelItems);   /* 兜底初始调用；尺寸稳定后 onReady 会重算 */
 timeline.setYear(D0);
 routes.drawAll(170);
 setTimeout(function () {
@@ -887,7 +899,7 @@ window.GS_APP = {
   state: state,
   open: openEvent, close: closeEvent, play: startPlay, pause: pause,
   step: stepEvent, jumpChapter: jumpChapter, setFilter: setFilter,
-  dotEls: dotEls
+  dotEls: dotEls, map: map
 };
 
 })();

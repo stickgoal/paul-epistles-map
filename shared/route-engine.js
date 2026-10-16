@@ -66,17 +66,26 @@ GS.routeEngine = (function () {
     });
     j.headOn = true;
     j.sig = '';
+    j.stopInfo = j.stops.map(function (s, i) { return { p: s.p || null, d: j.dist[i] }; });
     applyTime(getYear());
   }
 
-  /* 时间驱动：future 尚未出发（隐藏） / now 正在行进（全亮+流光+光点） / past 已完成（暗淡保留） */
+  /* 年份线性进度（拖拽时间轴时使用） */
+  function yearP(j, y) {
+    if (y < j.from) return 0;
+    if (y > j.to) return 1;
+    return (y - j.from) / (j.to - j.from);
+  }
+
+  /* 时间驱动：future 尚未出发（隐藏） / now 正在行进（全亮+流光+光点） / past 已完成（暗淡保留）
+   * now 态进度优先用事件驱动值 j.hold（播放中由 seek 设置），否则按年份线性映射（拖拽时间轴）。 */
   function applyTime(y) {
     routes.forEach(function (j) {
       if (!j.drawn) return;
       var st, p;
       if (y < j.from) { st = 'future'; p = 0; }
       else if (y > j.to) { st = 'past'; p = 1; }
-      else { st = 'now'; p = (y - j.from) / (j.to - j.from); }
+      else { st = 'now'; p = (j.hold != null) ? j.hold : yearP(j, y); }
       var target = p * j.total, k = 0;
       while (k < j.cum.length - 1 && j.cum[k + 1] <= target) k++;
       var sig = st + '|' + k;
@@ -99,6 +108,34 @@ GS.routeEngine = (function () {
       } else if (j.headOn) { layer.removeLayer(j.head); j.headOn = false; }
       if (onState) onState(j, st);
     });
+  }
+
+  /* 事件驱动描线：把路线进度推到 ev 对应站点（place id 匹配 stops.p）。
+   * 同一地点出现多次时（去程/回程），取「当前进度之后」的最近站点——
+   * 回访事件因此自然落到回程段；无匹配（地点不在该旅程上）则保持当前进度。 */
+  function seek(ev) {
+    if (!ev || !ev.place) return;
+    routes.forEach(function (j) {
+      if (!j.drawn || !j.stopInfo) return;
+      var cands = [];
+      for (var s = 0; s < j.stopInfo.length; s++) {
+        if (j.stopInfo[s].p === ev.place) cands.push(j.stopInfo[s]);
+      }
+      if (!cands.length) return;
+      var cur = ((j.hold != null) ? j.hold : yearP(j, getYear())) * j.total;
+      var pick = null;
+      for (var c = 0; c < cands.length; c++) {
+        if (cands[c].d >= cur - 1e-6) { pick = cands[c]; break; }
+      }
+      if (!pick) pick = cands[cands.length - 1];
+      j.hold = pick.d / j.total;
+      applyTime(getYear());
+    });
+  }
+
+  /* 解除事件驱动，恢复年份线性映射（拖拽 / 步进 / 章节跳转时由调用方触发） */
+  function release() {
+    routes.forEach(function (j) { j.hold = null; });
   }
 
   /* 旅程重播动画：光点沿路径行进，留下拖尾 */
@@ -134,6 +171,8 @@ GS.routeEngine = (function () {
       routes.forEach(function (j, i) { setTimeout(function () { draw(j); if (cb) cb(j); }, i * (staggerMs || 0)); });
     },
     applyTime: applyTime,
+    seek: seek,
+    release: release,
     replay: replay,
     cancelTravel: cancelTravel,
     byId: function (id) { return byId[id]; },
