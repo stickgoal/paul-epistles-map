@@ -34,23 +34,23 @@ geo-story/
 
 | 里程碑 | 主题 | 状态 |
 |---|---|---|
-| M0 | 重构与引擎分层 | 进行中（目录 ✅，引擎随 M1 落地） |
-| M1 | 第一次传道旅程端到端 | 待开始 |
+| M0 | 重构与引擎分层 | ✅ 完成（目录归档、shared/ 四件套） |
+| M1 | 第一次传道旅程端到端 | ✅ 完成（12 事件，CDP 验收 10/10 通过） |
 | M2 | 第二、三次旅程 + 书信事件 | 待开始 |
 | M3 | 被捕受审 + 赴罗马航程 | 待开始 |
 | M4 | 富媒体与罗马被囚尾声 | 待开始 |
 | M5 | 共享引擎回灌归档项目（可选） | 暂缓 |
+| M6 | 音效与增强动画（fx 总线已预留订阅点） | 待开始 |
 
 ## 验证
 
 ```bash
-# 启动带调试端口的 Chrome
-"/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new \
+# 启动带调试端口的 Chrome（本机实际路径：用户目录安装）
+"/c/Users/Administrator/AppData/Local/Google/Chrome/Application/chrome.exe" --headless=new \
   --no-sandbox --disable-gpu --window-size=1680,1000 \
   --remote-debugging-port=9222 --user-data-dir=.cdp-profile about:blank
 
-node verify.mjs     # M1 起编写
-node verify5.mjs    # M1 起编写
+node verify.mjs     # M1 验收：A–J 十项 + 控制台错误 + 截图 f1–f5
 ```
 
 ## 数据来源与学术说明
