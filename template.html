@@ -823,7 +823,8 @@ function applyReveal(y) {
     }
     if (ev.dotEl) ev.dotEl.classList.toggle('on', on);
   });
-  $('tlCount').textContent = n + ' / ' + EVENTS.length + ' 事件';
+  var cnt = n + ' / ' + EVENTS.length + ' 事件';
+  if ($('tlCount').textContent !== cnt) $('tlCount').textContent = cnt;
   routes.applyTime(y);
 }
 
@@ -852,27 +853,70 @@ function showCard(ev) {
 function hideCard() { $('now').classList.remove('show'); }
 
 /* ================= 播放控制 ================= */
-/* 相机跟随：与路线描线共用 seek 的帧回调，两者严格同拍。
- * 旧实现只在事件前后各 flyTo 一次、缩放硬编码 6.2，描线补间 2.2s 期间镜头静止
- * —— 用户看到的正是「线在走、缩放不动」。现在每帧把镜头移到当前描线位置，
- * 缩放随行程在「巡航高度」与「事件特写」之间插值：先拉远看全程，再推近落到事件。 */
-var CAM = { zEvent: 6.4, zCruise: 5.3 };
+/* 相机跟车 rig：与路线描线共用 seek 的帧回调，两者严格同拍（M-5「同一时钟」不变）。
+ *
+ * 抖动根因（2026-10-17 实测定位）：跟车帧里调用 map.setView(animate:false) 会走
+ * _moveStart/_move/_moveEnd 全事件链——每帧 zoomstart/movestart/zoom/move/zoomend/moveend。
+ * 其中 moveend → L.Renderer._update → _updatePaths 把【整个场景】的 SVG 路径
+ * （地中海底图 + 经纬网 + 全部路线 + 圆点）全部重新投影并重写 d 属性；
+ * zoomend → _onZoomEnd 再全量 _project 一遍。实测 12s 播放：31,466 次 d 重写、
+ * 250 次 moveend。再叠加 zoomSnap:.5 把逐帧插值的缩放假量化为 5.5→6.0→6.5 三次瞬跳
+ * ——两者叠加就是用户看到的「抖」。
+ *
+ * rig 只平移 pane（map._rawPanBy：纯 CSS transform，零事件、零重投影），
+ * 缩放改走 Leaflet 动画通道（setZoom/flyTo：CSS transform + _animatingZoom 期间
+ * 跳过路径重建），每段行程结束用一次 setView 对齐内部状态。
+ * 方案评估：不需要换技术（MapLibre GL/自绘 canvas）——Leaflet 自身的 flyTo 就是
+ * transform 通道的平滑动画，问题只在「每帧 setView」这个用法上。 */
+var CAM = { zEvent: 6.5, zCruise: 5.5 };   /* 取值对齐 zoomSnap:.5，落桌不再被二次取整 */
+var rig = { ll: null, dirty: false };      /* ll: 最近跟车目标；dirty: rig 挪过 pane 待对齐 */
+var camEv = null;                          /* 当前行程目标事件（到达时推近用） */
+var playToken = 0;                         /* 每次 startPlay +1：延迟启动的 seek 据此识别自己是否已过时 */
 function syncPlayBtn() {
   $('playBtn').classList.toggle('playing', state.playing);
   $('playLb').textContent = state.playing ? '暂停' : '播放';
 }
+/* rig 只挪 pane，Leaflet 内部状态（_lastCenter/_pixelOrigin）会陈旧，
+ * 后续任何 flyTo 都会从陈旧中心起跳。用一次 setView 以「视觉中心」对齐（零位移、一次重建）。
+ * 只在 rig 真的挪动过后执行；视觉中心用 containerPointToLatLng 取，与 pane 位移严格一致。 */
+function syncRig() {
+  if (!rig.dirty) return;
+  rig.dirty = false;
+  if (!rig.ll) return;
+  map.setView(map.containerPointToLatLng(map.getSize().divideBy(2)), map.getZoom(), { animate: false });
+}
 /* seek 每帧回调：ll = 当前描线头的插值坐标，t = 缓动后进度 [0,1] */
 function camFollow(ll, t) {
   if (!map.getSize().x) return;                    /* 容器尺寸未就绪，跳过本帧 */
-  var z = CAM.zCruise + (CAM.zEvent - CAM.zCruise) * Math.pow(Math.min(1, Math.max(0, t)), 1.6);
-  map.setView(ll, z, { animate: false });
+  rig.ll = ll;
+  if (t >= 1) {
+    /* 行程终点：先对齐内部状态，再推近到事件特写（一次 flyTo，走 CSS 动画通道） */
+    syncRig();
+    if (camEv) mapCore.flyTo(camEv.ll, CAM.zEvent, .55);
+    return;
+  }
+  var d = map.latLngToContainerPoint(ll).subtract(map.getSize().divideBy(2));
+  if (Math.abs(d.x) < .5 && Math.abs(d.y) < .5) return;   /* 已居中，免一次无谓 transform */
+  rig.dirty = true;
+  if (map._rawPanBy) map._rawPanBy(d);             /* 只平移：零事件、零重投影 */
+  else map.panTo(ll, { animate: false, noMoveStart: true });   /* 兜底（bundled Leaflet 必有 _rawPanBy） */
 }
 function revealEvent(ev) {
   setStoryEnd(false);
   state.focus = ev.id;
+  camEv = ev;
   mapCore.lit(ev.ll, ev.typeMeta.color);
-  /* 描线沿路径渐进生长到事件地点；相机在同一帧回调里跟随描线头（同一时钟，不可能错拍） */
-  routes.seek(ev, TRAVEL / state.speed, camFollow);
+  /* 先原地拉到巡航高度（setZoom 走 CSS 缩放动画，_animatingZoom 期间 Leaflet 跳过路径重建），
+   * 380ms 后才启动描线+跟车——缩放动画与 rig 平移不在同一时间窗，两套坐标系统不打架；
+   * 若窗口内被暂停/步进（state.playing 已假），放弃本次描线，由交互路径的 flyTo 接管相机。 */
+  syncRig();
+  map.setZoom(CAM.zCruise);
+  var myToken = playToken;
+  setTimeout(function () {
+    /* 令牌校验：窗口内若发生 暂停→重播（startPlay 会 +1），本次延迟 seek 即过时，放弃 */
+    if (!state.playing || myToken !== playToken) return;
+    routes.seek(ev, TRAVEL / state.speed, camFollow);
+  }, 380);
   applyReveal(state.year);   /* 标记状态唯一收口：当前 .cur / 其余 .dim */
   showCard(ev);
   GS.fx.emit('event:arrive', ev);
@@ -882,6 +926,7 @@ function startPlay() {
   if (state.detail) closeEvent();
   hideCard();
   setStoryEnd(false);
+  playToken++;
   routes.release();   /* 从年份驱动切换到事件驱动描线 */
   var ahead = SEQ.filter(function (e) { return e.from >= state.year - 1e-9; });
   if (!ahead.length) { timeline.setYear(D0); ahead = SEQ; }
@@ -913,6 +958,7 @@ function pause() {
   var was = state.playing;
   timeline.pause();
   state.playing = false; state.auto = false;
+  syncRig();               /* rig 半途停下：对齐 pane 位移，后续 flyTo 才不从陈旧中心起跳 */
   routes.release();   /* 暂停后描线交还年份驱动 */
   syncPlayBtn();
   hideCard();

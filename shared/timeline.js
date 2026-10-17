@@ -116,7 +116,9 @@ GS.timeline = (function () {
     var pct = clamp((y - cfg.from) / (cfg.to - cfg.from), 0, 1);
     els.prog.style.width = (pct * 100) + '%';
     els.knob.style.left = (pct * 100) + '%';
-    els.year.textContent = 'AD ' + Math.round(y);
+    /* 播放中年份补间每帧调用：文本只在整数年变化时写，避免无变化 textContent 触发 layout */
+    var yr = 'AD ' + Math.round(y);
+    if (els.year.textContent !== yr) els.year.textContent = yr;
     if (!silent && cfg.onYear) cfg.onYear(y);
   }
 
