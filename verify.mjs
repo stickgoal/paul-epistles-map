@@ -316,10 +316,19 @@ console.log('D2 route-progress:', await ev(`(function(){
 })()`));
 await shot('f3_playing.png');
 
-/* D3. 相机与描线同步回归：跨一个完整 travel 窗口（描线 2.6s）连续采样，
- * 断言镜头中心紧跟路线行进光点（屏幕像素距离）且缩放随行程变化。
- * 旧实现两者完全独立（相机只在事件前后各 flyTo 一次、zoom 硬编码 6.2），
- * 采样会显示屏幕距离数百 px、zoom 恒定不变。 */
+/* D3. 相机与描线同步回归 + 跟车性能回归（2026-10-17 抖动修复后更新）：
+ * 1) 镜头中心紧跟路线行进光点（屏幕像素距离）——rig 只挪 pane，latLngToContainerPoint 仍准确；
+ * 2) 缩放分段到位：巡航 5.5 → 到达推近 6.5。旧实现逐帧插值缩放，被 zoomSnap:.5 量化成
+ *    5.5→6.0→6.5 三次瞬跳，是「抖动」的成因之一；新实现走 setZoom/flyTo 的 CSS 动画通道；
+ * 3) 【事件风暴回归】跟车窗口内 map moveend 次数 ≈ 0。旧实现每帧一次 setView →
+ *    每帧一次 moveend → 全场景 SVG 重投影（实测 12s 播放 31,466 次 d 重写 / 250 次 moveend），
+ *    新实现 rig 走 _rawPanBy 零事件通道，窗口内只允许行程切换的个位数 moveend。 */
+await ev(`(function(){
+  window.__ev = { moveend: 0, zoomend: 0 };
+  var map = GS_APP.map;
+  map.on('moveend', function(){ window.__ev.moveend++; });
+  map.on('zoomend', function(){ window.__ev.zoomend++; });
+})()`);
 var syncSamples = [];
 for (var s = 0; s < 16; s++) {
   syncSamples.push(await ev(`(function(){
@@ -331,6 +340,7 @@ for (var s = 0; s < 16; s++) {
   })()`));
   await sleep(200);
 }
+var evStorm = await ev(`JSON.stringify(window.__ev)`);
 var valid = syncSamples.filter(Boolean);
 var dists = valid.map(v => v.d);
 var zooms = valid.map(v => v.z);
@@ -340,7 +350,10 @@ console.log('D3 verdict:', JSON.stringify({
   avgCenterDistPx: Math.round(dists.reduce(function(a,b){return a+b;},0)/dists.length),
   zoomChanged: Math.max.apply(null, zooms) !== Math.min.apply(null, zooms),
   zoomRange: [Math.min.apply(null, zooms), Math.max.apply(null, zooms)],
-  routeGrew: valid[valid.length-1].pts > valid[0].pts
+  zoomOnlyCruiseOrEvent: zooms.every(function(z){ return z === 5.5 || z === 6.5; }),
+  routeGrew: valid[valid.length-1].pts > valid[0].pts,
+  eventStorm: evStorm,
+  moveendInWindowOK: (function(){ var e = JSON.parse(evStorm); return e.moveend <= 4; })()
 }));
 await ev(`window.GS_APP.pause()`);
 await sleep(400);
