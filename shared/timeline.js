@@ -123,12 +123,20 @@ GS.timeline = (function () {
   }
 
   /* ===== 事件序列播放 =====
-   * items: 事件数组（已按年代排序）；opts: { yearOf, travel, dwell, speed, onEvent, onLeave, onEnd }
+   * items: 事件数组（已按年代排序）；opts: { yearOf, travel, dwell, speed, onEvent, onArrive, onLeave, onEnd }
    *
-   * travel 现在是「事件之间的过渡时长」而非单纯的年代插值时长：M1 的 12 个事件
+   * travel 是「事件之间的过渡时长」而非单纯的年代插值时长：M1 的 12 个事件
    * 集中在 AD 46–49，相邻事件 from 相同 → 年代跨度为 0，旧实现直接 setYear+done，
    * 过渡耗时 0ms，路线描线与相机跟随（各需约 2s）刚起步就被下一轮重置。
-   * 故 span≈0 时也保证 travel 的过渡窗口，让「线在画 + 镜头在跟」有时间跑完。 */
+   * 故 span≈0 时也保证 travel 的过渡窗口，让「线在画 + 镜头在跟」有时间跑完。
+   *
+   * 时序（2026-10-17 重排，需求「路线跟踪和时间轴同步、到达后才弹卡」）：
+   *   onEvent  → 行程起点：调用方在此启动路线描线 + 相机跟车 + 拉远缩放，
+   *              与年份补间【同一时刻、同一窗口】推进（此前 onEvent 在年份动画
+   *              结束后才触发，时间轴先走完、路线后画，两者完全脱节）；
+   *   onArrive → 行程终点：年份落定即到达；路线 seek 的末帧也会触发同一回调，
+   *              调用方保证两侧幂等（到达才弹事件卡/地点名/点亮）；
+   *   onLeave  → 停留结束，进入下一段行程。 */
   function playEvents(items, opts) {
     stopSeq();
     opts = opts || {};
@@ -166,9 +174,12 @@ GS.timeline = (function () {
       if (!seq.active) return;
       if (i >= items.length) { finish(); return; }
       var it = items[i];
+      /* 行程开始：描线/跟车/缩放与年份推进同一时刻启动（同步的关键） */
+      if (opts.onEvent) opts.onEvent(it);
       animateTo(yearOf(it), travel, function () {
         if (!seq.active) return;
-        if (opts.onEvent) opts.onEvent(it);
+        /* 到达：与路线 seek 末帧双触发，调用方幂等 */
+        if (opts.onArrive) opts.onArrive(it);
         seq.timer = setTimeout(function () {
           if (!seq.active) return;
           if (opts.onLeave) opts.onLeave(it);

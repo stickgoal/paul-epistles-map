@@ -7,13 +7,22 @@ GS.routeEngine = (function () {
 
   var layer = null, getYear = function () { return 0; }, onState = null, routes = [], byId = {};
 
+  /* 中点二次贝塞尔平滑，但曲线必须【精确穿过每个站点】：
+   * 旧实现整段用 Q(m1, b, m2)，最近点只到 b + (a+c-2b)/8 ——
+   * 帕弗→别加→彼西底的安提阿这一角实测偏离约 0.26°（≈29km），
+   * 路线明显不经过地点标记，描线头/相机落点与城市圆点肉眼错开。
+   * 修法：在 seg 中点处直接写入站点坐标 b（该点两侧各一段二次贝塞尔，
+   * 站点处形成一个可感知的「转角」，地图尺度下不可见，但路线严格过点）。
+   * seg 必须为偶数；首尾点原样保留（Q 曲线端点即站点，本就精确）。 */
   function smoothPath(pts, seg) {
     seg = seg || 16;
+    var half = Math.round(seg / 2);
     var out = [pts[0]];
     for (var i = 1; i < pts.length - 1; i++) {
       var a = pts[i - 1], b = pts[i], c = pts[i + 1];
       var m1 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], m2 = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2];
       for (var s = 1; s <= seg; s++) {
+        if (s === half) { out.push([b[0], b[1]]); continue; }   /* 精确穿过站点 */
         var t = s / seg, u = 1 - t;
         out.push([u * u * m1[0] + 2 * u * t * b[0] + t * t * m2[0], u * u * m1[1] + 2 * u * t * b[1] + t * t * m2[1]]);
       }

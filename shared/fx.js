@@ -1,7 +1,8 @@
 /* GS.fx — 极简事件总线：为后续音效、增强动画预留的订阅点。
  * 播放器与 UI 在关键节点 emit，未来的 fx 模块（如 WebAudio 合成音效）只需 on() 订阅，无需改动引擎。
  * 已发出的事件：app:ready / play:start / play:pause / play:end /
- *             event:arrive {event} / event:open {event} / event:leave {event} / chapter:enter {chapter} */
+ *             event:depart {event}（行程起点：路线开描）/ event:arrive {event}（路线抵达地点）/
+ *             event:open {event} / event:leave {event} / chapter:enter {chapter} */
 window.GS = window.GS || {};
 GS.fx = (function () {
   'use strict';

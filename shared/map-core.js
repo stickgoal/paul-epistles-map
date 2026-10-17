@@ -102,15 +102,19 @@ GS.mapCore = (function () {
     return api;
   }
 
-  /* 两段式飞行：目标比当前视角高 1.2 级以上时，先略退再俯冲，形成电影感 */
-  function flyTo(ll, zoom, dur) {
-    dur = dur || 1;
+  /* 两段式飞行：目标比当前视角高 1.2 级以上时，先略退再俯冲，形成电影感。
+   * durMs 单位为毫秒（Leaflet 原生 flyTo 的 duration 是秒，此处统一换算，
+   * 避免调用方混用单位——2026-10-17 曾误传毫秒给秒级参数，动画变成 10 分钟爬行）。
+   * 默认 1200ms（由 1000ms 放慢：用户要求缩放节奏优雅）。 */
+  function flyTo(ll, zoom, durMs) {
+    durMs = durMs || 1200;
+    var sec = durMs / 1000;
     var z = map.getZoom();
     if (zoom - z > 1.2) {
-      map.flyTo(ll, Math.max(z + 0.3, zoom - 1.9), { duration: dur * 0.62 });
-      setTimeout(function () { map.flyTo(ll, zoom, { duration: dur * 0.55 }); }, dur * 620);
+      map.flyTo(ll, Math.max(z + 0.3, zoom - 1.9), { duration: sec * 0.62 });
+      setTimeout(function () { map.flyTo(ll, zoom, { duration: sec * 0.55 }); }, durMs * 0.62);
     } else {
-      map.flyTo(ll, zoom, { duration: dur });
+      map.flyTo(ll, zoom, { duration: sec });
     }
   }
 
@@ -120,7 +124,8 @@ GS.mapCore = (function () {
   }
 
   /* 点亮某坐标：柔光 + 双重涟漪（keep=true 持续到 clearLit）
-   * 涟漪节奏放慢（原 1.5s 扩散 + 0.42s 二次触发 → 视觉过于频闪） */
+   * 节奏整体放慢（2026-10-17）：光晕淡入 1.8s、涟漪单程 3.6s、二次涟漪 1.8s 触发，
+   * 与地点标记的 5.6s 呼吸同频，避免快闪。 */
   function lit(ll, color, keep) {
     color = color || '#c2593f';
     clearLit();
@@ -131,17 +136,17 @@ GS.mapCore = (function () {
     });
     glowMarker = L.marker(ll, { icon: icon, interactive: false, zIndexOffset: 600 }).addTo(map);
     ripple(ll, color);
-    setTimeout(function () { ripple(ll, color); }, 1150);
-    if (!keep) litTimer = setTimeout(clearLit, 4600);
+    setTimeout(function () { ripple(ll, color); }, 1800);
+    if (!keep) litTimer = setTimeout(clearLit, 5600);
   }
 
-  /* 地图原生涟漪圈：从坐标向外扩散后消散（2.9s 单程） */
+  /* 地图原生涟漪圈：从坐标向外扩散后消散（3.6s 单程） */
   function ripple(ll, color) {
     color = color || '#c2593f';
     var ring = L.circleMarker(ll, { radius: 4, color: color, weight: 1.5, opacity: .42, fill: false, interactive: false }).addTo(map);
     var t0 = performance.now();
     (function grow(t) {
-      var p = Math.min(1, (t - t0) / 2900);
+      var p = Math.min(1, (t - t0) / 3600);
       if (p >= 1) { map.removeLayer(ring); return; }
       var e = 1 - Math.pow(1 - p, 2.4);
       ring.setRadius(4 + e * 74);
@@ -198,7 +203,7 @@ GS.mapCore = (function () {
     ripple: ripple,
     placeLabels: placeLabels,
     setLabelsVisible: function (v) { map.getContainer().classList.toggle('hide-labels', !v); },
-    resetView: function () { map.flyToBounds(lastFit || DEFAULT_FIT, { padding: [26, 26], duration: .9 }); }
+    resetView: function () { map.flyToBounds(lastFit || DEFAULT_FIT, { padding: [26, 26], duration: 1.2 }); }
   };
   return { init: init };
 })();

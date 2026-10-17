@@ -137,6 +137,11 @@ button{font-family:inherit;border:none;background:none}
 .m-link span{font-size:10.5px;color:var(--ink-3)}
 .locate{margin-top:16px;width:100%;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:10px;padding:11px;font-size:13px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px}
 .locate:hover{background:#000;border-color:#000}
+.locate.ghost{background:#fff;color:var(--ink);border-color:var(--hair)}
+.locate.ghost:hover{background:#fff;border-color:var(--ink);color:#000}
+.locate + .locate{margin-top:8px}
+/* 地点介绍窗内的事件列表：复用 .ev 行样式，去掉 .list 的外边距 */
+.place-evs{padding:0 0 4px}
 
 .note{margin:8px 26px 26px;font-size:11px;line-height:1.85;color:var(--ink-3)}
 
@@ -278,7 +283,11 @@ button{font-family:inherit;border:none;background:none}
 .place{position:relative;width:96px;height:96px}
 .place .glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 6%,transparent) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
 .place.lit .glow{opacity:1}
-.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:pulse 4.6s cubic-bezier(.2,.6,.4,1) infinite;pointer-events:none;opacity:.5}
+/* 呼吸环：双环错相半周期，5.6s 一叹（0→55% 扩张渐隐、55→100% 静息）。
+ * 旧实现单环 4.6s 且 70→100% 强制熄屏，读作「闪烁」；呼吸频率下应无全局熄屏帧。 */
+.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:breathe 5.6s cubic-bezier(.32,.52,.42,1) infinite;pointer-events:none;opacity:.5}
+.place .ring.b2{animation-delay:2.8s}
+@keyframes breathe{0%{transform:scale(1);opacity:.5}55%{transform:scale(2.5);opacity:0}100%{transform:scale(2.5);opacity:0}}
 .place .core{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#fff;border:3.5px solid #b9bdb4;box-shadow:0 1px 5px rgba(20,20,18,.25);cursor:pointer;pointer-events:auto;transition:transform .25s cubic-bezier(.34,1.56,.64,1),border-color .3s;z-index:4}
 .place:hover .core{transform:scale(1.25);border-color:var(--accent)}
 
@@ -303,10 +312,11 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 .ctx-icon{pointer-events:none}
 .ctx{width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #b9bdb4;box-shadow:0 1px 3px rgba(20,20,18,.15)}
 
-/* 点亮特效 */
+/* 点亮特效：柔光淡入后进入 5.6s 呼吸（与地点环同频） */
 .fx-ic{pointer-events:none}
-.fx-glow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin 1.4s ease-out forwards}
+.fx-glow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin 1.8s ease-out forwards,glowbreathe 5.6s ease-in-out 1.8s infinite}
 @keyframes fxin{0%{opacity:0}22%{opacity:1}to{opacity:1}}
+@keyframes glowbreathe{0%,100%{opacity:.72}50%{opacity:1}}
 
 /* 旅程动画 */
 .travel-ic{pointer-events:none}
@@ -419,7 +429,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
         <div class="tl-knob" id="tlKnob"></div>
       </div>
       <div class="tl-scale" id="tlScale"></div>
-      <div class="tl-keys">空格 播放 / 暂停 · ← → 步进事件 · Esc 返回列表 · 点击事件标记查看详情</div>
+      <div class="tl-keys">空格 播放 / 暂停 · ← → 步进事件 · Esc 返回列表 · 点击地点或事件标记查看介绍</div>
     </footer>
   </aside>
 
@@ -501,8 +511,17 @@ var D1 = Math.max(
   D0 + 8
 );
 var SCALE_STEPS = 3;                    /* 刻度标签数量 */
+/* 播放节奏（ms，1×；随倍速整体缩放）：
+ * TRAVEL  单段行程总窗口——年份推进、路线描线、相机跟车三者同一时钟，终点即「到达」；
+ * SEEK_LEAD 行程起步到描线启动的间隔：先让巡航缩放动画走完，两套坐标系统不打架；
+ * CRUISE_MS 起步拉远到巡航高度的动画时长；ARRIVE_MS 到达推近特写的动画时长。
+ * 2026-10-17 整体放慢（原 TRAVEL 2600 / 推近 .55s / setZoom 250ms 硬编码），
+ * 用户反馈「播放和缩放太快，要优雅」——路线有耐心画完，缩放有节奏推近。 */
 var DWELL = 5200;                 /* 播放时每个事件的停留时长（ms，1×） */
-var TRAVEL = 2600;               /* 事件之间的过渡时长（ms，1×）：描线补间与相机跟随共用 */
+var TRAVEL = 4200;               /* 事件之间的过渡总时长（ms，1×） */
+var SEEK_LEAD = 700;             /* 行程起步 → 描线启动的间隔（ms，1×） */
+var CRUISE_MS = 650;            /* 巡航高度缩放动画时长（ms，1×） */
+var ARRIVE_MS = 1150;           /* 到达推近特写动画时长（ms，1×） */
 var SPEEDS = [1, 2, 0.5];
 
 /* ================= 工具 ================= */
@@ -528,7 +547,7 @@ var SEQ = EVENTS.map(function (e, i) { return { e: e, i: i }; })
   .sort(function (a, b) { return a.e.from - b.e.from || a.i - b.i; })
   .map(function (x) { return x.e; });   /* 同年事件保持 events.json 手工叙事顺序（勿按 id 字典序） */
 
-var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, chapter: null, speed: 1, speedIdx: 0 };
+var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, arrivedId: null, chapter: null, speed: 1, speedIdx: 0 };
 
 /* 初始视野：由「有事件的地方」自动聚合，而非写死整个地中海。
    取所有事件地点的经纬范围 + 12%留白；随章节数据增加自动扩展（耶路撒冷/罗马/马耳他纳入后自然变宽）。 */
@@ -581,7 +600,7 @@ PLACES.forEach(function (p) {
   }
   var evs = EVENTS.filter(function (e) { return e.place === p.id; });
   var BOX = 96, R = 34;
-  var html = '<div class="place" data-place="' + p.id + '"><span class="glow"></span><span class="ring"></span><span class="core" title="' + esc(p.cn) + '"></span></div>';
+  var html = '<div class="place" data-place="' + p.id + '"><span class="glow"></span><span class="ring"></span><span class="ring b2"></span><span class="core" title="' + esc(p.cn) + '"></span></div>';
   var icon = L.divIcon({ className: 'place-icon', html: html, iconSize: [BOX, BOX], iconAnchor: [BOX / 2, BOX / 2] });
   var mk = L.marker(p.ll, { icon: icon, riseOnHover: true, keyboard: false }).addTo(placeLayer);
   var tip = '<div>' + esc(p.cn) + (evs.length ? '<span class="cnt">' + evs.length + ' 个事件</span>' : '') + '</div><div class="en">' + esc(p.en) + '</div>';
@@ -589,7 +608,8 @@ PLACES.forEach(function (p) {
   labelItems.push({ marker: mk, html: tip });
   var pel = mk.getElement();
   placeEls[p.id] = pel.querySelector('.place');
-  pel.querySelector('.core').addEventListener('click', function () { setFilter(state.filter === p.id ? null : p.id); });
+  /* 点击地点核心 → 弹出该地介绍窗（2026-10-17 前为地点筛选，筛选入口移至介绍窗内按钮） */
+  pel.querySelector('.core').addEventListener('click', function (e) { e.stopPropagation(); openPlace(p.id); });
 
   /* 事件点围绕核心均匀分布；第一个朝上 */
   evs.forEach(function (ev, i) {
@@ -699,7 +719,7 @@ function setFilter(pid) {
   if (pid) {
     var p = PLACE_BY[pid];
     mapCore.lit(p.ll, '#c2593f', true);
-    mapCore.flyTo(p.ll, 5.8, .9);
+    mapCore.flyTo(p.ll, 5.8, 1100);
   } else {
     mapCore.clearLit();
   }
@@ -742,6 +762,8 @@ function renderMedia(media) {
 function openEvent(id) {
   var ev = EV_BY[id];
   if (!ev) return;
+  /* 从地点介绍窗进入：记住来源，返回时回介绍窗（placeBack 仅一层） */
+  placeBack = (state.detail && state.detail.indexOf('place:') === 0) ? state.detail.slice(6) : null;
   state.detail = id;
   setStoryEnd(false);
   pause();
@@ -778,11 +800,16 @@ function openEvent(id) {
   $('scroll').scrollTop = 0;
   /* 地图侧：事件点亮为当前 + 飞行定位（标记状态交由 applyReveal 统一收口） */
   state.focus = id;
+  state.arrivedId = id;       /* 直接打开即「已到达」：高亮与名称立即可见 */
   applyReveal(state.year);
   mapCore.lit(ev.ll, ev.typeMeta.color, true);
-  mapCore.flyTo(ev.ll, CAM.zEvent, .7);   /* M-5：1.0s → 0.7s，点击到视觉反馈控制在 300ms 内 */
-  $('backBtn').addEventListener('click', closeEvent);
-  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, CAM.zEvent + .4, .7); });
+  mapCore.flyTo(ev.ll, CAM.zEvent, ARRIVE_MS);   /* 2026-10-17：0.7s → 1.15s，缩放节奏放慢求优雅 */
+  $('backBtn').addEventListener('click', function () {
+    /* 从地点介绍窗点进来的事件：返回时回到地点介绍（placeBack 栈，仅一层） */
+    if (placeBack) { openPlace(placeBack); return; }
+    closeEvent();
+  });
+  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, CAM.zEvent + .4, ARRIVE_MS); });
   renderList();
   try { history.replaceState(null, '', '#e/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
   GS.fx.emit('event:open', ev);
@@ -790,7 +817,9 @@ function openEvent(id) {
 function closeEvent() {
   if (!state.detail) return;
   state.detail = null;
+  placeBack = null;
   $('detail').classList.add('hidden');
+  $('detail').classList.remove('place');
   $('list').classList.remove('hidden');
   if (state.filter) $('filterbar').classList.remove('hidden');
   EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
@@ -799,26 +828,87 @@ function closeEvent() {
   GS.fx.emit('event:close');
 }
 
+/* ================= 地点介绍窗（2026-10-17 新增） =================
+ * 点击地点核心弹出：名称 / 今天所在 / 场所说明 / 缘起 / 该地事件（行可跳转详情，
+ * 返回时经 placeBack 一层栈回到本介绍窗）/ 定位 / 「仅看此地事件」筛选
+ * （筛选入口原为核心点击，迁移至此；时间轴与列表筛选不受影响）。 */
+var placeBack = null;
+function openPlace(id) {
+  var p = PLACE_BY[id];
+  if (!p || p.ctx) return;
+  placeBack = null;
+  state.detail = 'place:' + id;
+  setStoryEnd(false);
+  pause();
+  state.focus = null;
+  var evs = EVENTS.filter(function (e) { return e.place === id; });
+  var rows = evs.map(function (ev) {
+    return '<div class="ev" data-ev="' + ev.id + '">' +
+      '<i class="ev-tdot" style="color:' + ev.typeMeta.color + '">' + typeIcon(ev.type) + '</i>' +
+      '<div class="ev-yr">AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '') + '</div>' +
+      '<div class="ev-mid"><div class="ev-cn">' + esc(ev.title) + '</div><div class="ev-en">' + esc(ev.en) + '</div></div>' +
+      '<div class="ev-place">' + esc(p.cn) + '</div></div>';
+  }).join('');
+  $('detail').innerHTML =
+    '<button class="back" id="backBtn">← 返回列表</button>' +
+    '<div class="d-type">地点 · ' + evs.length + ' 个事件</div>' +
+    '<div class="d-cn">' + esc(p.cn) + '</div>' +
+    '<div class="d-en">' + esc(p.en) + '</div>' +
+    '<div class="d-meta">' +
+      mrow('今天所在', p.modern) +
+      (p.gloss ? mrow('场所说明', p.gloss) : '') +
+    '</div>' +
+    '<div class="d-h">缘 起</div><p class="d-bg">' + esc(p.note) + '</p>' +
+    (evs.length
+      ? '<div class="d-h">该 地 事 件</div><div class="list place-evs">' + rows + '</div>'
+      : '<div class="d-mnote">该地点暂无已上线事件</div>') +
+    '<button class="locate" id="locateBtn">放大查看该地点' +
+    '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M7 2.2v9.6M2.2 7h9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>' +
+    (evs.length ? '<button class="locate ghost" id="placeFilterBtn">仅看此地事件</button>' : '');
+  $('list').classList.add('hidden');
+  $('filterbar').classList.add('hidden');
+  var detail = $('detail');
+  detail.classList.remove('hidden');
+  detail.classList.add('place');
+  detail.classList.remove('in'); void detail.offsetWidth; detail.classList.add('in');
+  $('scroll').scrollTop = 0;
+  applyReveal(state.year);
+  mapCore.lit(p.ll, '#c2593f', true);
+  mapCore.flyTo(p.ll, CAM.zEvent, ARRIVE_MS);
+  $('backBtn').addEventListener('click', closeEvent);
+  $('locateBtn').addEventListener('click', function () { mapCore.lit(p.ll, '#c2593f', true); mapCore.flyTo(p.ll, CAM.zEvent + .4, ARRIVE_MS); });
+  if (evs.length) {
+    $('detail').querySelectorAll('.place-evs .ev').forEach(function (r) {
+      var eid = r.getAttribute('data-ev');
+      r.addEventListener('click', function () { openEvent(eid); });
+      r.addEventListener('mouseenter', function () { hlRow(eid, true); });
+      r.addEventListener('mouseleave', function () { hlRow(eid, false); });
+    });
+    $('placeFilterBtn').addEventListener('click', function () { closeEvent(); setFilter(id); });
+  }
+  try { history.replaceState(null, '', '#p/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
+  GS.fx.emit('place:open', p);
+}
+
 /* ================= 年份驱动：事件点显隐 + 路线点亮 + 标记状态唯一收口 ====
  * M-5：.cur / .dim / .on / .ahead 全部在此统一计算，revealEvent 与 openEvent
- * 只设state.focus 后调用本函数，避免两条路径手工增删类造成状态分叉。 */
+ * 只设state.focus 后调用本函数，避免两条路径手工增删类造成状态分叉。
+ * 2026-10-17：.cur 增加 arrivedId 门控——路线还没到地点，事件名（.ev-label）
+ * 与高亮都不出现；行程中的目标事件既不高亮也不压暗（traveling 态）。 */
 function applyReveal(y) {
   var n = 0;
   EVENTS.forEach(function (ev) {
     var on = y >= ev.from - 1e-9;
     if (on) n++;
-    var cur = ev.id === state.focus;
+    var cur = ev.id === state.focus && state.arrivedId === ev.id;
+    var traveling = state.playing && ev.id === state.focus && state.arrivedId !== ev.id;
     var d = dotEls[ev.id];
     if (d) {
-      var wasOn = d.classList.contains('on');
       d.classList.toggle('on', on);
-      if (on && !wasOn && state.auto && !state.boot) {
-        d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
-      }
-      if (!on) d.classList.remove('pop');
       d.classList.toggle('cur', cur && on);
-      /* 播放中：非当前、非未来事件压暗，让当前事件独占视觉焦点 */
-      d.classList.toggle('dim', state.playing && on && !cur);
+      /* 播放中：非当前、非未来事件压暗，让当前事件独占视觉焦点；
+       * 行程途中的目标事件保持原色（既未到达、也非过去） */
+      d.classList.toggle('dim', state.playing && on && !cur && !traveling);
       d.classList.toggle('ahead', state.playing && !on);
     }
     if (ev.dotEl) ev.dotEl.classList.toggle('on', on);
@@ -864,10 +954,11 @@ function hideCard() { $('now').classList.remove('show'); }
  * ——两者叠加就是用户看到的「抖」。
  *
  * rig 只平移 pane（map._rawPanBy：纯 CSS transform，零事件、零重投影），
- * 缩放改走 Leaflet 动画通道（setZoom/flyTo：CSS transform + _animatingZoom 期间
- * 跳过路径重建），每段行程结束用一次 setView 对齐内部状态。
+ * 缩放改走 Leaflet 动画通道（flyTo：JS rAF + 每帧 _move({flyTo:true})，
+ * 不触发 Renderer 重投影、末帧一次 _moveEnd 收口；时长可控，可放慢求优雅），
+ * 每段行程结束用一次 setView 对齐内部状态。
  * 方案评估：不需要换技术（MapLibre GL/自绘 canvas）——Leaflet 自身的 flyTo 就是
- * transform 通道的平滑动画，问题只在「每帧 setView」这个用法上。 */
+ * 平滑动画，问题只在「每帧 setView」这个用法上。 */
 var CAM = { zEvent: 6.5, zCruise: 5.5 };   /* 取值对齐 zoomSnap:.5，落桌不再被二次取整 */
 var rig = { ll: null, dirty: false };      /* ll: 最近跟车目标；dirty: rig 挪过 pane 待对齐 */
 var camEv = null;                          /* 当前行程目标事件（到达时推近用） */
@@ -890,9 +981,13 @@ function camFollow(ll, t) {
   if (!map.getSize().x) return;                    /* 容器尺寸未就绪，跳过本帧 */
   rig.ll = ll;
   if (t >= 1) {
-    /* 行程终点：先对齐内部状态，再推近到事件特写（一次 flyTo，走 CSS 动画通道） */
+    /* 行程终点：先对齐内部状态，再推近到事件特写（flyTo 动画通道），
+     * 与此同时才弹出事件卡 / 地点点亮 / 事件名——路线到达地点之后（需求1）。 */
     syncRig();
-    if (camEv) mapCore.flyTo(camEv.ll, CAM.zEvent, .55);
+    if (camEv) {
+      mapCore.flyTo(camEv.ll, CAM.zEvent, ARRIVE_MS / state.speed);
+      arriveEvent(camEv);
+    }
     return;
   }
   var d = map.latLngToContainerPoint(ll).subtract(map.getSize().divideBy(2));
@@ -904,21 +999,35 @@ function camFollow(ll, t) {
 function revealEvent(ev) {
   setStoryEnd(false);
   state.focus = ev.id;
+  state.arrivedId = null;         /* 本段行程尚未到达：卡片/标签/点亮全部等到抵达 */
   camEv = ev;
-  mapCore.lit(ev.ll, ev.typeMeta.color);
-  /* 先原地拉到巡航高度（setZoom 走 CSS 缩放动画，_animatingZoom 期间 Leaflet 跳过路径重建），
-   * 380ms 后才启动描线+跟车——缩放动画与 rig 平移不在同一时间窗，两套坐标系统不打架；
+  /* 先原地拉到巡航高度（flyTo 动画通道，时长随倍速缩放；旧实现用 setZoom，
+   * 其 250ms 硬编码在 Leaflet CSS 里无法放慢），给整段行程一个「拉远看全局」的开场。
+   * SEEK_LEAD 后才启动描线+跟车——缩放动画与 rig 平移不在同一时间窗，两套坐标系统不打架；
    * 若窗口内被暂停/步进（state.playing 已假），放弃本次描线，由交互路径的 flyTo 接管相机。 */
   syncRig();
-  map.setZoom(CAM.zCruise);
+  mapCore.flyTo(map.getCenter(), CAM.zCruise, CRUISE_MS / state.speed);
   var myToken = playToken;
   setTimeout(function () {
     /* 令牌校验：窗口内若发生 暂停→重播（startPlay 会 +1），本次延迟 seek 即过时，放弃 */
     if (!state.playing || myToken !== playToken) return;
-    routes.seek(ev, TRAVEL / state.speed, camFollow);
-  }, 380);
-  applyReveal(state.year);   /* 标记状态唯一收口：当前 .cur / 其余 .dim */
+    routes.seek(ev, (TRAVEL - SEEK_LEAD) / state.speed, camFollow);
+  }, SEEK_LEAD / state.speed);
+  applyReveal(state.year);   /* 标记状态唯一收口：当前行程中（traveling）/ 其余 .dim */
+  GS.fx.emit('event:depart', ev);
+}
+/* 到达（幂等）：年份落定（onArrive）与 seek 末帧双触发，先到者赢。
+ * 事件卡 / 地点点亮 / 事件点弹跳 / event:arrive 全部在这里——
+ * 行程途中 arrivedId 为 null，applyReveal 不给目标事件 .cur，名称不弹出。 */
+function arriveEvent(ev) {
+  if (state.arrivedId === ev.id) return;
+  state.arrivedId = ev.id;
+  if (!state.playing) return;                      /* 行程已被暂停/步进接管：由对应路径负责 UI */
   showCard(ev);
+  mapCore.lit(ev.ll, ev.typeMeta.color, true);     /* 持续点亮至 onLeave 清除 */
+  var d = dotEls[ev.id];
+  if (d) { d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop'); }
+  applyReveal(state.year);
   GS.fx.emit('event:arrive', ev);
 }
 function startPlay() {
@@ -931,6 +1040,7 @@ function startPlay() {
   var ahead = SEQ.filter(function (e) { return e.from >= state.year - 1e-9; });
   if (!ahead.length) { timeline.setYear(D0); ahead = SEQ; }
   state.playing = true; state.auto = true;
+  state.arrivedId = null;         /* 新序列：首个事件抵达前不弹卡 */
   syncPlayBtn();
   applyReveal(state.year);
   timeline.playEvents(ahead, {
@@ -938,10 +1048,12 @@ function startPlay() {
     dwell: DWELL,
     travel: TRAVEL,
     onEvent: function (ev) { revealEvent(ev); },
+    onArrive: function (ev) { arriveEvent(ev); },   /* 与 seek 末帧双触发，arriveEvent 内幂等 */
     onLeave: function (ev) {
       var d = dotEls[ev.id];
       if (d && state.detail !== ev.id) d.classList.remove('cur');
       hideCard();
+      mapCore.clearLit();          /* 地点点亮持续整个停留，离开即收 */
       applyReveal(state.year);
     },
     onEnd: function () {
@@ -977,8 +1089,9 @@ function stepEvent(dir) {
   /* 步进无描线动画，但镜头仍须落到事件地点（否则点了下一事件地图不动） */
   routes.seek(ev, 0);
   mapCore.lit(ev.ll, ev.typeMeta.color, true);
-  mapCore.flyTo(ev.ll, CAM.zEvent, .8);
+  mapCore.flyTo(ev.ll, CAM.zEvent, ARRIVE_MS);
   state.focus = ev.id;
+  state.arrivedId = ev.id;       /* 无行程：落点即到达，卡片/高亮立即出现 */
   applyReveal(state.year);
   showCard(ev);
 }
@@ -1133,6 +1246,7 @@ function handleHash() {
   var h = (location.hash || '').replace(/^#/, '');
   var m;
   if ((m = h.match(/^e\/(.+)$/)) && EV_BY[m[1]]) { setTimeout(function () { openEvent(m[1]); }, 900); }
+  else if ((m = h.match(/^p\/(.+)$/)) && PLACE_BY[m[1]] && !PLACE_BY[m[1]].ctx) { setTimeout(function () { openPlace(m[1]); }, 900); }
   else if ((m = h.match(/^ch\/(.+)$/)) && CH_BY[m[1]]) { setTimeout(function () { jumpChapter(m[1]); }, 900); }
   else if ((m = h.match(/^(j[1-4])$/)) && R_BY[m[1]]) { setTimeout(function () { replayJourney(R_BY[m[1]]); }, 900); }
 }
@@ -1208,9 +1322,10 @@ handleHash();
 window.GS_APP = {
   events: EVENTS, seq: SEQ, places: PLACES, routes: ROUTES, chapters: CHAPTERS,
   state: state,
-  open: openEvent, close: closeEvent, play: startPlay, pause: pause,
+  open: openEvent, openPlace: openPlace, close: closeEvent, play: startPlay, pause: pause,
   step: stepEvent, jumpChapter: jumpChapter, setFilter: setFilter,
-  dotEls: dotEls, map: map, timeline: timeline, setYear: function (y) { timeline.setYear(y); }
+  dotEls: dotEls, map: map, timeline: timeline, setYear: function (y) { timeline.setYear(y); },
+  timing: { TRAVEL: TRAVEL, SEEK_LEAD: SEEK_LEAD, CRUISE_MS: CRUISE_MS, ARRIVE_MS: ARRIVE_MS, DWELL: DWELL, CAM: CAM }
 };
 
 })();
