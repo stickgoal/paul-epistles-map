@@ -290,7 +290,7 @@ await click('#backBtn');
 await sleep(500);
 console.log('C list-back:', await ev(`document.getElementById('list').classList.contains('hidden')?'HIDDEN':'shown'`), 'detail:', await ev(`window.GS_APP.state.detail`));
 
-/* D. 播放：年代递进 + 事件卡 + 当前事件（travel 2.6s，停留 5.2s） */
+/* D. 播放：年代递进 + 事件卡 + 当前事件（行程 4.2s：巡航 0.65s + 描线 3.5s，停留 5.2s） */
 await ev(`window.GS_APP.timeline.setYear(46); window.GS_APP.state.speed = 1;`);
 await sleep(200);
 const playBtnPos = await centerOf('#playBtn');
@@ -299,7 +299,7 @@ await sleep(9000);
 console.log('D playing:', await ev(`window.GS_APP.state.playing`), 'year:', await ev(`document.getElementById('tlYear').textContent`), 'focus:', await ev(`window.GS_APP.state.focus`));
 console.log('D card:', await ev(`(function(){var n=document.getElementById('now');return n.classList.contains('show')?(n.querySelector('.card-t')?n.querySelector('.card-t').textContent:'toast'):'hide';})()`));
 console.log('D cur-dot:', await ev(`document.querySelectorAll('.ev-dot.cur').length`));
-console.log('D lit:', await ev(`document.querySelectorAll('.place.lit').length`));
+console.log('D lit:', await ev(`document.querySelectorAll('.fx-glow').length`));   /* .place.lit 是死类，点亮实为 fx-glow 标记 */
 /* D1b. 事件图标：每个标记内含类型 SVG（非圆点）；播放中非当前事件压暗 */
 console.log('D1b event-icons:', await ev(`JSON.stringify({
   dots: document.querySelectorAll('.ev-dot').length,
@@ -319,7 +319,8 @@ await shot('f3_playing.png');
 /* D3. 相机与描线同步回归 + 跟车性能回归（2026-10-17 抖动修复后更新）：
  * 1) 镜头中心紧跟路线行进光点（屏幕像素距离）——rig 只挪 pane，latLngToContainerPoint 仍准确；
  * 2) 缩放分段到位：巡航 5.5 → 到达推近 6.5。旧实现逐帧插值缩放，被 zoomSnap:.5 量化成
- *    5.5→6.0→6.5 三次瞬跳，是「抖动」的成因之一；新实现走 setZoom/flyTo 的 CSS 动画通道；
+ *    5.5→6.0→6.5 三次瞬跳，是「抖动」的成因之一；新实现走 flyTo 动画通道。缩放放慢后
+ *    （推近 1.15s）采样窗口可能截获动画中的小数值，故断言放宽为「不越出 [5.5, 6.5] 波段」；
  * 3) 【事件风暴回归】跟车窗口内 map moveend 次数 ≈ 0。旧实现每帧一次 setView →
  *    每帧一次 moveend → 全场景 SVG 重投影（实测 12s 播放 31,466 次 d 重写 / 250 次 moveend），
  *    新实现 rig 走 _rawPanBy 零事件通道，窗口内只允许行程切换的个位数 moveend。 */
@@ -350,11 +351,84 @@ console.log('D3 verdict:', JSON.stringify({
   avgCenterDistPx: Math.round(dists.reduce(function(a,b){return a+b;},0)/dists.length),
   zoomChanged: Math.max.apply(null, zooms) !== Math.min.apply(null, zooms),
   zoomRange: [Math.min.apply(null, zooms), Math.max.apply(null, zooms)],
-  zoomOnlyCruiseOrEvent: zooms.every(function(z){ return z === 5.5 || z === 6.5; }),
+  zoomWithinBand: zooms.every(function(z){ return z >= 5.5 - 1e-9 && z <= 6.5 + 1e-9; }),
+  zoomOnlyCruiseOrEvent: zooms.every(function(z){ return Math.abs(z-5.5) < 1e-9 || Math.abs(z-6.5) < 1e-9 || (z > 5.5 && z < 6.5); }),
   routeGrew: valid[valid.length-1].pts > valid[0].pts,
   eventStorm: evStorm,
   moveendInWindowOK: (function(){ var e = JSON.parse(evStorm); return e.moveend <= 4; })()
 }));
+
+/* D4. 到达才弹出（需求1）：行程途中不得出现事件卡 / 当前事件高亮 / 地点点亮，
+ * 路线抵达地点后才允许出现。旧实现在行程起点即 showCard + lit。
+ * 时序（1×）：巡航 0–650ms → 描线 700–4200ms → 到达（卡片+点亮+推近 1.15s）→ 停留。 */
+await ev(`window.GS_APP.pause()`); await sleep(400);
+await ev(`window.GS_APP.timeline.setYear(46); window.GS_APP.state.speed = 1; window.GS_APP.play();`);
+await sleep(2400);   /* 行程中段 */
+var d4mid = await ev(`JSON.stringify({
+  cardShown: document.getElementById('now').classList.contains('show'),
+  curDots: document.querySelectorAll('.ev-dot.cur').length,
+  fxGlow: document.querySelectorAll('.fx-glow').length,
+  year: document.getElementById('tlYear').textContent,
+  routePts: GS.routeEngine.api.byId('j1').base.getLatLngs().length })`);
+var d4arrived = false, d4cardEarly = false;
+for (var a4 = 0; a4 < 45; a4++) {
+  await sleep(200);
+  var s4 = JSON.parse(await ev(`JSON.stringify({ cur: document.querySelectorAll('.ev-dot.cur').length,
+    card: document.getElementById('now').classList.contains('show') })`));
+  if (s4.cur > 0) { d4arrived = true; break; }
+  if (s4.card) d4cardEarly = true;
+}
+await sleep(1500);   /* 等到达推近动画（1.15s）走完 */
+var d4after = await ev(`JSON.stringify({
+  card: document.getElementById('now').classList.contains('show'),
+  cardT: (document.querySelector('.card-t')||{}).textContent || '',
+  cardP: (document.querySelector('.card-p')||{}).textContent || '',
+  glow: document.querySelectorAll('.fx-glow').length,
+  zoom: GS_APP.map.getZoom(),
+  curDots: document.querySelectorAll('.ev-dot.cur').length })`);
+console.log('D4 arrive-gating: mid=' + d4mid);
+console.log('D4 verdict:', JSON.stringify({ arrived: d4arrived, cardBeforeArrival: d4cardEarly,
+  after: d4after, ok: d4arrived && !d4cardEarly && d4after.card && d4after.glow >= 1 && d4after.curDots === 1 && Math.abs(d4after.zoom - 6.5) < 0.01 }));
+
+/* D5. 路线精确经过地点（需求3）：每条旅程的每个站点必须落在路径上。
+ * 旧中点平滑最近点偏离站点 |a+c-2b|/8（帕弗→别加→彼西底的安提阿一角约 0.26°）。 */
+console.log('D5 route-through-places:', await ev(`(function(){
+  var worst = 0, worstAt = '';
+  GS.routeEngine.api.all().forEach(function (j) {
+    if (!j.path) return;
+    j.stops.forEach(function (s) {
+      var best = Infinity;
+      for (var i = 0; i < j.path.length; i++) {
+        var dx = j.path[i][1] - s.ll[1], dy = j.path[i][0] - s.ll[0];
+        var d2 = dx*dx + dy*dy;
+        if (d2 < best) best = d2;
+      }
+      var d = Math.sqrt(best);
+      if (d > worst) { worst = d; worstAt = j.id + '/' + s.cn; }
+    });
+  });
+  return JSON.stringify({ maxDevDeg: Math.round(worst*1e6)/1e6, worstAt: worstAt, exact: worst < 0.001 });
+})()`));
+
+/* D6. 地点呼吸频率（需求4）：每地点双环错相、周期 ≥ 4s。
+ * 旧实现单环 4.6s 且 70→100% 强制熄屏，读作「闪烁」。
+ * 注意：headless Chrome 默认 prefers-reduced-motion:reduce，全局动画被
+ * prefers-reduced-motion 媒体查询压成 .01ms——必须先模拟 no-preference 再测计算值。 */
+await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
+console.log('D6 breathing:', await ev(`(function(){
+  var rings = document.querySelectorAll('.place[data-place="paphos"] .ring');
+  var cs = rings.length ? getComputedStyle(rings[0]) : null;
+  return JSON.stringify({ rings: rings.length,
+    name: cs ? cs.animationName : 'none',
+    duration: cs ? cs.animationDuration : 'none',
+    ring2Delay: rings.length > 1 ? getComputedStyle(rings[1]).animationDelay : 'none',
+    ok: rings.length === 2 && !!cs && parseFloat(cs.animationDuration) >= 4 });
+})()`));
+
+/* D7. 播放/缩放节奏放慢（需求2）：行程与推近时长须显著大于旧值（2600 / 550ms）。 */
+var d7 = JSON.parse(await ev(`JSON.stringify(GS_APP.timing)`));
+console.log('D7 timing:', JSON.stringify(d7), '| slower:',
+  (d7.TRAVEL >= 3500 && d7.ARRIVE_MS >= 900 && d7.CRUISE_MS >= 500) ? 'OK' : 'TOO_FAST');
 await ev(`window.GS_APP.pause()`);
 await sleep(400);
 console.log('D paused:', await ev(`window.GS_APP.state.playing`));
@@ -383,22 +457,42 @@ await sleep(4200);
 console.log('F deep-link:', await ev(`(function(){var d=document.getElementById('detail');return d.classList.contains('hidden')?'HIDDEN':document.querySelector('.d-cn').textContent;})()`));
 await shot('f4_deeplink.png');
 
-/* G. 章节筛选：点击 ch1 chip 列表计数 */
+/* G. 章节筛选：点击 ch1 chip 列表计数（行数只数 #list——详情/介绍窗内的 .ev 行
+ * 会留在 DOM 里，曾让 H 的筛选计数把地点介绍窗的 3 行也算进去得到 15） */
 await click('.ch-chip[data-ch="ch1"]');
 await sleep(400);
-console.log('G ch1 rows:', await ev(`document.querySelectorAll('.ev').length`), 'chips on:', await ev(`document.querySelectorAll('.ch-chip.on').length`));
+console.log('G ch1 rows:', await ev(`document.querySelectorAll('#list .ev').length`), 'chips on:', await ev(`document.querySelectorAll('.ch-chip.on').length`));
 await click('.ch-chip[data-ch="ch1"]');
 await sleep(400);
-console.log('G ch1-off rows:', await ev(`document.querySelectorAll('.ev').length`));
+console.log('G ch1-off rows:', await ev(`document.querySelectorAll('#list .ev').length`));
 
-/* H. 地点筛选：点击路司得核心 */
+/* H. 地点介绍窗（需求5）：点击地点核心弹出该地介绍；窗内事件行可跳转详情，
+ * 返回经一层栈回介绍窗；「仅看此地事件」按钮承接原「核心点击即筛选」的入口。 */
 await click('.place[data-place="lystra"] .core');
-await sleep(900);
+await sleep(1100);
+console.log('H place-intro:', await ev(`(function(){var d=document.getElementById('detail');
+  return d.classList.contains('hidden') ? 'HIDDEN' : JSON.stringify({
+    isPlace: d.classList.contains('place'),
+    name: (document.querySelector('.d-cn')||{}).textContent,
+    state: window.GS_APP.state.detail,
+    evRows: document.querySelectorAll('.place-evs .ev').length });})()`));
+await ev(`document.querySelector('.place-evs .ev[data-ev="lystra-stoning"]').scrollIntoView({block:'center'})`);
+await click('.place-evs .ev[data-ev="lystra-stoning"]');
+await sleep(1100);
+console.log('H intro-to-event:', await ev(`(function(){var d=document.getElementById('detail');
+  return d.classList.contains('hidden') ? 'HIDDEN' : (document.querySelector('.d-cn')||{}).textContent;})()`));
+await click('#backBtn');
+await sleep(700);
+console.log('H back-to-place:', await ev(`(function(){var d=document.getElementById('detail');
+  return d.classList.contains('hidden') ? 'HIDDEN' : (d.classList.contains('place') ? (document.querySelector('.d-cn')||{}).textContent : 'NOT_PLACE');})()`));
+await ev(`document.getElementById('placeFilterBtn').scrollIntoView({block:'center'})`);
+await click('#placeFilterBtn');
+await sleep(600);
 console.log('H filterbar:', await ev(`(function(){var f=document.getElementById('filterbar');return f.classList.contains('hidden')?'HIDDEN':f.textContent.replace(/\\s+/g,' ').slice(0,30);})()`));
-console.log('H filtered rows:', await ev(`document.querySelectorAll('.ev').length`));
+console.log('H filtered rows:', await ev(`document.querySelectorAll('#list .ev').length`));
 await click('#clearFilter');
 await sleep(300);
-console.log('H cleared rows:', await ev(`document.querySelectorAll('.ev').length`));
+console.log('H cleared rows:', await ev(`document.querySelectorAll('#list .ev').length`));
 
 /* I. 重置视图 */
 await click('#resetBtn');
