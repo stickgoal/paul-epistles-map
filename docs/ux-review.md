@@ -360,3 +360,64 @@
 > 不能用 DOM 合成事件。合成事件绕过命中测试，而命中测试正是「元素何时可点」这一类缺陷的暴露窗口。
 > 断言里凡是要量布局，必须先断言元素**处于可见状态**，否则 `display:none` 后的 rect 全 0 会让任何
 > 几何断言无条件通过。
+
+## 八、三轮修复：播放抖动根因与相机 rig（2026-10-17）
+
+用户反馈：**动画播放时抖得厉害，怀疑要换技术实现**。
+
+**结论：不需要换技术。** 问题不在 Leaflet+SVG 选型，而在「跟车相机每帧 `setView`」这个用法上。
+Leaflet 自身的 `flyTo`/`setZoom` 就是 transform 通道的平滑动画——把相机运动从「每帧 setView」
+改成「rig 只平移 + 离散缩放动画」后，同场景工作量下降 94%，全部回归断言保持通过。
+
+### 8.1 根因（源码级 + 实测双重确认）
+
+`camFollow` 在 seek 每帧回调里执行 `map.setView(ll, z, { animate: false })`。setView 非动画路径走
+`_moveStart → _move → _moveEnd` 全事件链，每帧触发 `zoomstart/movestart/zoom/move/zoomend/moveend`：
+
+| 每帧事件 | Leaflet 内部动作 | 代价 |
+|---|---|---|
+| `moveend` | `L.Renderer._update` → `_updatePaths` | **整个场景**每条 SVG path 重新投影 + 重写 `d`（地中海底图 + 经纬网 + 全部路线 + 圆点） |
+| `zoomend` | `L.Renderer._onZoomEnd` | 全部图层再 `_project()` 一遍 |
+| `zoom` | `L.Renderer._onZoom` → `_updateTransform` | SVG 容器按**小数缩放**做 CSS transform（Chrome 按新尺度重栅格化） |
+
+叠加第二个问题：`zoomSnap: .5` 下 `_limitZoom` 把按 `t^1.6` 插值的缩放假量化为
+**5.5 → 6.0 → 6.5 三次瞬跳**——2.6s 行程里尺度抽搐三次，每次伴随全场景重建。
+
+**实测数据**（headless Chrome，12s 播放窗口，软件光栅 / GPU 合成两种环境一致）：
+
+| 指标 | 修复前（每帧 setView） | 修复后（rig） | 变化 |
+|---|---|---|---|
+| SVG `d` 重写次数 | 31,466 / 31,101 | 1,868 / 1,870 | **-94%** |
+| map `moveend` 次数 | 250 / 247 | 4 / 4 | **-98%** |
+| 掉帧（>20ms） | 3 / 5 | 1 / 1 | -67% / -80% |
+| 最大帧间隔 | 50.1ms | 33.3ms | -33% |
+| 长任务（>50ms） | 1 次 56–58ms | 0 | 消除 |
+
+> 测量工具：`scripts/measure-fps.mjs`（rAF 帧间隔 + `setAttribute('d')` 计数与累计耗时 + 地图事件计数 + longtask 观察器）。
+
+### 8.2 修复方案（不换技术，改用法）
+
+1. **相机 rig 只平移**：`camFollow` 每帧用 `map._rawPanBy(latLngToContainerPoint(head) - 视口中心)` 把镜头移到描线头上。`_rawPanBy` 是纯 pane CSS transform（Leaflet 自己的拖拽/`invalidateSize` 就在用），**零事件、零重投影**。已用 `scripts/experiment-rig.mjs` 验证：一次平移残差 0px，90 帧追赶循环 0 个地图事件。
+2. **缩放离散化**：行程起步 `map.setZoom(CAM.zCruise)`（原地拉远，CSS 缩放动画，`_animatingZoom` 期间 Leaflet 主动跳过路径重建）；到达时 `flyTo(ev.ll, CAM.zEvent, .55)` 推近特写。CAM 取值对齐 `zoomSnap`（5.5 / 6.5），落桌不再被二次取整。
+3. **rig 与缩放动画不同窗**：描线 seek 延迟 380ms 启动（等缩放动画走完），避免两套坐标系统互相打架；延迟窗口用 `playToken` 令牌防「暂停→重播」竞态。
+4. **状态对齐**：rig 只挪 pane，`_lastCenter/_pixelOrigin` 会陈旧。每段行程结束、pause、步进、打开详情前，用一次 `setView(containerPointToLatLng(视口中心), zoom, {animate:false})` 对齐（零位移、一次重建）。
+5. 顺带：`timeline.setYear` / `applyReveal` 的每帧 `textContent` 写入加变化守卫，避免无谓 layout。
+
+### 8.3 回归断言更新（D3 扩展）
+
+| 断言 | 覆盖什么 | 修复前 | 修复后 |
+|---|---|---|---|
+| `D3` 中心距 | 镜头紧跟描线头（16 次采样） | 平均 2px / 最大 7px | 平均 **1px** / 最大 **4px** |
+| `D3` 缩放 | 巡航/特写两档到位 | 5.5→6.5 三次瞬跳 | `zoomOnlyCruiseOrEvent: true`（5.5/6.5） |
+| `D3` **事件风暴**（新增） | travel 窗口内 map `moveend` 次数 | ~150 次/窗口 | **1 次**（≤4 通过） |
+| `D3` 描线生长 | 路线点数同步推进 | 1→40 | 1→37 ✔ |
+
+全套 A–J / A2–A11 / D3 / J2 断言 + 控制台零错误保持通过。
+
+### 8.4 换技术方案评估（备选，未采用）
+
+| 方案 | 优势 | 不采用的原因 |
+|---|---|---|
+| MapLibre GL JS（WebGL） | GPU 合成平移缩放，矢量场景无重投影问题 | ~1MB wasm/js 依赖破坏「单文件离线双击即用」形态；地图样式要改写为 style spec；交互（拖拽/工具提示/标记）全部重写；对本场景（一张内联 SVG 底图 + 12 事件）是杀鸡用牛刀 |
+| vector 层切 `preferCanvas` | canvas 重绘比 SVG `d` 重建便宜 | 丢失 `.route-flow` 的 CSS dash 流光动画（canvas 不应用 className）；且修复后 SVG 路径每帧只剩 2 次 `setLatLngs`，已无瓶颈；留作 M6 富动画时的后备 |
+| 自绘 canvas 地图 | 完全掌控渲染 | 放弃 Leaflet 交互生态，重造轮子 |

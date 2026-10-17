@@ -28,6 +28,8 @@ geo-story/
 │   ├── extract.mjs    # 和合本经文提取（OpenCC 繁→简 + 双源交叉）
 │   ├── extract2.mjs   #   同上（第二轮校对）
 │   ├── fetch-media.mjs # Commons 图像元数据补全（--write 落盘）
+│   ├── measure-fps.mjs # 播放性能探针：帧间隔 / SVG d 重写 / 地图事件风暴 / longtask
+│   ├── experiment-rig.mjs # 相机 rig 数学验证（一次性实验，防复发存档）
 │   └── run-cdp.ps1    # 验收 runner：只关闭自己启动的 headless Chrome
 ├── docs/
 │   ├── plan.md        # 里程碑计划（M0–M6）、数据模型规范、踩坑记录
@@ -59,6 +61,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-cdp.ps1 verify.m
 ```
 
 `verify.mjs` 覆盖 A–J 十项 + A2–A11 / D3 / J2 十四条回归断言 + 控制台错误 + 截图 f1/f1b/f2/f3/f4/f5。
+
+播放期性能探针（帧间隔 / SVG 重写次数 / 地图事件风暴，用于相机与动画改动的量化对比）：
+
+```bash
+# 先由 run-cdp.ps1 拉起 Chrome，再跑探针（也可 CDP_PORT/MEASURE_PAGE 指向其他实例）
+$env:MEASURE_TAG='before'; $env:MEASURE_SECS='12'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-cdp.ps1 scripts/measure-fps.mjs
+```
 
 > **写交互断言的硬性要求**：点击必须走**真实输入事件**（CDP `Input.dispatchMouseEvent`，
 > 见 `verify.mjs` 的 `realClick()`），**不要用 DOM 合成 `.click()`** —— 合成事件绕过浏览器命中测试，

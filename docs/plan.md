@@ -36,6 +36,13 @@
 > 5. **Commons 全文搜索不能直接取第一条**：会把植物学名（Lystra lanata）、现代风景区排在古代遗址之前。**图像素材必须人工指定精确文件名 + API 校验存在性与授权。**
 > 6. **绝对定位的 hover transform 会覆盖定位**：圆点错位用 `style.transform` 会被 `:hover{transform:scale()}` 顶掉，**像素偏移必须走 CSS 变量**（本项目用 `--dx`）。
 > 7. **`pointer-events:none` 与 click 监听互斥**：章节色带带此属性时 click 永不触发，且不会有任何报错。
+>
+> **播放抖动修复轮踩坑记录（2026-10-17 用户反馈「动画播放时抖得厉害」）**：
+> 1. **⚠️ Leaflet 每帧 `setView(animate:false)` 会触发全场景 SVG 重投影**：setView 走 `_moveStart/_move/_moveEnd` 全事件链，其中 `moveend → L.Renderer._update → _updatePaths` 把**整个场景**（地中海底图 + 经纬网 + 全部路线）的每条 path 重新投影并重写 `d` 属性，`zoomend → _onZoomEnd` 再全量 `_project`。实测 12s 播放 **31,466 次 d 重写 / 250 次 moveend**。相机跟车（`camFollow`）必须走 `map._rawPanBy`（纯 pane transform，零事件零重投影），缩放改走 `setZoom/flyTo` 的 CSS 动画通道（`_animatingZoom` 期间 Leaflet 主动跳过路径重建）。修复后 **1,870 次 d 重写 / 4 次 moveend（-94% / -98%）**。
+> 2. **`zoomSnap:.5` 会把逐帧插值的缩放假量化成瞬跳**：跟车时按 `t^1.6` 插值的 zoom 被 `_limitZoom` 对齐到 0.5 步长，2.6s 行程里只有 5.5→6.0→6.5 三个值，每次跳变就是一次全场景重建 + 可见的尺度抽搐。**离散动画优于逐帧插值**：起步 `setZoom` 拉远、到达 `flyTo` 推近，两个 0.25–0.55s 的 Leaflet 原生动画即可，视觉节奏不变。
+> 3. **rig 只挪 pane，Leaflet 内部状态（`_lastCenter/_pixelOrigin`）会陈旧**：后续任何 `flyTo` 会从陈旧中心起跳。必须在每段行程结束（及 pause / 步进 / 打开详情前）用一次 `setView(containerPointToLatLng(视觉中心), zoom, {animate:false})` 对齐；`containerPointToLatLng` 读实时 pane 位置，与 rig 位移严格一致（实测残差 0px）。
+> 4. **延迟启动的 seek 要防竞态**：缩放动画（250ms）与 rig 平移不能同窗进行（两套坐标系统互相打架），描线延迟 380ms 启动；窗口内若发生 暂停→重播，过时的 timeout 必须靠 `playToken` 令牌失效，否则两条 seek 同时跑。
+> 5. **验收新增「事件风暴」回归**：D3 断言在 travel 窗口内统计 map `moveend` 次数（旧实现 ~150 次/窗口，新实现 ≤4），把「每帧 setView」这个反模式钉在回归里。性能探针：`scripts/measure-fps.mjs`（rAF 帧间隔 + setAttribute('d') 计数 + 地图事件计数 + longtask）。
 
 ## 1. 架构
 
