@@ -60,7 +60,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-cdp.ps1 verify.m
 # 可选窗口尺寸： ... run-cdp.ps1 verify.mjs 1280 800
 ```
 
-`verify.mjs` 覆盖 A–J 十项 + A2–A11 / D3 / J2 十四条回归断言 + 控制台错误 + 截图 f1/f1b/f2/f3/f4/f5。
+`verify.mjs` 覆盖 A–J 十项 + A2–A11 / D3–D7 / J2 回归断言 + 控制台错误 + 截图 f1/f1b/f2/f3/f4/f5。D4–D7 覆盖 2026-10-17 播放体验轮：到达才弹卡 / 路线精确过点 / 地点呼吸频率 / 播放缩放节奏。
 
 播放期性能探针（帧间隔 / SVG 重写次数 / 地图事件风暴，用于相机与动画改动的量化对比）：
 

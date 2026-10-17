@@ -218,3 +218,13 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 1. **地图精度**：110m Natural Earth 数据在 zoom ≥ 9 时海岸线偏粗；城市级细节作为已知限制，必要时升级 50m 数据（体积换精度）
 2. **媒体外链**：Wikimedia 外链需联网；本地优先 + 回退链接兜底
 3. **换行符形态**：仓库 blob 为 LF，Windows 工作区因 `core.autocrlf=true` 检出为 CRLF；构建产物继承 CRLF（与归档项目既有形态一致），非 bug
+
+## 9. 播放体验轮踩坑（2026-10-17，需求：同步/慢放/过点/呼吸/地点介绍）
+
+1. **Leaflet `flyTo` 的 `duration` 单位是秒，不是毫秒**：误传 `1150`（本意 1.15s）→ 动画按 1150 秒爬行，表现为「缩放以 ~0.004/s 的速度漂移、镜头中心距恶化到 29px、到达落点 6.99」。现象极易误判成 rig 数学坏掉——实际是单位错。修法：`mapCore.flyTo` 统一收毫秒、内部换算 `sec = durMs/1000`，调用方不再接触秒。
+2. **`setZoom` 的缩放时长硬编码在 Leaflet CSS（250ms）里，无法放慢**：要「优雅慢放」必须改用 `flyTo(center, zoom, {duration})`（JS rAF 通道，每帧 `_move({flyTo:true})` 不触发 SVG 重投影，末帧一次 `_moveEnd` 收口）——慢 flyTo 无性能代价（实测 14s 播放 d 重写 2081 次、p95 16.8ms）。
+3. **rig 与缩放动画必须不同窗**：巡航 flyTo（650ms）走完才启动 seek（SEEK_LEAD 700ms 错开）；两者一旦重叠，flyTo 每帧 `_move` 会用插值中心覆盖 rig 的 pane 平移，中心距立刻劣化。
+4. **「到达才弹卡」要靠双触发幂等**：年份补间终点（onArrive）与 seek 末帧都会到达，用 `state.arrivedId` 去重；`.cur`（事件名标签）也加 arrivedId 门控，否则年份一落定名称就先弹出来。
+5. **中点平滑的贝塞尔不经过站点**：Q(m1, b, m2) 最近点偏离站点 `|a+c-2b|/8`（帕弗→别加→彼西底一角实测 0.26°）。修法：seg 中点处直接写入站点坐标（两侧各一段二次贝塞尔，站点处一个不可见的转角），路线严格过点，描线头/相机落点与城市圆点重合。
+6. **headless Chrome 默认 `prefers-reduced-motion: reduce`**：断言动画计算值前必须先 `Emulation.setEmulatedMedia` 模拟 no-preference，否则全局 animation-duration 被媒体查询压成 .01ms，呼吸断言假阴性。
+7. **详情/介绍窗里的 `.ev` 行会留在 DOM**：列表行数断言必须限定 `#list .ev`，否则地点介绍窗的 3 行让筛选计数变成 15；折叠线以下的按钮（介绍窗底部）点击前要 `scrollIntoView`。
