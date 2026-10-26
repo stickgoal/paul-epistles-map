@@ -334,8 +334,11 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
   .app{flex-direction:column}
   /* 移动端高度分配：侧栏至少要能容下 hd + 引导横幅 + 若干事件行 + 时间轴。
      原 56dvh 会把 .scroll 压到 ~45px（列表整体不可见、横幅压住播放按钮），
-     故地图降到 40dvh 并压缩 hd 的纵向留白。 */
-  #map{height:37dvh;flex:none}
+     故地图降到 34dvh 并压缩 hd 的纵向留白。
+     M2 后事件数 12 → 53，时间轴圆点由 3 行增到 4 行（轨道 60px → 73px），
+     列表区随之被压到只剩 2 行事件。故再让出三处：地图 37→34dvh、
+     隐藏键盘提示行（触屏无键盘）、引导横幅内边距收紧。 */
+  #map{height:34dvh;flex:none}
   .sidebar{width:100%;height:auto;flex:1;min-height:0;border-right:none;border-top:1px solid var(--hair)}
   .legend{display:none}
   .hd{padding:13px 20px 10px}
@@ -359,9 +362,11 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
   .ch-chip em{display:none}
   .list{padding:4px 12px 12px}
   .tl{padding:10px 20px 12px}
+  /* 触屏没有物理键盘，「空格播放 / ← → 步进」一行纯占位：窄屏下把这 32px 让给事件列表 */
+  .tl-keys{display:none}
   .chips{top:10px;left:10px;gap:6px}
   .chip{padding:6px 11px;font-size:11.5px}
-  .guide{margin:11px 16px 0;padding:9px 11px}
+  .guide{margin:8px 16px 0;padding:7px 11px}
   .guide .g-txt b{font-size:12px}
   .guide .g-txt span{font-size:10.5px}
   .guide .g-ic{width:23px;height:23px}
@@ -382,7 +387,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
     <header class="hd">
       <div class="eyebrow">新约 · 使徒行传与保罗书信</div>
       <h1>保罗故事地图</h1>
-      <div class="sub">The Journeys of Paul · AD 46–67</div>
+      <div class="sub">The Journeys of Paul · <span id="subYears">AD 46–67</span></div>
       <div class="stats" id="stats"></div>
     </header>
 
@@ -403,7 +408,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
       <div class="filterbar hidden" id="filterbar"></div>
       <div class="list" id="list"></div>
       <div class="detail hidden" id="detail"></div>
-      <p class="note" id="note">注：年代与地点采用学界主流推定，争议处在事件详情中标注；经文引自和合本。目前上线第一幕「第一次传道旅程」，后续章节将随里程碑补充。地图数据 © Natural Earth。</p>
+      <p class="note" id="note">注：年代与地点采用学界主流推定，争议处在事件详情中标注；经文引自和合本（经两个独立版本逐字校对）。目前上线<span id="noteLive"></span>，后续章节将随里程碑补充。地图数据 © Natural Earth。</p>
     </div>
 
     <footer class="tl">
@@ -633,6 +638,12 @@ PLACES.forEach(function (p) {
 });
 
 /* ================= 侧栏：统计 / 章节 / 列表 ================= */
+/* 已上线年代范围（副标题 / 注脚 / 播完提示共用，避免各处硬编码年份） */
+var EV_LO = Math.min.apply(null, EVENTS.map(function (e) { return Math.min(e.from, e.to); }));
+var EV_HI = Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); }));
+var LIVE_CHAPTERS = CHAPTERS.filter(function (c) {
+  return EVENTS.some(function (e) { return e.ch === c.id; });
+});
 function renderStats() {
   var Y = EVENTS.map(function (e) { return Math.max(e.from, e.to); });
   var lo = Math.min.apply(null, EVENTS.map(function (e) { return Math.min(e.from, e.to); }));
@@ -641,10 +652,13 @@ function renderStats() {
   EVENTS.forEach(function (e) { places[e.place] = 1; });
   $('stats').innerHTML =
     '<div class="stat"><b>' + EVENTS.length + '</b><span>个事件</span></div>' +
-    /* L-2：改为内容视角（覆盖年代 + 章节名），「N/6 章节已上线」是产品进度，对读者是误导 */
-    '<div class="stat"><b>' + EVENTS.filter(function (e) { return e.ch === 'ch1'; }).length + '</b><span>第一次传道旅程</span></div>' +
+    /* L-2：改为内容视角（已上线的故事线数），「N/6 章节已上线」是产品进度，对读者是误导 */
+    '<div class="stat"><b>' + LIVE_CHAPTERS.length + '</b><span>幕故事线</span></div>' +
     '<div class="stat"><b>' + Object.keys(places).length + '</b><span>处地点</span></div>' +
     '<div class="stat"><b>' + (hi - lo + 1) + '</b><span>年 · AD ' + lo + '–' + hi + '</span></div>';
+  /* 副标题与注脚里的年代/章节一律取自已上线数据（原来写死 AD 46–67 与「第一幕」，随数据漂移） */
+  $('subYears').textContent = 'AD ' + EV_LO + '–' + EV_HI;
+  $('noteLive').textContent = LIVE_CHAPTERS.map(function (c) { return '「' + c.name + '」'; }).join('、');
 }
 
 function renderChapters() {
@@ -1060,7 +1074,7 @@ function startPlay() {
       state.playing = false; state.auto = false;
       syncPlayBtn();
       setStoryEnd(true);   /* 播完隐藏事件图标，回到干净底图 */
-      toast('AD 46–67', '故事播放完毕 · 点击地图任意处或拖动时间轴可回看');
+      toast('AD ' + EV_LO + '–' + EV_HI, '故事播放完毕 · 点击地图任意处或拖动时间轴可回看');
       GS.fx.emit('play:end');
     }
   });
