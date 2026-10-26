@@ -23,16 +23,18 @@ geo-story/
 ├── data/              # chapters / places / routes / events（核心数据，全 JSON）
 ├── assets/            # leaflet + med.json + 底图 GeoJSON + media/（本地图片）
 ├── build.mjs          # 构建：→ geo-story.html
-├── verify.mjs         # CDP 验收脚本（A–J + A2–A9 回归断言）
+├── verify.mjs         # CDP 验收脚本（A–J + A2–A11 / D3–D7 / J2 + M2-1…M2-8）
 ├── scripts/
-│   ├── extract.mjs    # 和合本经文提取（OpenCC 繁→简 + 双源交叉）
-│   ├── extract2.mjs   #   同上（第二轮校对）
+│   ├── verses.mjs     # 双源经文提取与校对（OpenCC 繁→简 + 逐字比对 + 变体分组归一）
+│   ├── check-events.mjs # events.json 经文回验（用字逐字一致 + 双源一致，退出码 2 阻断）
+│   ├── check-routes.mjs # 事件↔路线映射与描线单调性校验
+│   ├── commons.mjs    # Wikimedia Commons 检索与授权核验（429 指数退避）
 │   ├── fetch-media.mjs # Commons 图像元数据补全（--write 落盘）
 │   ├── measure-fps.mjs # 播放性能探针：帧间隔 / SVG d 重写 / 地图事件风暴 / longtask
 │   ├── experiment-rig.mjs # 相机 rig 数学验证（一次性实验，防复发存档）
 │   └── run-cdp.ps1    # 验收 runner：只关闭自己启动的 headless Chrome
 ├── docs/
-│   ├── plan.md        # 里程碑计划（M0–M6）、数据模型规范、踩坑记录
+│   ├── plan.md        # 里程碑计划（M0–M6）、数据模型规范、踩坑记录、事件清单
 │   └── ux-review.md   # UX 评估报告 + 修复落实记录
 └── paul-epistles-map/ # 归档：前身项目（冻结）
 ```
@@ -44,7 +46,7 @@ geo-story/
 | M0 | 重构与引擎分层 | ✅ 完成（目录归档、shared/ 四件套） |
 | M1 | 第一次传道旅程端到端 | ✅ 完成（12 事件，CDP 验收全绿） |
 | M1.1 | 交互失效修复 + 相机/路线同一时钟重构 | ✅ 完成（见 `docs/ux-review.md` §七） |
-| M2 | 第二、三次旅程 + 书信事件 | 待开始 |
+| M2 | 第二、三次旅程 + 书信事件 | ✅ 完成（累计 53 事件 / 3 章 / 17 地点，双源经文回验 56/56） |
 | M3 | 被捕受审 + 赴罗马航程 | 待开始 |
 | M4 | 富媒体与罗马被囚尾声 | 待开始 |
 | M5 | 共享引擎回灌归档项目（可选） | 暂缓 |
@@ -60,7 +62,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-cdp.ps1 verify.m
 # 可选窗口尺寸： ... run-cdp.ps1 verify.mjs 1280 800
 ```
 
-`verify.mjs` 覆盖 A–J 十项 + A2–A11 / D3–D7 / J2 回归断言 + 控制台错误 + 截图 f1/f1b/f2/f3/f4/f5。D4–D7 覆盖 2026-10-17 播放体验轮：到达才弹卡 / 路线精确过点 / 地点呼吸频率 / 播放缩放节奏。
+`verify.mjs` 覆盖 A–J 十项 + A2–A11 / D3–D7 / J2 回归断言 + 控制台错误 + 截图 f1/f1b/f2/f3/f4/f5。D4–D7 覆盖 2026-10-17 播放体验轮：到达才弹卡 / 路线精确过点 / 地点呼吸频率 / 播放缩放节奏。M2-1…M2-8 覆盖数据扩容后的不变量：章节年代范围 / 同年顺序 / **章节闸门（事件只驱动本章旅程）** / 地点事件点齐全 / 字段完整性 / 事件↔路线命中 / 时间轴承载力 / 章节筛选。
+
+数据侧还有两道静态回验（改完 `data/` 先跑这两条，再进 CDP 验收）：
+
+```bash
+node scripts/check-events.mjs   # 每条经文重新从双源提取并去标点逐字比对，用字不一致即退出码 2
+node scripts/check-routes.mjs   # 事件↔路线站点映射完整性 + 按播放顺序推演描线是否单调向前
+```
 
 播放期性能探针（帧间隔 / SVG 重写次数 / 地图事件风暴，用于相机与动画改动的量化对比）：
 

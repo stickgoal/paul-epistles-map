@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | M0 | 重构与引擎分层 | 目录归档；`shared/` 引擎分层（fx / map-core / route-engine / timeline）；新构建管线；本计划文档 | 归档项目可原样构建；新项目可构建空页面 | ✅ 完成 |
 | M1 | 第一次传道旅程端到端 | ch1 全部 12 个事件（含塞浦路斯士求保罗）；事件驱动播放 + 点击详情 + 章节导航 | CDP 脚本断言 + 截图核对 | ✅ 完成（CDP 验收 A–J 十项全绿，零控制台错误） |
-| M2 | 第二、三次旅程 | ch2 / ch3 事件 + 书信事件（帖前后 / 林前后 / 罗马书） | 同上 | 待开始 |
+| M2 | 第二、三次旅程 | ch2 / ch3 事件 + 书信事件（帖前后 / 林前后 / 罗马书） | 同上 | ✅ 完成（53 事件 / 3 章 / 17 地点，CDP 验收 A–J + M2-1…M2-8 全绿，零控制台错误） |
 | M3 | 被捕受审 + 赴罗马 | ch4 / ch5：圣殿骚乱、四重审讯、马耳他船难 | 同上 | 待开始 |
 | M4 | 富媒体与尾声 | ch6；照片 / 画作本地 webp + Wikimedia 署名回退 | 媒体加载与回退断言 | 待开始 |
 | M5 | 共享回灌（可选） | `paul-epistles-map` 改用 `shared/` 引擎 | 归档 `verify.mjs` 全绿 | 暂缓（归档优先，避免无收益改动） |
@@ -44,6 +44,18 @@
 > 4. **延迟启动的 seek 要防竞态**：缩放动画（250ms）与 rig 平移不能同窗进行（两套坐标系统互相打架），描线延迟 380ms 启动；窗口内若发生 暂停→重播，过时的 timeout 必须靠 `playToken` 令牌失效，否则两条 seek 同时跑。
 > 5. **验收新增「事件风暴」回归**：D3 断言在 travel 窗口内统计 map `moveend` 次数（旧实现 ~150 次/窗口，新实现 ≤4），把「每帧 setView」这个反模式钉在回归里。性能探针：`scripts/measure-fps.mjs`（rAF 帧间隔 + setAttribute('d') 计数 + 地图事件计数 + longtask）。
 
+> **M2 踩坑记录（2026-10-26，第二、三次旅程 + 41 条新事件）**：
+> 1. **⚠️ 经文不能靠人眼转录**：`scripts/verses.mjs` 提取的 41 节经文，我手工写进 `events.json` 时就抄错了两处用字（「米推利**宁**」应为「米推利**尼**」、「过了**几天**」应为「过了**这几天**」），肉眼完全看不出。**修法：新增 `scripts/check-events.mjs`，把 events.json 的每条经文重新从双源提取并去标点逐字比对**，退出码 2 阻断。现在 56 条经文用字 56/56 一致、双源 56/56 一致。
+> 2. **路线站点缺 `p` 字段 = 描线完全不动且不报错**：`route-engine` 的 `seek()` 靠 `stops[].p === ev.place` 找站点，M2 重写 j2/j3 时所有站点都漏了 `p`，结果是「事件照常弹卡，线却不动」。**新增 `scripts/check-routes.mjs` 静态校验事件↔路线映射与描线单调性。**
+> 3. **⚠️ `seek()` 只按地点匹配会跨旅程串线**：M1 的「耶路撒冷会议」（ch1，place=jerusalem）同时命中了 j2/j3 的耶路撒冷站点，把第二、三次旅程的线在 AD 49 就一路画到耶路撒冷。**修法：routes.json 增加章节锚点 `ch`，`seek()` 只驱动本章所属旅程**（M2-3 断言看守：ch1 事件后 j2/j3 的 `hold` 必须仍为 null）。
+> 4. **章节年代范围要覆盖其全部事件**：ch1 声明 AD 46–48，却含 AD 49 的耶路撒冷会议与 48–49 的《加拉太书》——M2-1 断言按「事件落在章节区间内」校验，直接把它照出来。已把 ch1 改为 46–49，并把 j1 路线延到耶路撒冷（徒 15:2-3 上耶路撒冷开会），使会议事件真正推动描线。
+> 5. **事件数翻 4 倍会撑破窄屏布局**：时间轴圆点从 12 个（3 行）变 53 个（4 行），轨道 60→73px，窄屏事件列表被压到只剩 2 行。**修法：窄屏地图 37→34dvh、隐藏键盘提示行（触屏无键盘）、引导横幅内边距收紧**；J2 断言改测「引导横幅收起后的稳态 ≥3 行」。
+> 6. **「初始视野」断言必须在未播放状态下测**：A4 断言原本排在全片播放之后，相机已停在最后一个事件（耶路撒冷）附近，于是 6 处地点被判「不在视口内」——假失败。**修法：A4 前先重新导航页面**。
+> 7. **全片播放的验收超时随事件数线性增长**：12 事件按 12× 倍速跑完约 12s，53 事件同样倍速要 42s，原 80×400ms 的等待窗口必然超时，末尾断言全部失真。**修法：倍速提到 24×、等待窗口放宽到 150×400ms**。
+> 8. **Commons API 会返回 429**：批量核验媒体授权时随机被限流。**修法：`scripts/commons.mjs` 加指数退避重试**；媒体一律「先按关键词检索 → 人工挑选 → 用 API 校验存在性与授权」，绝不凭记忆拼文件名。
+> 9. **`.ev-dot` 不在 `.place` 里**：事件点挂在 Leaflet 图标容器上（与 `.place` 同级），用 `.place .ev-dot` 查询永远返回 0——M2-4 断言因此一次假失败。断言应按 `data-ev` 逐事件反查。
+> 10. **路线站点顺序要按路加记述校正**：j3 原先在「以弗所 → 腓立比」之间插了一个「特罗亚」，与徒 20 的实际航路（以弗所 → 马其顿诸城 → 腓立比 → 哥林多 → 腓立比 → 特罗亚 → 米利都）不符。已按徒 20:1-6、20:13-16 重排，并补入帖撒罗尼迦与庇哩亚两站。
+
 ## 1. 架构
 
 ### 1.1 目录结构
@@ -67,8 +79,13 @@ geo-story/
 ├── build.mjs            # 构建：template + shared + data + assets → geo-story.html
 ├── prep-data.mjs        # 地图数据裁剪（仅在需要调整可视范围时运行）
 ├── cdp-shot.mjs         # CDP 截图 / 求值工具（从归档项目原样搬入）
-├── verify.mjs           # CDP 验收脚本（M1 起编写，A–J 十项）
-├── scripts/             # 经文提取管线（OpenCC 繁→简 + 双源交叉，M2 加事件时复用）
+├── verify.mjs           # CDP 验收脚本（M1 起编写，A–J 十项 + M2-1…M2-8）
+├── scripts/             # 数据管线（见下）
+│   ├── verses.mjs       #   双源经文提取与校对（OpenCC 繁→简 + 逐字比对）
+│   ├── check-events.mjs #   events.json 经文回验（用字逐字一致 + 双源一致）
+│   ├── check-routes.mjs #   事件↔路线映射与描线单调性校验
+│   ├── commons.mjs      #   Wikimedia Commons 检索与授权核验（429 退避）
+│   └── run-cdp.ps1      #   验收 runner：只关闭自己启动的 headless Chrome
 ├── docs/plan.md         # 本文件
 ├── paul-epistles-map/   # 归档：保罗书信地图（冻结，不再改动）
 └── README.md
@@ -102,7 +119,7 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 | `shared/timeline.js` | 时间轴渲染 / 拖拽 / 键盘 / 播放循环；**新增**：事件序列调度（光标逐事件推进 + 到达回调 + dwell 停留） | 自 `template.html` 平移 + 扩展 |
 | `shared/fx.js` | 事件总线 `GS.fx.on/off/emit`；M6 音效与增强动画的订阅点 | 新写 |
 | `data/places.json` | 地点：`{ id, cn, en, modern, ll, note, ctx }` | 新写（整合归档 `CITIES` + `CTX` + 新增） |
-| `data/routes.json` | 旅程：`{ id, name, from, to, color, stops:[{cn,ll}...], desc }` | 自归档 `JOURNEYS` 扩展（途经点加名） |
+| `data/routes.json` | 旅程：`{ id, ch, name, from, to, color, stops:[{cn,ll,p?}...], desc }`；`ch` 为章节锚点（事件只驱动本章旅程），`stops[].p` 指向 places.json 的地点 id（缺 `p` = 不可被事件命中的途经点） | 自归档 `JOURNEYS` 扩展 |
 | `data/events.json` | 事件（§1.4） | 新写，核心资产 |
 | `data/chapters.json` | 章节：`{ id, name, years, range, from, to, color }` | 新写 |
 | `template.html` | 页面结构 + CSS + UI 编排；事件类型色板；详情面板富媒体布局 | 以归档模板为基底改写 |
@@ -174,7 +191,8 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 1. **年代推定**：所有事件年代采用学界主流推定；争议处必须写 `note`（参照归档项目的标注粒度）
 2. **经文**：统一和合本；引用前须对照纸质 / 权威电子版校对
 3. **媒体版权**：仅使用 CC 许可或公有领域作品；`credit` 与 `url` 必填；本地文件用 webp，单张 ≤ 300KB
-4. **新增事件流程**：只改 `data/events.json`（+ `places.json` / `routes.json`）→ `node build.mjs` → CDP 验收（经文用 `scripts/extract.mjs` 管线提取校对）
+4. **新增事件流程**：只改 `data/events.json`（+ `places.json` / `routes.json`）→ `node build.mjs` → 静态回验（`node scripts/check-events.mjs` + `node scripts/check-routes.mjs`）→ CDP 验收（`scripts/run-cdp.ps1 verify.mjs`）
+5. **经文必须脚本回验，不靠人眼**：落库经文重新从双源提取、去标点逐字比对（`scripts/check-events.mjs`）；标点差异（给直接引语加「」、句末改句号）允许，用字差异一律阻断
 
 ## 5. M1 事件清单（第一次传道旅程 · 徒 13–14 + 徒 15）
 
@@ -195,11 +213,67 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 
 > e11 直接复用归档项目 `EPISTLES` 中 gal 的数据（年代 AD 48–49、安提阿、争议标注），验证「书信事件」与既有数据的衔接。
 
+## 5.1 M2 事件清单（第二、三次传道旅程 · 徒 15:36–21:17 + 书信）
+
+> 共 41 条事件，全部经文用字由 `scripts/check-events.mjs` 对双源回验（56/56 一致）。
+> 年代取主流推定；史料有争议处在事件 `note` 中标注（分道扬镳的起因、加拉泰/弗吕家路线、三个月的季节、书信写作地点等）。
+
+### ch2 — 第二次传道旅程
+
+| # | id | 年代 | 事件 | 地点 | 类型 | 关键经文 |
+|---|---|---|---|---|---|---|
+| 01 | ch2-split | AD 49 | 分道扬镳 | 安提阿 | arrival | 使徒行传 15:39-40 |
+| 02 | ch2-timothy | AD 49–50 | 提摩太加入 | 路司得 | arrival | 使徒行传 16:1-3 |
+| 03 | ch2-troas-vision | AD 50 | 异象召往马其顿 | 特罗亚 | arrival | 使徒行传 16:8-10 |
+| 04 | ch2-lydia | AD 50 | 吕底亚信主 | 腓立比 | preach | 使徒行传 16:14-15 |
+| 05 | ch2-prison | AD 50 | 被拉到公堂 | 腓立比 | persecution | 使徒行传 16:19-21 |
+| 06 | ch2-quake | AD 50 | 监牢地震 | 腓立比 | miracle | 使徒行传 16:25-26 |
+| 07 | ch2-jailer | AD 50 | 禁卒一家受洗 | 腓立比 | preach | 使徒行传 16:30-34 |
+| 08 | ch2-thessalonica | AD 50 | 三个安息日讲论 | 帖撒罗尼迦 | preach | 使徒行传 17:1-3 |
+| 09 | ch2-berea | AD 51 | 天天考查圣经 | 庇哩亚 | preach | 使徒行传 17:10-12 |
+| 10 | ch2-athens-god | AD 51 | 未识之神的坛 | 雅典 | preach | 使徒行传 17:22-23 |
+| 11 | ch2-athens-living | AD 51 | 我们也是他所生的 | 雅典 | preach | 使徒行传 17:28 |
+| 12 | ch2-corinth-titus | AD 51 | 投奔亚居拉与百基拉 | 哥林多 | arrival | 使徒行传 18:1-4 |
+| 13 | ch2-corinth-year | AD 51–52 | 一年零六个月 | 哥林多 | persecution | 使徒行传 18:11-12 |
+| 14 | ch2-1th | AD 51 | 写《帖撒罗尼迦前书》 | 哥林多 | letter | 帖撒罗尼迦前书 1:5 |
+| 15 | ch2-corinth-worship | AD 52 | 会堂门前被殴 | 哥林多 | persecution | 使徒行传 18:17 |
+| 16 | ch2-2th | AD 52 | 写《帖撒罗尼迦后书》 | 哥林多 | letter | 帖撒罗尼迦后书 2:15 |
+| 17 | ch2-depart-ephesus | AD 52 | 辞别以弗所 | 以弗所 | arrival | 使徒行传 18:21 |
+| 18 | ch2-caesarea-land | AD 52 | 在凯撒利亚下船 | 凯撒利亚 | arrival | 使徒行传 18:22 |
+
+### ch3 — 第三次传道旅程
+
+| # | id | 年代 | 事件 | 地点 | 类型 | 关键经文 |
+|---|---|---|---|---|---|---|
+| 19 | ch3-galatia | AD 52 | 挨次坚固众门徒 | 以哥念 | arrival | 使徒行传 18:23 |
+| 20 | ch3-twelve | AD 53 | 十二个门徒 | 以弗所 | preach | 使徒行传 19:1-4 |
+| 21 | ch3-synagogue | AD 53–54 | 推喇奴的学房 | 以弗所 | preach | 使徒行传 19:8-10 |
+| 22 | ch3-miracles | AD 54 | 手巾与围裙 | 以弗所 | miracle | 使徒行传 19:11-12 |
+| 23 | ch3-exorcists | AD 54 | 士基瓦的七个儿子 | 以弗所 | miracle | 使徒行传 19:13-15 |
+| 24 | ch3-burn-books | AD 54 | 焚书 | 以弗所 | preach | 使徒行传 19:17-20 |
+| 25 | ch3-silversmith | AD 55 | 银匠底米丢 | 以弗所 | persecution | 使徒行传 19:23-26 |
+| 26 | ch3-riot | AD 55 | 戏园骚乱 | 以弗所 | persecution | 使徒行传 19:29-31 |
+| 27 | ch3-1co | AD 54 | 写《哥林多前书》 | 以弗所 | letter | 哥林多前书 16:8 |
+| 28 | ch3-macedonia | AD 56 | 走遍马其顿 | 帖撒罗尼迦 | arrival | 使徒行传 20:1-2 |
+| 29 | ch3-winter | AD 56–57 | 在希腊住三个月 | 哥林多 | preach | 使徒行传 20:3 |
+| 30 | ch3-rom | AD 56–57 | 写《罗马书》 | 哥林多 | letter | 罗马书 1:16 |
+| 31 | ch3-2co | AD 56 | 写《哥林多后书》 | 腓立比 | letter | 哥林多后书 7:5 |
+| 32 | ch3-philippi-sail | AD 57 | 从腓立比开船 | 腓立比 | arrival | 使徒行传 20:6 |
+| 33 | ch3-eutychus | AD 57 | 犹推古坠落 | 特罗亚 | miracle | 使徒行传 20:9-12 |
+| 34 | ch3-miletus | AD 57 | 赶到米利都 | 米利都 | arrival | 使徒行传 20:13-16 |
+| 35 | ch3-miletus-sorrow | AD 57 | 请以弗所长老来 | 米利都 | arrival | 使徒行传 20:17-18 |
+| 36 | ch3-miletus-prayer | AD 57 | 众人在海边痛哭 | 米利都 | arrival | 使徒行传 20:36-38 |
+| 37 | ch3-tyre | AD 57 | 推罗上岸被劝阻 | 推罗 | arrival | 使徒行传 21:1-6 |
+| 38 | ch3-caesarea-daughters | AD 57 | 腓利四个女儿 | 凯撒利亚 | arrival | 使徒行传 21:8-9 |
+| 39 | ch3-agabus | AD 57 | 亚迦布捆腰的预言 | 凯撒利亚 | trial | 使徒行传 21:10-11 |
+| 40 | ch3-weeping | AD 57 | 众人痛哭 | 凯撒利亚 | trial | 使徒行传 21:13-14 |
+| 41 | ch3-jerusalem | AD 57 | 上耶路撒冷 | 耶路撒冷 | arrival | 使徒行传 21:15-17 |
+
 ## 6. 章节规划（后续里程碑的事件源）
 
 | 章节 | 名称 | 年代 | 经文范围 | 里程碑 |
 |---|---|---|---|---|
-| ch1 | 第一次传道旅程 | AD 46–48 | 徒 13–14（+徒 15） | M1 |
+| ch1 | 第一次传道旅程 | AD 46–49 | 徒 13–15 | M1 |
 | ch2 | 第二次传道旅程 | AD 49–52 | 徒 15:36–18:22 | M2 |
 | ch3 | 第三次传道旅程 | AD 52–57 | 徒 18:23–21:17 | M2 |
 | ch4 | 被捕与受审 | AD 57–59 | 徒 21–26 | M3 |
