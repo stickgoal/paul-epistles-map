@@ -35,7 +35,8 @@ geo-story/
 │   └── run-cdp.ps1    # 验收 runner：只关闭自己启动的 headless Chrome
 ├── docs/
 │   ├── plan.md        # 里程碑计划（M0–M6）、数据模型规范、踩坑记录、事件清单
-│   └── ux-review.md   # UX 评估报告 + 修复落实记录
+│   ├── ux-review.md   # UX 评估报告 + 修复落实记录
+│   └── reference-projects.md # 同类开源项目与可复用数据源调研（2026-10-18）
 └── paul-epistles-map/ # 归档：前身项目（冻结）
 ```
 
