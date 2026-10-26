@@ -147,8 +147,8 @@ await ev(`GS_APP.pause()`); await sleep(300);
 
 /* A11. 播完后事件图标隐去，但任意地图交互即恢复，且恢复后这一下就能点开详情。
    旧实现 body.story-end 只进不出，没有任何交互恢复 → 详情永久点不开。 */
-await ev(`window.GS_APP.state.speed = 12; window.GS_APP.timeline.setYear(46); window.GS_APP.play();`);
-for (var w = 0; w < 80; w++) { await sleep(400); if (!(await ev(`window.GS_APP.state.playing`))) break; }
+await ev(`window.GS_APP.state.speed = 24; window.GS_APP.timeline.setYear(46); window.GS_APP.play();`);
+for (var w = 0; w < 150; w++) { await sleep(400); if (!(await ev(`window.GS_APP.state.playing`))) break; }
 await sleep(900);
 const dotAfterEnd = await ev(`(function(){
   var d = document.querySelector('.ev-dot.on'); if (!d) return 'NONE';
@@ -174,7 +174,151 @@ if (dotAfterEnd !== 'NONE') {
 }
 await ev(`window.GS_APP.close()`); await sleep(300);
 
-/* A4. 初始视野聚焦地点密集区：全部事件地点应在视口内，且不覆盖整个地中海 */
+/* ===== M2 验收：第二、三次传道旅程 + 书信事件 =====
+ * M1 的断言只看 ch1 的 12 个事件，M2 之后事件数增至 53、章节增至 3 章，
+ * 新增的断言全部围绕「扩数据后会不会崩」这一类问题：不变量优先，不写死数量。 */
+console.log('M2-1 chapters:', await ev(`(function(){
+  var per = {};
+  GS_APP.chapters.forEach(function (c) {
+    var evs = GS_APP.events.filter(function (e) { return e.ch === c.id; });
+    per[c.id] = { name: c.name, years: c.years, n: evs.length,
+      outOfRange: evs.filter(function (e) { return e.from < c.from || e.to > c.to; }).map(function (e) { return e.id; }) };
+  });
+  var live = GS_APP.chapters.filter(function (c) { return GS_APP.events.some(function (e) { return e.ch === c.id; }); }).length;
+  return JSON.stringify({ total: GS_APP.events.length, liveChapters: live, per: per,
+    lo: Math.min.apply(null, GS_APP.events.map(function (e) { return Math.min(e.from, e.to); })),
+    hi: Math.max.apply(null, GS_APP.events.map(function (e) { return Math.max(e.from, e.to); })) });
+})()`));
+
+/* M2-2. 同年顺序不变量：对【每一个】年份，SEQ 中同年的事件顺序必须等于 events.json 的手工顺序。
+ *   M1 只验了 from===46 一年；M2 事件分布到 12 个年份，任何一年的 tie-break 被改都会导致播放乱序。 */
+console.log('M2-2 same-year-order:', await ev(`(function(){
+  var byYear = {};
+  GS_APP.events.forEach(function (e) { (byYear[e.from] = byYear[e.from] || []).push(e.id); });
+  var bad = [];
+  Object.keys(byYear).forEach(function (y) {
+    var fileOrder = byYear[y].join(',');
+    var seqOrder = GS_APP.seq.filter(function (e) { return e.from === +y; }).map(function (e) { return e.id; }).join(',');
+    if (fileOrder !== seqOrder) bad.push(y + ': ' + fileOrder + ' != ' + seqOrder);
+  });
+  return JSON.stringify({ years: Object.keys(byYear).length, bad: bad, ok: bad.length === 0 });
+})()`));
+
+/* M2-3. 章节闸门回归（2026-10-26 修的串线 bug）：
+ *   seek() 原先只按地点匹配 → ch1 的「耶路撒冷会议」会命中 j2/j3 的耶路撒冷站点，
+ *   把第二、三次旅程的线在 AD 49 就画到耶路撒冷。现在事件只驱动本章所属旅程。 */
+console.log('M2-3 chapter-gate:', await ev(`(function(){
+  GS.routeEngine.api.release();
+  var council = GS_APP.events.filter(function (e) { return e.id === 'jerusalem-council'; })[0];
+  GS.routeEngine.api.seek(council, 0);
+  var g = function (id) { var j = GS.routeEngine.api.byId(id); return j ? j.hold : 'NO_ROUTE'; };
+  var crossTalk = { j1: g('j1'), j2: g('j2'), j3: g('j3') };
+  /* 正对照：ch2 事件必须能推进 j2（否则闸门把描线也关了） */
+  GS.routeEngine.api.release();
+  var lydia = GS_APP.events.filter(function (e) { return e.id === 'ch2-lydia'; })[0];
+  GS.routeEngine.api.seek(lydia, 0);
+  var j2 = GS.routeEngine.api.byId('j2'), j3 = GS.routeEngine.api.byId('j3');
+  var pos = { j2: j2.hold, j3: j3.hold };
+  GS.routeEngine.api.release();
+  return JSON.stringify({
+    councilHolds: crossTalk,
+    noCrossTalk: crossTalk.j2 === null && crossTalk.j3 === null,
+    ch2AdvancesJ2: pos.j2 !== null && pos.j2 !== undefined,
+    ch2LeavesJ3: pos.j3 === null || pos.j3 === undefined
+  });
+})()`));
+
+/* M2-4. M2 新增地点必须有事件点（地点有事件却不出标记 = 事件挂错 place id）
+ *   注意 DOM 结构：.ev-dot 挂在 Leaflet 图标的容器上（与 .place 同级），
+ *   不是 .place 的子节点——用 `.place .ev-dot` 查永远是 0，会造成假失败。 */
+console.log('M2-4 new-places:', await ev(`(function(){
+  var want = ['troas','philippi','thessalonica','berea','athens','corinth','ephesus','caesarea','miletus','tyre'];
+  var out = {}, bad = [];
+  function dotsOf(pid) {
+    var ids = GS_APP.events.filter(function (e) { return e.place === pid; }).map(function (e) { return e.id; });
+    var n = 0;
+    ids.forEach(function (id) { if (document.querySelector('.ev-dot[data-ev="' + id + '"]')) n++; });
+    return { dots: n, events: ids.length };
+  }
+  want.forEach(function (pid) {
+    var r = dotsOf(pid);
+    out[pid] = r;
+    if (!r.dots || r.dots !== r.events) bad.push(pid);
+  });
+  var all = GS_APP.events.filter(function (e) { return !document.querySelector('.ev-dot[data-ev="' + e.id + '"]'); }).map(function (e) { return e.id; });
+  return JSON.stringify({ per: out, bad: bad, eventsWithoutDot: all, ok: bad.length === 0 && all.length === 0 });
+})()`));
+
+/* M2-5. 事件字段完整性：每个事件都要有标题/英文名/摘要/叙事/经文；
+ *   媒体条目必须有 credit + 溯源 url（学术纪律：媒体必须可溯源）。 */
+console.log('M2-5 field-completeness:', await ev(`(function(){
+  var missing = [], mediaBad = [], mediaN = 0;
+  GS_APP.events.forEach(function (e) {
+    if (!e.title || !e.en || !e.brief || !e.narrative) missing.push(e.id + ':text');
+    if (!e.verses || !e.verses.length) missing.push(e.id + ':verses');
+    (e.media || []).forEach(function (m) {
+      mediaN++;
+      if (!m.credit || !m.url) mediaBad.push(e.id + ':' + (m.title || '?'));
+    });
+  });
+  return JSON.stringify({ missing: missing, mediaEntries: mediaN, mediaBad: mediaBad,
+    withMedia: GS_APP.events.filter(function (e) { return e.media && e.media.length; }).length,
+    ok: missing.length === 0 && mediaBad.length === 0 });
+})()`));
+
+/* M2-6. 事件 ↔ 路线：每个事件在本章旅程上都要有可命中的站点（描线通道） */
+console.log('M2-6 event-route-hit:', await ev(`(function(){
+  var CH = { ch1: 'j1', ch2: 'j2', ch3: 'j3' };
+  var miss = [];
+  GS_APP.events.forEach(function (e) {
+    var jid = CH[e.ch]; if (!jid) return;
+    var j = GS_APP.routes.filter(function (r) { return r.id === jid; })[0];
+    var hit = j.stops.some(function (s) { return s.p === e.place; });
+    if (!hit) miss.push(e.id + '@' + jid);
+  });
+  return JSON.stringify({ miss: miss, ok: miss.length === 0 });
+})()`));
+
+/* M2-7. 时间轴承载力：53 个事件挤进 AD 46–57，圆点不得重叠、章节色带须落在轨道内 */
+console.log('M2-7 timeline-load:', await ev(`(function(){
+  var dots = document.querySelectorAll('.tl-dot');
+  var boxes = [].slice.call(dots).map(function (x) { var b = x.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; });
+  var ov = 0;
+  for (var i = 0; i < boxes.length; i++) for (var j = i + 1; j < boxes.length; j++) {
+    var a = boxes[i], c = boxes[j];
+    if (a.l < c.r && c.l < a.r && a.t < c.b && c.t < a.b) ov++;
+  }
+  var track = document.getElementById('tlTrack').getBoundingClientRect();
+  var bands = [].slice.call(document.querySelectorAll('.tl-band')).map(function (b) {
+    var r = b.getBoundingClientRect();
+    return { inTrack: r.bottom <= track.bottom + 1, top: Math.round(r.top), bottom: Math.round(r.bottom) };
+  });
+  var rows = {};
+  [].slice.call(dots).forEach(function (x) { var r = x.dataset.row || '0'; rows[r] = (rows[r] || 0) + 1; });
+  return JSON.stringify({ dots: dots.length, overlappingPairs: ov, rows: rows,
+    trackH: Math.round(track.height), bands: bands,
+    bandsInTrack: bands.every(function (b) { return b.inTrack; }), ok: ov === 0 && bands.every(function (b) { return b.inTrack; }) });
+})()`));
+
+/* M2-8. 章节筛选：ch2 / ch3 的事件行数须与数据一致（筛选是内容视角，不是产品进度） */
+for (const ch of ['ch2', 'ch3']) {
+  await click('.ch-chip[data-ch="' + ch + '"]');
+  await sleep(400);
+  console.log('M2-8 filter ' + ch + ':', await ev(`(function(){
+    var n = GS_APP.events.filter(function (e) { return e.ch === '${ch}'; }).length;
+    var rows = document.querySelectorAll('#list .ev').length;
+    return JSON.stringify({ expect: n, rows: rows, ok: n === rows });
+  })()`));
+  await click('.ch-chip[data-ch="' + ch + '"]');
+  await sleep(300);
+}
+console.log('M2-8 filter off rows:', await ev(`document.querySelectorAll('#list .ev').length`));
+
+/* A4. 初始视野聚焦地点密集区：全部事件地点应在视口内，且不覆盖整个地中海
+ *   必须在【未播放】的初始状态下测：前面 A11 跑完整片播放后相机停在最后一个事件
+ *   （耶路撒冷）附近，直接测会得到「6 处地点不在视口内」的假失败。故先重新导航。 */
+await send('Page.navigate', { url: PAGE });
+await sleep(4200);
 console.log('A4 initial-view:', await ev(`(function(){
   var b = GS_APP.map.getBounds(), z = GS_APP.map.getZoom();
   var outside = GS_APP.places.filter(function(p){ return !p.ctx && !b.contains(L.latLng(p.ll)); }).map(function(p){return p.cn;});
@@ -501,8 +645,8 @@ console.log('I reset year:', await ev(`document.getElementById('tlYear').textCon
 
 /* I2. 播放到底：事件图标应整体隐去（story-end），任意交互后恢复
    临时把倍速调高以在合理时间内跑完整个序列（D 为只读引用，改state.speed 生效） */
-await ev(`window.GS_APP.state.speed = 12; window.GS_APP.timeline.setYear(46); window.GS_APP.play();`);
-for (var q = 0; q < 90; q++) {
+await ev(`window.GS_APP.state.speed = 24; window.GS_APP.timeline.setYear(46); window.GS_APP.play();`);
+for (var q = 0; q < 150; q++) {
   await sleep(400);
   if (!(await ev(`window.GS_APP.state.playing`))) break;
 }
@@ -530,7 +674,25 @@ console.log('J mobile guide:', await ev(`(function(){
     inViewport: g.left >= 0 && g.right <= innerWidth && g.top >= 0 && g.bottom <= innerHeight });
 })()`));
 /* J2. 窄屏高度分配：事件列表区必须仍可容纳至少 3 行事件（曾实测被压到 45px，
-   列表整体不可见、引导横幅压住播放按钮 —— 且当时没有任何断言覆盖这条）。 */
+   列表整体不可见、引导横幅压住播放按钮 —— 且当时没有任何断言覆盖这条）。
+   M2 后时间轴圆点由 3 行增至 4 行（轨道 60→73px），列表区被压缩，
+   故稳态（引导横幅收起后）仍须留有 3 行；横幅在场时至少 2 行且可滚动。 */
+console.log('J2 mobile-layout (guide on):', await ev(`(function(){
+  var sc = document.getElementById('scroll');
+  var rows = [].slice.call(document.querySelectorAll('#list .ev'));
+  var rowH = rows.length ? rows[0].getBoundingClientRect().height : 0;
+  var cb = document.getElementById('chapterbar').getBoundingClientRect();
+  var gd = document.getElementById('guide');
+  var guideH = gd.classList.contains('hidden') ? 0 : gd.getBoundingClientRect().height;
+  var usable = sc.getBoundingClientRect().height - cb.height - guideH;
+  return JSON.stringify({ rowH: Math.round(rowH), guideH: Math.round(guideH),
+    usableForRows: Math.round(usable), visibleRows: Math.max(0, Math.floor(usable / Math.max(1, rowH))),
+    scrollable: sc.scrollHeight > sc.clientHeight + 1 });
+})()`));
+/* 收起引导横幅：在地图上落一次真实 pointerdown（横幅在任何交互时自动让位） */
+await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 215, y: 200, button: 'left', clickCount: 1 });
+await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 215, y: 200, button: 'left', clickCount: 1 });
+await sleep(500);
 console.log('J2 mobile-layout:', await ev(`(function(){
   var scEl = document.getElementById('scroll');
   var sc = scEl.getBoundingClientRect();
