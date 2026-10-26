@@ -148,6 +148,12 @@ GS.routeEngine = (function () {
     var plan = [];
     routes.forEach(function (j) {
       if (!j.drawn || !j.stopInfo) return;
+      /* 章节闸门（2026-10-26 修）：事件只驱动【本章所属】的旅程。
+       * 旧实现只按地点匹配，于是 M1 的「耶路撒冷会议」（ch1，place=jerusalem）
+       * 会同时命中 j2/j3 的耶路撒冷站点，把第二次、第三次旅程的线在 AD 49
+       * 就一路画到耶路撒冷——线跨了旅程，故事就乱了。
+       * 路线未标 ch 时退回旧行为（按地点匹配），保持向后兼容。 */
+      if (j.ch && ev.ch && j.ch !== ev.ch) return;
       var cands = [];
       for (var s = 0; s < j.stopInfo.length; s++) {
         if (j.stopInfo[s].p === ev.place) cands.push(j.stopInfo[s]);
