@@ -23,7 +23,8 @@
   --j1:#8fa3b8;
   --j2:#8fa79a;
   --j3:#b39c8a;
-  --j4:#a493b6;
+  --j4:#a34a33;
+  --j5:#a493b6;
   --sb:424px;         /* 侧栏宽度：引导卡水平定位依赖它，改动须同步 */
   --shadow:0 1px 2px rgba(20,20,18,.04),0 10px 30px rgba(20,20,18,.07);
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
@@ -246,7 +247,8 @@ button{font-family:inherit;border:none;background:none}
 
 /* 播放中的事件卡 */
 .now{position:absolute;left:50%;bottom:24px;transform:translate(-50%,16px);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:12px 16px 11px;box-shadow:var(--shadow);opacity:0;transition:opacity .35s,transform .35s cubic-bezier(.2,.7,.3,1);pointer-events:none;z-index:1250;max-width:min(480px,calc(100% - 40px))}
-.now.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.now.show{opacity:1;transform:translate(-50%,0);pointer-events:none}
+.card-more{pointer-events:auto}
 .card-bar{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--ink-3)}
 .card-bar i{width:8px;height:8px;border-radius:50%;flex:none}
 .card-bar .yr{font-weight:700;color:var(--ink);font-feature-settings:"tnum"}
@@ -271,6 +273,13 @@ button{font-family:inherit;border:none;background:none}
 .leaflet-bottom.leaflet-right{margin-bottom:6px}
 
 .leaflet-tooltip.city-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink);font-size:12.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;pointer-events:none}
+/* 标签避让的附加偏移：map-core 用 --tx/--ty 指定（不重绑 tooltip，避免 DOM 泄漏）。
+   Leaflet 各类 direction 自带 margin-left/margin-top（6px / -6px），
+   故这里用 calc 把两者叠加，而不是直接覆盖 margin。 */
+.leaflet-tooltip.city-tip.leaflet-tooltip-right{margin-left:calc(6px + var(--tx,0px));margin-top:var(--ty,0px)}
+.leaflet-tooltip.city-tip.leaflet-tooltip-left{margin-left:calc(-6px + var(--tx,0px));margin-top:var(--ty,0px)}
+.leaflet-tooltip.city-tip.leaflet-tooltip-bottom{margin-left:var(--tx,0px);margin-top:calc(6px + var(--ty,0px))}
+.leaflet-tooltip.city-tip.leaflet-tooltip-top{margin-left:var(--tx,0px);margin-top:calc(-6px + var(--ty,0px))}
 .leaflet-tooltip.city-tip::before{display:none}
 .city-tip .en{display:block;font-size:10px;font-weight:500;color:var(--ink-3);letter-spacing:.05em;margin-top:1px}
 .city-tip .cnt{font-weight:500;color:var(--accent);font-size:11px;margin-left:6px;font-feature-settings:"tnum"}
@@ -610,7 +619,7 @@ PLACES.forEach(function (p) {
   var mk = L.marker(p.ll, { icon: icon, riseOnHover: true, keyboard: false }).addTo(placeLayer);
   var tip = '<div>' + esc(p.cn) + (evs.length ? '<span class="cnt">' + evs.length + ' 个事件</span>' : '') + '</div><div class="en">' + esc(p.en) + '</div>';
   mk.bindTooltip(tip, { permanent: true, direction: 'right', offset: [16, 0], className: 'city-tip' });
-  labelItems.push({ marker: mk, html: tip });
+  labelItems.push({ marker: mk, html: tip, anchorId: p.id });
   var pel = mk.getElement();
   placeEls[p.id] = pel.querySelector('.place');
   /* 点击地点核心 → 弹出该地介绍窗（2026-10-17 前为地点筛选，筛选入口移至介绍窗内按钮） */
