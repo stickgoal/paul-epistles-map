@@ -11,6 +11,136 @@ GS.timeline = (function () {
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
+  /* ══════════ 簇排布算法（与 .workbuddy/timeline-research/sim-timeline8.mjs 同构）══════════
+   *
+   * 同一年（from 相同）的事件聚成一个「簇」：cols 列 × rows 行的紧凑网格，
+   * 列优先填充（先竖后横）⇒ 簇「窄而高」，横向跨度小 ⇒ 时间语义得以保留。
+   *
+   *   cols = min(colsCap, n)      宽度上限（colsCap 是关键旋钮，运行期遍历择优）
+   *   rows = ceil(n / cols)       行数由列数反推 ⇒ cols*rows ≥ n 恒成立（零静默丢点）
+   *
+   * 列优先填充下，第 r 行的实际横向跨度 = ceil((n-r)/rows) 列 ⇒ 越往下行越窄。
+   * 层（layer）冲突判定【按每行的实际墨迹区间】判定（不是整簇矩形）：
+   * 用整簇矩形过于保守，会把本可并排的簇强行分层 ⇒ 层数虚增。
+   * 按年份顺序贪心 first-fit：找最低的、其所有层都不与既有墨迹交叠的起始层；
+   * 找不到就开新层（保证层内零重叠 ⇒ 圆点几何上不可能相交）。
+   *
+   * 择优：硬约束簇横向跨度 spanY ≤ SPAN_MAX（年）——否则簇侵入邻年位置，
+   * 读者会误以为邻年也有事件；满足硬约束者中取轨道高最小者；
+   * 无一满足（极窄轨）时退而取跨度最小者。
+   *
+   * 〔为什么 cols 要在运行期搜索〕簇墨迹宽 = (cols-1)×pitch + D，与「一年的像素宽」
+   * 同量级时才会互相侵入邻年。固定 cols 档位表在某些宽度上会层数跳变
+   * （例：D12/c5 在 W=804 是 8 层、W=1204 是 4 层），故按实际轨道宽遍历候选。
+   * 〔旧实现的问题〕逐点贪心：同年圆点水平错位 ±7px，但错位步长(7) <
+   * 碰撞阈值(D+1=13) ⇒ 行内根本放不下第二个点，同年事件只能靠换行堆开，
+   * M3 的 84 个事件（AD57 单年 19 个）把轨道撑到 8 行 / 125px。 */
+  var AXIS_Y = 15;                 /* 轨道轴线中心（.tl-rail / .tl-prog 所在） */
+  var SPAN_MAX = 1.0;              /* 簇横向跨度硬上限（年）：超过则邻年被误读为有事件 */
+  var MAX_COLS = 6;                /* 单簇列数搜索上限 */
+
+  /* 圆点直径随轨道宽自适应：轨道越窄，点越小（否则点本身就占满一年） */
+  function dotSize(W) {
+    if (W >= 900) return 12;
+    if (W >= 600) return 11;
+    if (W >= 420) return 10;
+    return 9;
+  }
+
+  /* 给定 D 与 colsCap，算出每簇的位置、层分配与全部圆点坐标（与 sim-timeline8 同构） */
+  function layoutWith(W, D, colsCap, marks) {
+    var pitch = D + 1;
+    var pxPerYear = W / (cfg.to - cfg.from);
+    var layers = [];          /* layers[i] = [{l,r}] 该层已占的墨迹区间（按行记录） */
+    var clusters = [];
+    var dots = [];
+    var used = 0, overflow = 0;
+    var groups = [], byYear = {};
+    marks.forEach(function (m) {
+      if (!byYear[m.from]) { byYear[m.from] = []; groups.push(m.from); }
+      byYear[m.from].push(m);
+    });
+    groups.sort(function (a, b) { return a - b; });
+
+    for (var gi = 0; gi < groups.length; gi++) {
+      var y = groups[gi], items = byYear[y], n = items.length;
+      var cols = Math.min(colsCap, n);
+      var rows = Math.ceil(n / cols);
+      if (cols * rows < n) overflow += n - cols * rows;   /* 不变量：必为 0 */
+
+      var ink = (cols - 1) * pitch + D;
+      var x0 = (y - cfg.from) / (cfg.to - cfg.from) * W;
+      var left = x0 - ink / 2;
+      if (left < D / 2) left = D / 2;
+      if (left + ink > W - D / 2) left = W - D / 2 - ink;
+
+      /* 每行的实际横向跨度（列优先填充 ⇒ 越往下行越窄） */
+      var rowSpan = [];
+      for (var r = 0; r < rows; r++) {
+        var cnt = Math.ceil((n - r) / rows);
+        rowSpan.push({ l: left, r: left + (cnt - 1) * pitch + D });
+      }
+
+      /* first-fit：找最低的不冲突起始层；找不到就开新层 */
+      var start = -1;
+      for (var s = 0; s < used; s++) {
+        var ok = true;
+        for (var r = 0; r < rows && ok; r++) {
+          var occ = layers[s + r] || [];
+          for (var k = 0; k < occ.length; k++) {
+            if (rowSpan[r].l < occ[k].r + 1 && occ[k].l < rowSpan[r].r + 1) { ok = false; break; }
+          }
+        }
+        if (ok) { start = s; break; }
+      }
+      if (start < 0) start = used;
+
+      for (var r2 = 0; r2 < rows; r2++) {
+        layers[start + r2] = layers[start + r2] || [];
+        layers[start + r2].push(rowSpan[r2]);
+      }
+      used = Math.max(used, start + rows);
+
+      /* 列优先填充：第 i 个点 → 列 floor(i/rows)，行 i%rows。x=中心、y=顶边 */
+      for (var i = 0; i < n; i++) {
+        var c = Math.floor(i / rows), rr = i % rows;
+        dots.push({
+          mark: items[i],
+          x: left + c * pitch + D / 2,
+          y: AXIS_Y + (start + rr) * pitch - D / 2,
+          x0: x0,
+          row: start + rr
+        });
+      }
+      clusters.push({ y: y, n: n, cols: cols, rows: rows, start: start, ink: ink, left: left, x0: x0 });
+    }
+
+    var firstTop = AXIS_Y - D / 2;
+    return {
+      dots: dots, clusters: clusters, D: D, pitch: pitch, layers: used, overflow: overflow,
+      trackH: firstTop + (used - 1) * pitch + D + 15,
+      bandTop: firstTop + (used - 1) * pitch + D + 6,
+      spanY: Math.max.apply(null, clusters.map(function (c) { return c.ink; })) / pxPerYear,
+      driftY: Math.max.apply(null, clusters.map(function (c) { return Math.abs(c.left + c.ink / 2 - c.x0); })) / pxPerYear
+    };
+  }
+
+  /* 在候选 colsCap（2..MAX_COLS）中择优：轨道高最小 → 跨度最小（语义保真）。 */
+  function pickLayout(W, marks) {
+    var D = dotSize(W);
+    var best = null, fallback = null;
+    for (var cc = 2; cc <= MAX_COLS; cc++) {
+      var r = layoutWith(W, D, cc, marks);
+      if (r.overflow) continue;
+      if (!fallback || r.spanY < fallback.spanY - 1e-9 ||
+          (Math.abs(r.spanY - fallback.spanY) < 1e-9 && r.trackH < fallback.trackH)) fallback = r;
+      if (r.spanY > SPAN_MAX) continue;
+      if (!best || r.trackH < best.trackH - 1e-9 ||
+          (Math.abs(r.trackH - best.trackH) < 1e-9 && r.spanY < best.spanY - 1e-9)) best = r;
+    }
+    return best || fallback;
+  }
+
   function init(opts) {
     cfg = {
       from: opts.from, to: opts.to,
@@ -49,45 +179,36 @@ GS.timeline = (function () {
       m.el = d;
     });
 
-    /* 圆点防重叠：同年 / 相近年份的圆点在水平方向上左右微错位，
-     * 仍不足时再向下错行。规则：
-     *   1) 先尝试「同一行 + 水平偏移 ±7px」，让同年圆点并排；
-     *   2) 若该行水平空间仍不足（前后已有圆点），落到下一行。
-     * 这样 12 个挤在 AD 46–49 的事件最多占 3 行，轨道高度可控。
-     * 量程随数据动态变化，故按实际像素判定而非固定行数。 */
+    /* 圆点防重叠：同年事件聚成「簇」（cluster）——一个紧凑的 cols 列 × rows 行网格，
+     * 列优先填充（先竖后横）⇒ 簇「窄而高」，横向跨度小 ⇒ 时间语义得以保留。
+     * 簇水平居中于该年位置；簇之间横向交叠时分配到不同的层（layer），
+     * 层内互不重叠 ⇒ 圆点两两不相交（几何上零重叠，非靠事后挪动）。
+     * 点径随轨道宽自适应（dotSize）；簇列数按实际轨道宽运行期搜索择优（pickLayout）。 */
     (function stagger() {
-      var w = els.dots.getBoundingClientRect().width;
+      var w = els.track.getBoundingClientRect().width;
       if (!w) { setTimeout(stagger, 120); return; }
-      var D = 12;                /* 圆点直径 */
-      var STEP = 7;/* 同排水平错位步长 */
-      var ROW = 13;                                  /* 行距须 > 圆点直径，否则上下行压边 */
-      var sorted = marks.slice().sort(function (a, b) { return a.from - b.from; });
-      var rows = [];                /* rows[r] = [{x, half}] 该行已占位（half = 左半宽） */
-      sorted.forEach(function (m) {
-        var x0 = (m.from - cfg.from) / (cfg.to - cfg.from) * w;
-        var placed = false;
-        for (var r = 0; r <= rows.length && !placed; r++) {
-          var occ = rows[r] || (rows[r] = []);
-          /* 依次尝试 x0, x0+STEP, x0-STEP, x0+2*STEP, ... */
-          for (var k = 0; k < 8; k++) {
-            var sgn = (k % 2 === 0) ? 1 : -1;
-            var x = x0 + sgn * Math.ceil(k / 2) * STEP;
-            if (x < D / 2) x = D / 2;
-            if (x > w - D / 2) x = w - D / 2;
-            var hit = occ.some(function (o) { return Math.abs(o - x) < D + 1; });
-            if (!hit) {
-              occ.push(x);
-              /* left 保持百分比（随量程变化），像素偏移写入 --dx 供 hover 缩放时保持 */
-              m.el.style.setProperty('--dx', (x - x0) + 'px');
-              m.el.style.top = (9 + r * ROW) + 'px';
-              m.el.dataset.row = r;
-              placed = true;
-              break;
-            }
-          }
-        }
-      });
-      if (cfg.onPending) cfg.onPending({ count: pending, marks: marks, rows: rows.length });
+      var best = pickLayout(w, marks);
+      if (!best) return;
+
+      /* 写入 DOM：left 保持该年的百分比位置（随量程自适应），
+       * 水平偏移写入 --dx（px），点径与垂直位置随 D / 层数写入。 */
+      for (var i = 0; i < best.dots.length; i++) {
+        var d = best.dots[i], el = d.mark.el;
+        el.style.width = best.D + 'px';
+        el.style.height = best.D + 'px';
+        el.style.marginLeft = (-best.D / 2) + 'px';
+        el.style.setProperty('--dx', (d.x - d.x0) + 'px');
+        el.style.top = d.y + 'px';
+        el.dataset.row = d.row;
+      }
+      /* 轨道高度与章节色带位置随层数/点径同步（点径自适应 ⇒ 高度公式不能用常量 13） */
+      els.track.style.height = best.trackH + 'px';
+      var bands = els.track.querySelectorAll('.tl-band');
+      for (var b = 0; b < bands.length; b++) bands[b].style.top = best.bandTop + 'px';
+
+      if (cfg.onPending) {
+        cfg.onPending({ count: pending, marks: marks, rows: best.layers, pitch: best.pitch, dot: best.D });
+      }
     })();
 
     /* 拖拽 / 点击轨道 */

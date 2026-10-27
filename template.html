@@ -147,7 +147,7 @@ button{font-family:inherit;border:none;background:none}
 .note{margin:8px 26px 26px;font-size:11px;line-height:1.85;color:var(--ink-3)}
 
 /* ============ 时间轴 ============ */
-.tl{border-top:1px solid var(--hair);padding:14px 26px 16px;background:var(--panel)}
+.tl{flex:none;border-top:1px solid var(--hair);padding:14px 26px 16px;background:var(--panel)}
 .tl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px}
 .tl-cap{font-size:11px;letter-spacing:.1em;color:var(--ink-3);font-weight:600;white-space:nowrap}
 .tl-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -206,7 +206,10 @@ button{font-family:inherit;border:none;background:none}
 @media (max-width:960px){.guide{margin:12px 16px 0}}
 
 /* ============ 地图 ============ */
-#map{flex:1;position:relative;background:radial-gradient(1100px 720px at 32% 18%,#eef0ec,#e5e8e2)}
+/* 地图列：地图在上、时间轴在下（桌面）。时间轴移出侧栏，轨道即获整列宽
+   （侧栏 424 → 地图列 ~1200px），是时间轴 8 行问题的决定性修复。 */
+.mapcol{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+#map{flex:1;min-height:0;position:relative;background:radial-gradient(1100px 720px at 32% 18%,#eef0ec,#e5e8e2)}
 .leaflet-container{background:transparent;font-family:inherit}
 
 .chips{position:absolute;left:16px;top:16px;display:flex;gap:8px;z-index:1200;flex-wrap:wrap;max-width:calc(100% - 32px)}
@@ -341,6 +344,11 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 /* 响应式 */
 @media (max-width: 960px){
   .app{flex-direction:column}
+  /* 移动端：地图列收在侧栏下方；时间轴用 order 保持在「列表与地图之间」（与旧版同位置，
+     避免把播放控件压到屏幕最底）。height 须覆写基础 height:100% —— 否则列布局下
+     地图列占满 100dvh，把侧栏事件列表挤到最小高度。 */
+  .mapcol{flex:none;height:auto;display:flex;flex-direction:column;min-height:0}
+  .mapcol .tl{order:-1}
   /* 移动端高度分配：侧栏至少要能容下 hd + 引导横幅 + 若干事件行 + 时间轴。
      原 56dvh 会把 .scroll 压到 ~45px（列表整体不可见、横幅压住播放按钮），
      故地图降到 34dvh 并压缩 hd 的纵向留白。
@@ -419,6 +427,34 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
       <div class="detail hidden" id="detail"></div>
       <p class="note" id="note">注：年代与地点采用学界主流推定，争议处在事件详情中标注；经文引自和合本（经两个独立版本逐字校对）。目前上线<span id="noteLive"></span>，后续章节将随里程碑补充。地图数据 © Natural Earth。</p>
     </div>
+  </aside>
+
+  <div class="mapcol">
+    <main id="map">
+      <div class="chips">
+        <button class="chip on" data-layer="routes">传道旅程</button>
+        <button class="chip on" data-layer="places">事件地点</button>
+        <button class="chip on" data-layer="labels">地名</button>
+        <button class="chip ghost" id="resetBtn">重置视图</button>
+      </div>
+      <!-- L-1：图例可折叠（旅程信息与统计区/时间轴色带三处重复，默认收起摘要） -->
+      <div class="legend" id="legend">
+        <button class="lg-toggle" id="lgToggle" aria-expanded="false">
+          <h4>图例</h4>
+          <span class="lg-sum" id="lgSum">7 类事件 · 1 段旅程 · 点击展开</span>
+          <svg viewBox="0 0 12 12" width="10" height="10" class="lg-caret"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="lg-body" id="lgBody">
+          <h4>事件类型</h4>
+          <div id="typeLegend"></div>
+          <h4 style="margin-top:11px">传道旅程</h4>
+          <div id="journeyLegend"></div>
+          <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
+        </div>
+      </div>
+      <div class="now" id="now"></div>
+      <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet · 经文引自和合本</div>
+    </main>
 
     <footer class="tl">
       <div class="tl-top">
@@ -445,33 +481,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
       <div class="tl-scale" id="tlScale"></div>
       <div class="tl-keys">空格 播放 / 暂停 · ← → 步进事件 · Esc 返回列表 · 点击地点或事件标记查看介绍</div>
     </footer>
-  </aside>
-
-  <main id="map">
-    <div class="chips">
-      <button class="chip on" data-layer="routes">传道旅程</button>
-      <button class="chip on" data-layer="places">事件地点</button>
-      <button class="chip on" data-layer="labels">地名</button>
-      <button class="chip ghost" id="resetBtn">重置视图</button>
-    </div>
-    <!-- L-1：图例可折叠（旅程信息与统计区/时间轴色带三处重复，默认收起摘要） -->
-    <div class="legend" id="legend">
-      <button class="lg-toggle" id="lgToggle" aria-expanded="false">
-        <h4>图例</h4>
-        <span class="lg-sum" id="lgSum">7 类事件 · 1 段旅程 · 点击展开</span>
-        <svg viewBox="0 0 12 12" width="10" height="10" class="lg-caret"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="lg-body" id="lgBody">
-        <h4>事件类型</h4>
-        <div id="typeLegend"></div>
-        <h4 style="margin-top:11px">传道旅程</h4>
-        <div id="journeyLegend"></div>
-        <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
-      </div>
-    </div>
-    <div class="now" id="now"></div>
-    <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet · 经文引自和合本</div>
-  </main>
+  </div>
 </div>
 
 <script>
@@ -765,7 +775,10 @@ function renderMedia(media) {
     { kind: null, label: '相 关 资 料', items: [] }
   ];
   media.forEach(function (m) {
-    var g = groups.filter(function (x) { return x.kind === (m.kind || null); })[0];
+    /* site = 遗址今貌，归入「今日遗存」分组；其余 kind 未命中白名单时默认落到 null 组 */
+    var kind = (m.kind === 'site') ? 'photo' : (m.kind || null);
+    var g = groups.filter(function (x) { return x.kind === kind; })[0] ||
+            groups[groups.length - 1];
     if (!m.src && !m.url) return;
     if (m.src) {
       g.items.push('<figure class="m-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '" loading="lazy">' +
@@ -1239,13 +1252,8 @@ var timeline = GS.timeline.init({
   },
   onMark: function (m) { pause(); openEvent(m.id); },
   onBand: function (b) { jumpChapter(b.id); },
-  /* 轨道高度随圆点实际行数自适应，避免留大片空白或压住章节色带 */
-  onPending: function (info) {
-    var rows = info.rows || 3;
-    $('tlTrack').style.height = (9 + rows * 13 + 12) + 'px';
-    var bands = $('tlTrack').querySelectorAll('.tl-band');
-    for (var i = 0; i < bands.length; i++) bands[i].style.top = (9 + rows * 13 + 6) + 'px';
-  },
+  /* 轨道高度 / 色带位置已由 timeline 簇模型在 pickLayout 后直接写入 DOM（点径随轨道宽
+     自适应，行距随 D 变化），此处不再用硬编码 13px 行距覆盖布局。 */
   onState: function (playing) { state.playing = playing; state.auto = playing; syncPlayBtn(); }
 });
 EVENTS.forEach(function (e) {
