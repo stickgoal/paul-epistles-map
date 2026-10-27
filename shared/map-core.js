@@ -12,11 +12,11 @@ GS.mapCore = (function () {
 
   var DEFAULT_FIT = [[27.6, -11.8], [47.8, 44.2]];
   var LABEL_CANDIDATES = [
-    ['right', [14, 0]], ['right', [14, -12]],
-    ['left', [-14, 0]], ['left', [-14, 12]],
-    ['bottom', [0, 14]], ['bottom', [0, 22]],
-    ['top', [0, -14]], ['top', [0, -42]],
-    ['bottom', [0, 66]]
+    ['right', [14, 0]], ['right', [14, -12]], ['right', [14, -28]], ['right', [28, 0]], ['right', [28, -16]],
+    ['left', [-14, 0]], ['left', [-14, 12]], ['left', [-14, 28]], ['left', [-28, 0]], ['left', [-28, 16]],
+    ['bottom', [0, 14]], ['bottom', [0, 22]], ['bottom', [0, 34]],
+    ['top', [0, -14]], ['top', [0, -42]], ['top', [0, -62]],
+    ['bottom', [0, 66]], ['bottom', [0, 90]]
   ];
 
   function init(opts) {
@@ -197,7 +197,7 @@ GS.mapCore = (function () {
 
     var placed = [];
     var dirUsed = {};            /* 方位使用计数：同分时偏好少用过的方向，实现分散 */
-    lastItems.forEach(function (cm) {
+    var items2 = lastItems.map(function (cm) {
       /* 该标签锚定在哪个地点上（用于豁免自身核心） */
       var anchorId = cm.anchorId || null;
       var variants = buildLabelVariants(cm.html);
@@ -206,46 +206,28 @@ GS.mapCore = (function () {
        * （实测 28 个标签膨胀成 1883 个残留节点）。 */
       var tip = cm.marker.getTooltip();
       if (!tip) { cm.marker.bindTooltip(cm.html, { permanent: true, direction: 'right', offset: [16, 0], className: 'city-tip' }); tip = cm.marker.getTooltip(); }
-      var tipEl = tip.getElement();
+      return { anchorId: anchorId, variants: variants, tipEl: tip.getElement() };
+    });
 
-      /* 逐形态评估：先算每一档形态的最优候选，再按「信息量优先」挑选。
-       * M3 踩坑（修法）：旧实现把形态优先级写成 tie 里的微权重
-       *   `(variants.length - 1 - vi) * 0.001` —— vi 越大（信息越少）tie 越小，
-       *   于是低信息形态只要 score 略低就被选中，实测 25 个标签【全部】退化成只剩地名，
-       *   英文名与事件计数消失。修正为硬约束：
-       *   1) 完整形态能零碰撞 → 直接采用，绝不降级；
-       *   2) 否则依次尝试降级形态，取【最早能零碰撞】的那一档（保留最多信息）；
-       *   3) 若没有任何形态能零碰撞 → 取重叠面积最小者（同分取信息量最大的一档）。 */
+    /* 贪心初放（第一遍）——逐形态评估：先算每一档形态的最优候选，再按「信息量优先」挑选。
+     * M3 踩坑（修法）：旧实现把形态优先级写成 tie 里的微权重
+     *   `(variants.length - 1 - vi) * 0.001` —— vi 越大（信息越少）tie 越小，
+     *   于是低信息形态只要 score 略低就被选中，实测 25 个标签【全部】退化成只剩地名，
+     *   英文名与事件计数消失。修正为硬约束：
+     *   1) 完整形态能零碰撞 → 直接采用，绝不降级；
+     *   2) 否则依次尝试降级形态，取【最早能零碰撞】的那一档（保留最多信息）；
+     *   3) 若没有任何形态能零碰撞 → 取重叠面积最小者（同分取信息量最大的一档）。 */
+    items2.forEach(function (it, itIdx) {
       var viBests = [];
-      for (var vi = 0; vi < variants.length; vi++) {
-        var html = variants[vi].html;
+      for (var vi = 0; vi < it.variants.length; vi++) {
+        var html = it.variants[vi].html;
         var viBest = null;
         for (var oi = 0; oi < LABEL_CANDIDATES.length; oi++) {
           var opt = LABEL_CANDIDATES[oi];
-          tipEl.innerHTML = html;
-          applyTipDirection(tipEl, opt[0], opt[1]);
-          var r = tipEl.getBoundingClientRect();
-          var score = 0;
-          for (var i = 0; i < obstacles.length; i++) {
-            var o = obstacles[i];
-            var ox = Math.min(r.right, o.right) - Math.max(r.left, o.left);
-            var oy = Math.min(r.bottom, o.bottom) - Math.max(r.top, o.top);
-            if (ox > 0 && oy > 0) score += ox * oy;
-          }
-          /* 地点核心：自身豁免，其余一律计入 */
-          for (var c = 0; c < cores.length; c++) {
-            var cr = cores[c].rect;
-            if (anchorId && cr.id === anchorId) continue;
-            var cx = Math.min(r.right, cr.right) - Math.max(r.left, cr.left);
-            var cy = Math.min(r.bottom, cr.bottom) - Math.max(r.top, cr.top);
-            if (cx > 0 && cy > 0) score += cx * cy * 3;   /* 压住城市核心的代价更高 */
-          }
-          for (var j = 0; j < placed.length; j++) {
-            var p = placed[j];
-            var ox2 = Math.min(r.right, p.right) - Math.max(r.left, p.left);
-            var oy2 = Math.min(r.bottom, p.bottom) - Math.max(r.top, p.top);
-            if (ox2 > 0 && oy2 > 0) score += ox2 * oy2;
-          }
+          it.tipEl.innerHTML = html;
+          applyTipDirection(it.tipEl, opt[0], opt[1]);
+          var r = it.tipEl.getBoundingClientRect();
+          var score = labelConflict(r, obstacles, cores, it.anchorId, placed, -1);
           /* 同一档形态内部：同分时偏好少用过的方向（分散到不同侧） */
           var tie = (dirUsed[opt[0]] || 0) * 0.5;
           if (!viBest || score + tie < viBest.score + viBest.tie) {
@@ -272,11 +254,53 @@ GS.mapCore = (function () {
       }
 
       /* 落定：把内容与方位写回（不重新绑定，避免 tooltip DOM 泄漏） */
-      tipEl.innerHTML = best.html;
-      applyTipDirection(tipEl, best.dir, best.off);
+      it.tipEl.innerHTML = best.html;
+      applyTipDirection(it.tipEl, best.dir, best.off);
       dirUsed[best.dir] = (dirUsed[best.dir] || 0) + 1;
-      placed.push(best.rect);
+      placed.push({ rect: best.rect, anchorId: it.anchorId, html: best.html, dir: best.dir, off: best.off });
     });
+
+    /* 二次消解（退让式局部搜索）：贪心初放后仍冲突的标签允许换位/降级。
+     * 密集区（安纳托利亚/叙利亚）先到先得常使后放标签在 9 个候选里全部重叠——
+     * 这里迭代重选「9 候选 × 形态」中相对【当前完整布局】冲突最小者，只接受改进；
+     * 正/反交替遍历防止尾部标签永不让位；至无改进收敛（轮数上限防抖）。
+     * 同分时偏好高信息形态（vi 小者），避免为追零碰撞无谓丢掉英文名/事件计数。 */
+    for (var iter = 0; iter < 6; iter++) {
+      var moved = false;
+      var order = items2.map(function (_, i) { return i; });
+      if (iter % 2 === 1) order.reverse();
+      for (var oi2 = 0; oi2 < order.length; oi2++) {
+        var pi = order[oi2];
+        var cur = placed[pi];
+        var curScore = labelConflict(cur.rect, obstacles, cores, cur.anchorId, placed, pi);
+        var bestAlt = null, bestScore = curScore, bestVi = -1;
+        for (var vi2 = 0; vi2 < items2[pi].variants.length; vi2++) {
+          for (var oi3 = 0; oi3 < LABEL_CANDIDATES.length; oi3++) {
+            var opt2 = LABEL_CANDIDATES[oi3];
+            items2[pi].tipEl.innerHTML = items2[pi].variants[vi2].html;
+            applyTipDirection(items2[pi].tipEl, opt2[0], opt2[1]);
+            var r2 = items2[pi].tipEl.getBoundingClientRect();
+            var s2 = labelConflict(r2, obstacles, cores, cur.anchorId, placed, pi);
+            if (s2 < bestScore || (s2 === bestScore && (bestVi < 0 || vi2 < bestVi))) {
+              bestScore = s2; bestVi = vi2;
+              bestAlt = { rect: r2, anchorId: cur.anchorId, html: items2[pi].variants[vi2].html, dir: opt2[0], off: opt2[1] };
+            }
+          }
+        }
+        if (bestAlt && (bestScore < curScore || (bestScore === curScore && bestAlt.html !== cur.html))) {
+          placed[pi] = bestAlt;
+          items2[pi].tipEl.innerHTML = bestAlt.html;
+          applyTipDirection(items2[pi].tipEl, bestAlt.dir, bestAlt.off);
+          moved = true;
+        } else {
+          /* 不接受移动：评估候选时 DOM 已被逐候选改写，必须恢复初放状态
+           * （否则残留最后评估的候选位置，后续评估与最终截图都会错位）。 */
+          items2[pi].tipEl.innerHTML = cur.html;
+          applyTipDirection(items2[pi].tipEl, cur.dir, cur.off);
+        }
+      }
+      if (!moved) break;
+    }
   }
 
   /* 直接改 tooltip 元素的方位与偏移（Leaflet 的 direction/offset 由内联样式控制）。
@@ -293,6 +317,31 @@ GS.mapCore = (function () {
     var y = off && off[1] ? off[1] : 0;
     el.style.setProperty('--tx', x + 'px');
     el.style.setProperty('--ty', y + 'px');
+  }
+
+  /* 标签在某矩形位置上的冲突分：与静态障碍（事件点/上下文标记）、非自身地点核心
+   * （权重 ×3）、以及其它已放置标签的重叠面积之和。selfIdx 用于排除自身。 */
+  function labelConflict(r, obstacles, cores, anchorId, placed, selfIdx) {
+    var score = 0, i, ox, oy;
+    for (i = 0; i < obstacles.length; i++) {
+      ox = Math.min(r.right, obstacles[i].right) - Math.max(r.left, obstacles[i].left);
+      oy = Math.min(r.bottom, obstacles[i].bottom) - Math.max(r.top, obstacles[i].top);
+      if (ox > 0 && oy > 0) score += ox * oy;
+    }
+    for (i = 0; i < cores.length; i++) {
+      if (anchorId && cores[i].id === anchorId) continue;
+      ox = Math.min(r.right, cores[i].rect.right) - Math.max(r.left, cores[i].rect.left);
+      oy = Math.min(r.bottom, cores[i].rect.bottom) - Math.max(r.top, cores[i].rect.top);
+      if (ox > 0 && oy > 0) score += ox * oy * 1.5;   /* 压住城市核心的代价略高（×3 会让消解
+                                                         把标签全部推离核心、彼此叠死） */
+    }
+    for (i = 0; i < placed.length; i++) {
+      if (i === selfIdx) continue;
+      ox = Math.min(r.right, placed[i].rect.right) - Math.max(r.left, placed[i].rect.left);
+      oy = Math.min(r.bottom, placed[i].rect.bottom) - Math.max(r.top, placed[i].rect.top);
+      if (ox > 0 && oy > 0) score += ox * oy;
+    }
+    return score;
   }
 
   /* 标签形态降级序列：完整 → 去事件计数 → 去英文名 → 两者都去（只留地名）。

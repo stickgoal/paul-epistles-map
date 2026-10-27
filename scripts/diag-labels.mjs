@@ -27,6 +27,12 @@ await send('Runtime.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
 await send('Page.navigate', { url: PAGE });
 await sleep(4600);
+/* 可选：DIAG_ZOOM 环境变量指定 zoom 复测（验证标签冲突是否随缩放消失/恶化）。
+ * setZoom 返回 Leaflet Map（循环引用，returnByValue 序列化失败），故包成简单值。 */
+if (process.env.DIAG_ZOOM) {
+  await ev(`(GS_APP.map.setZoom(${process.env.DIAG_ZOOM}), 'ok')`);
+  await sleep(900);   /* placeLabels debounce 180ms + 余量 */
+}
 
 async function ev(x) {
   const r = await send('Runtime.evaluate', { expression: x, returnByValue: true });
