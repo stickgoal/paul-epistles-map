@@ -151,9 +151,20 @@ await ev(`window.GS_APP.state.speed = 24; window.GS_APP.timeline.setYear(46); wi
 for (var w = 0; w < 150; w++) { await sleep(400); if (!(await ev(`window.GS_APP.state.playing`))) break; }
 await sleep(900);
 const dotAfterEnd = await ev(`(function(){
-  var d = document.querySelector('.ev-dot.on'); if (!d) return 'NONE';
+  /* 必须取【地图容器内】的标记：播放全程相机已移到罗马，AD46 那个标记早跑到视口外，
+     对它派发鼠标事件等于点在空白处，会造成「恢复失败」的假阴性。
+     恢复机制是地图容器的 pointerdown（捕获阶段），故坐标必须落在 #map 内。 */
+  var mr = document.getElementById('map').getBoundingClientRect();
+  var dots = [].slice.call(document.querySelectorAll('.ev-dot.on'));
+  var inMap = dots.filter(function (d) {
+    var r = d.getBoundingClientRect();
+    return r.left >= mr.left && r.top >= mr.top && r.right <= mr.right && r.bottom <= mr.bottom
+        && r.width > 0 && r.height > 0;
+  });
+  var d = inMap[0] || dots[0]; if (!d) return 'NONE';
   var r = d.getBoundingClientRect();
   return JSON.stringify({ id: d.getAttribute('data-ev'),
+    inMap: inMap.length,
     pe: getComputedStyle(d).pointerEvents,
     x: Math.round(r.x+r.width/2), y: Math.round(r.y+r.height/2) });
 })()`);
@@ -314,6 +325,203 @@ for (const ch of ['ch2', 'ch3']) {
 }
 console.log('M2-8 filter off rows:', await ev(`document.querySelectorAll('#list .ev').length`));
 
+/* ===== M3 验收：被捕与受审（ch4）+ 赴罗马航程（ch5） =====
+ * M2 之后事件数 53 → 82、地点 22 → 30、旅程 4 → 5 段，
+ * 新增断言围绕「扩容后会不会崩」：章节年代覆盖、同年顺序、章节闸门、
+ * 事件↔路线命中、字段完整性、时间轴承载、章节筛选、路线站点 p 覆盖。
+ * 一律用不变量，不写死数量。 */
+
+/* M3 区段开始前先重新导航到初始态：
+ *   上面的 A11 跑完了整片播放，相机停在最后一个事件（罗马）附近，
+ *   此时量「初始视野」必然假失败 —— 与 A4 的教训同源。 */
+await send('Page.navigate', { url: PAGE });
+await sleep(4200);
+
+console.log('M3-1 chapters:', await ev(`(function(){
+  var per = {};
+  GS_APP.chapters.forEach(function (c) {
+    var evs = GS_APP.events.filter(function (e) { return e.ch === c.id; });
+    per[c.id] = { name: c.name, years: c.years, n: evs.length,
+      outOfRange: evs.filter(function (e) { return e.from < c.from || e.to > c.to; }).map(function (e) { return e.id; }) };
+  });
+  var live = GS_APP.chapters.filter(function (c) { return GS_APP.events.some(function (e) { return e.ch === c.id; }); });
+  return JSON.stringify({ total: GS_APP.events.length, liveChapters: live.length,
+    liveIds: live.map(function (c) { return c.id; }),
+    per: per,
+    lo: Math.min.apply(null, GS_APP.events.map(function (e) { return Math.min(e.from, e.to); })),
+    hi: Math.max.apply(null, GS_APP.events.map(function (e) { return Math.max(e.from, e.to); })) });
+})()`));
+
+/* M3-2. 同年顺序不变量：AD 57 与 AD 59 是 M3 的关键年
+ *   （ch3 归程与 ch4 受审同在 57；ch4 判决与 ch5 上船同在 59），
+ *   跨章同年时若 tie-break 按 id 字典序，播放会乱序。 */
+console.log('M3-2 same-year-order:', await ev(`(function(){
+  var byYear = {};
+  GS_APP.events.forEach(function (e) { (byYear[e.from] = byYear[e.from] || []).push(e.id); });
+  var bad = [], years = Object.keys(byYear);
+  years.forEach(function (y) {
+    var fileOrder = byYear[y].join(',');
+    var seqOrder = GS_APP.seq.filter(function (e) { return e.from === +y; }).map(function (e) { return e.id; }).join(',');
+    if (fileOrder !== seqOrder) bad.push(y + ': ' + fileOrder + ' != ' + seqOrder);
+  });
+  /* 跨章同年必须保持章序：ch3 的事件必须排在 ch4 之前（AD 57） */
+  var y57 = GS_APP.seq.filter(function (e) { return e.from === 57; }).map(function (e) { return e.ch; });
+  var chOrder = y57.join(',');
+  var chOk = chOrder.indexOf('ch3') < chOrder.indexOf('ch4');
+  return JSON.stringify({ years: years.length, bad: bad, sameYearOk: bad.length === 0, ch57Order: chOrder, chOk: chOk });
+})()`));
+
+/* M3-3. 章节闸门扩展：ch4 事件只驱动 j4（受审路线），绝不动 j5（航程）；
+ *   反之 ch5 事件只驱动 j5。这是 M2 修的串线 bug 在新增章节上的延续看守。 */
+console.log('M3-3 chapter-gate:', await ev(`(function(){
+  var api = GS.routeEngine.api;
+  api.release();
+  var riot = GS_APP.events.filter(function (e) { return e.id === 'ch4-temple-riot'; })[0];
+  api.seek(riot, 0);
+  var g = function (id) { var j = api.byId(id); return j ? j.hold : 'NO_ROUTE'; };
+  var crossTalk = { j4: g('j4'), j5: g('j5'), j3: g('j3') };
+  /* 正对照：ch5 事件必须能推进 j5 */
+  api.release();
+  var wreck = GS_APP.events.filter(function (e) { return e.id === 'ch5-shipwreck'; })[0];
+  api.seek(wreck, 0);
+  var j4b = api.byId('j4'), j5b = api.byId('j5');
+  var pos = { j4: j4b.hold, j5: j5b.hold };
+  api.release();
+  return JSON.stringify({
+    ch4Holds: crossTalk,
+    noCrossTalk: crossTalk.j5 == null && crossTalk.j3 == null,
+    ch5AdvancesJ5: pos.j5 != null && pos.j5 !== undefined,
+    ch5LeavesJ4: pos.j4 == null || pos.j4 === undefined
+  });
+})()`));
+
+/* M3-4. 事件点 ↔ 地点一致性（通用不变量，不硬编码地点清单）：
+ *   1) 有事件的地点，其事件在地图上必须有对应的 .ev-dot；
+ *   2) 每个事件都必须能找到一个事件点（挂错 place id 的表现）。
+ *   注意 DOM 结构：.ev-dot 挂在 Leaflet 图标的容器上（与 .place 同级），不是 .place 的子节点。 */
+console.log('M3-4 new-places:', await ev(`(function(){
+  var byPlace = {};
+  GS_APP.events.forEach(function (e) { (byPlace[e.place] = byPlace[e.place] || []).push(e.id); });
+  var out = {}, bad = [];
+  Object.keys(byPlace).forEach(function (pid) {
+    var ids = byPlace[pid], n = 0;
+    ids.forEach(function (id) { if (document.querySelector('.ev-dot[data-ev="' + id + '"]')) n++; });
+    out[pid] = { dots: n, events: ids.length };
+    if (!n || n !== ids.length) bad.push(pid);
+  });
+  var all = GS_APP.events.filter(function (e) { return !document.querySelector('.ev-dot[data-ev="' + e.id + '"]'); }).map(function (e) { return e.id; });
+  /* 新增地点专项：M3 引入的 8 个地点必须都成为可交互地点（有 .place 核心） */
+  var want = ['sidon','myra','fair-haven','malta','syracuse','rhegium','puteoli','rome'];
+  var wantBad = want.filter(function (pid) {
+    return !document.querySelector('.place[data-place="' + pid + '"]');
+  });
+  return JSON.stringify({ per: out, bad: bad, eventsWithoutDot: all, wantPlaces: want, wantMissing: wantBad,
+    ok: bad.length === 0 && all.length === 0 && wantBad.length === 0 });
+})()`));
+
+/* M3-5. 字段完整性 + 媒体授权字段：每条事件都要有标题/英文名/摘要/叙事/经文；
+ *   媒体必须有 credit（含授权名）+ 溯源 url。 */
+console.log('M3-5 field-completeness:', await ev(`(function(){
+  var missing = [], mediaBad = [], mediaN = 0;
+  GS_APP.events.forEach(function (e) {
+    if (!e.title || !e.en || !e.brief || !e.narrative) missing.push(e.id + ':text');
+    if (!e.verses || !e.verses.length) missing.push(e.id + ':verses');
+    (e.media || []).forEach(function (m) {
+      mediaN++;
+      if (!m.credit || !m.url) mediaBad.push(e.id + ':' + (m.title || '?'));
+    });
+  });
+  var withMedia = GS_APP.events.filter(function (e) { return e.media && e.media.length; }).length;
+  return JSON.stringify({ missing: missing, mediaEntries: mediaN, mediaBad: mediaBad, withMedia: withMedia,
+    ok: missing.length === 0 && mediaBad.length === 0 });
+})()`));
+
+/* M3-6. 事件 ↔ 路线命中：每个事件在其所属章节的旅程上都要有可命中的站点。
+ *   章节 → 旅程的映射从数据推导（routes[].ch），不写死。 */
+console.log('M3-6 event-route-hit:', await ev(`(function(){
+  var byCh = {};
+  GS_APP.routes.forEach(function (r) { if (r.ch) byCh[r.ch] = r; });
+  var miss = [], perCh = {};
+  GS_APP.events.forEach(function (e) {
+    var j = byCh[e.ch]; if (!j) { miss.push(e.id + '@no-route:' + e.ch); return; }
+    var hit = j.stops.some(function (s) { return s.p === e.place; });
+    if (!hit) miss.push(e.id + '@' + j.id);
+    perCh[e.ch] = (perCh[e.ch] || 0) + 1;
+  });
+  return JSON.stringify({ miss: miss, perCh: perCh, ok: miss.length === 0 });
+})()`));
+
+/* M3-7. 时间轴承载力：82 个事件挤进 AD 46–60，圆点不得重叠、章节色带须落在轨道内 */
+console.log('M3-7 timeline-load:', await ev(`(function(){
+  var dots = document.querySelectorAll('.tl-dot');
+  var boxes = [].slice.call(dots).map(function (x) { var b = x.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; });
+  var ov = 0;
+  for (var i = 0; i < boxes.length; i++) for (var j = i + 1; j < boxes.length; j++) {
+    var a = boxes[i], c = boxes[j];
+    if (a.l < c.r && c.l < a.r && a.t < c.b && c.t < a.b) ov++;
+  }
+  var track = document.getElementById('tlTrack').getBoundingClientRect();
+  var bands = [].slice.call(document.querySelectorAll('.tl-band')).map(function (b) {
+    var r = b.getBoundingClientRect();
+    return { inTrack: r.bottom <= track.bottom + 1, top: Math.round(r.top), bottom: Math.round(r.bottom) };
+  });
+  var rows = {};
+  [].slice.call(dots).forEach(function (x) { var r = x.dataset.row || '0'; rows[r] = (rows[r] || 0) + 1; });
+  return JSON.stringify({ dots: dots.length, overlappingPairs: ov, rows: rows,
+    trackH: Math.round(track.height), bandsInTrack: bands.every(function (b) { return b.inTrack; }),
+    ok: ov === 0 && bands.every(function (b) { return b.inTrack; }) });
+})()`));
+
+/* M3-8. 章节筛选：ch4 / ch5 的事件行数须与数据一致 */
+for (const ch of ['ch4', 'ch5']) {
+  await click('.ch-chip[data-ch="' + ch + '"]');
+  await sleep(400);
+  console.log('M3-8 filter ' + ch + ':', await ev(`(function(){
+    var n = GS_APP.events.filter(function (e) { return e.ch === '${ch}'; }).length;
+    var rows = document.querySelectorAll('#list .ev').length;
+    return JSON.stringify({ expect: n, rows: rows, ok: n === rows });
+  })()`));
+  await click('.ch-chip[data-ch="' + ch + '"]');
+  await sleep(300);
+}
+
+/* M3-9. 路线站点 p 覆盖：每个旅程站点只要标了 p，就必须指向真实地点；
+ *   且各章新增路线的站点数应与地理事实相符（j4 受审路线 2 站、j5 航程 9 站）。
+ *   这里断言的是【不变量】：所有 p 都能解析到 places.json 中的地点。 */
+console.log('M3-9 route-stops:', await ev(`(function(){
+  var pids = {}; GS_APP.places.forEach(function (p) { pids[p.id] = 1; });
+  var bad = [], missingP = [], wp = {};
+  GS_APP.routes.forEach(function (j) {
+    var n = j.stops.length, withP = 0;
+    j.stops.forEach(function (s) {
+      if (!s.p) { return; }
+      withP++;
+      if (!pids[s.p]) bad.push(j.id + ':' + s.cn + ' → ' + s.p);
+    });
+    if (withP < n) { missingP.push(j.id + ' ' + (n - withP) + ' 站无 p'); wp[j.id] = n - withP; }
+  });
+  return JSON.stringify({ badP: bad, stopsWithoutP: missingP, waypointCount: wp, ok: bad.length === 0 });
+})()`));
+
+/* M3-10. 初始视野必须容纳罗马与马耳他（新增的最西/最南端点）。
+ *   M3 把路线延伸到意大利，初始视野若仍是「安纳托利亚南部—耶路撒冷」，
+ *   罗马与马耳他的事件点会落在视口外（用户看不见）。 */
+console.log('M3-10 initial-view:', await ev(`(function(){
+  var b = GS_APP.map.getBounds(), z = GS_APP.map.getZoom();
+  var want = ['rome','malta','jerusalem','caesarea'];
+  var out = {};
+  want.forEach(function (pid) {
+    var p = GS_APP.places.filter(function (x) { return x.id === pid; })[0];
+    if (!p) { out[pid] = 'NO_PLACE'; return; }
+    out[pid] = b.contains(L.latLng(p.ll)) ? 'in' : 'OUT';
+  });
+  var all = GS_APP.places.filter(function (p) { return !p.ctx && !b.contains(L.latLng(p.ll)); }).map(function (p) { return p.cn; });
+  return JSON.stringify({ zoom: z, key: out, outside: all,
+    spanLat: Math.round((b.getNorth() - b.getSouth()) * 10) / 10,
+    spanLng: Math.round((b.getEast() - b.getWest()) * 10) / 10,
+    ok: all.length === 0 });
+})()`));
+
 /* A4. 初始视野聚焦地点密集区：全部事件地点应在视口内，且不覆盖整个地中海
  *   必须在【未播放】的初始状态下测：前面 A11 跑完整片播放后相机停在最后一个事件
  *   （耶路撒冷）附近，直接测会得到「6 处地点不在视口内」的假失败。故先重新导航。 */
@@ -377,12 +585,15 @@ console.log('A5 timeline-scale:', await ev(`(function(){
 })()`));
 
 /* A6. 标题命名一致性回归：标题不应再带地点前缀（地点已由侧栏标签承载），
- *     且不得出现「安提阿」这种在有两个安提阿时构成歧义的省略形式。 */
+ *     且不得出现「安提阿」这种在有两个安提阿时构成歧义的省略形式。
+ *     注：判定「地点前缀」必须比对【地点名】，不能退化为「含冒号即违规」——
+ *     M3 的「分诉：十二天」是主题:副题的合法写法，被误判过一次。 */
 console.log('A6 title-convention:', await ev(`(function(){
   var bad = [];
   GS_APP.events.forEach(function (e) {
-    var cn = GS_APP.places.filter(function (p) { return p.id === e.place; })[0].cn;
-    if (e.title.indexOf(cn + '：') === 0 || e.title.indexOf('：') >= 0) bad.push(e.id + ':前缀=' + e.title);
+    var p = GS_APP.places.filter(function (x) { return x.id === e.place; })[0];
+    var cn = p ? p.cn : '';
+    if (cn && e.title.indexOf(cn + '：') === 0) bad.push(e.id + ':前缀=' + e.title);
   });
   var ambiguous = GS_APP.events.filter(function (e) { return /安提阿/.test(e.title) && !/彼西底|叙利亚/.test(e.title); })
                          .map(function (e) { return e.id; });
