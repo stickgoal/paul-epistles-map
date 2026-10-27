@@ -868,6 +868,68 @@ await ev(`window.GS_APP.timeline.setYear(50)`);
 await sleep(400);
 console.log('I2 after-interaction storyEnd:', await ev(`document.body.classList.contains('story-end')`));
 
+/* K. romans 三项高启发：位置三级置信 / 可审计三件套 / 复合饼图标记 */
+/* K1. precision：6 处 approximate 地点详情显示「近似 · 争议」；known 地点显示「精确」 */
+console.log('K1 precision:', await ev(`(function(){
+  var app = window.GS_APP;
+  var approx = app.places.filter(function(p){ return p.precision && p.precision !== 'known'; });
+  function precRow() {
+    var meta = document.querySelector('#detail .d-meta');
+    if (!meta) return null;
+    var spans = meta.querySelectorAll('.m-row');
+    for (var i=0;i<spans.length;i++){
+      if (spans[i].querySelector('span').textContent === '定位精度') return spans[i].querySelector('b').textContent;
+    }
+    return null;
+  }
+  var res = { approx: approx.map(function(p){return p.id;}), rows: [] };
+  approx.forEach(function(p){
+    app.openPlace(p.id);
+    res.rows.push({ id: p.id, row: precRow() });
+  });
+  app.openPlace('corinth');
+  res.known = precRow();
+  res.ok = res.rows.length === 6 &&
+    res.rows.every(function(r){ return r.row && r.row.indexOf('近似') === 0; }) &&
+    res.known && res.known.indexOf('精确') === 0;
+  return JSON.stringify(res);
+})()`));
+/* K2. 审计视图：判断规则 + 排除项渲染；入口按钮存在；返回列表可恢复 */
+console.log('K2 audit:', await ev(`(function(){
+  var app = window.GS_APP;
+  var link = document.getElementById('auditBtn');
+  var linkVisible = !!link && link.getBoundingClientRect().width > 0;
+  app.openAudit();
+  var rulesN = document.querySelectorAll('#detail .d-meta .m-row').length;
+  var exN = document.querySelectorAll('#detail .audit-item').length;
+  var title = document.querySelector('#detail .d-cn').textContent;
+  var listHidden = document.getElementById('list').classList.contains('hidden');
+  app.close();
+  var listRestored = !document.getElementById('list').classList.contains('hidden') &&
+                     document.getElementById('detail').classList.contains('hidden');
+  return JSON.stringify({ linkVisible: linkVisible, rulesN: rulesN, exN: exN,
+    expectedRules: app.audit.rules.length, expectedEx: app.audit.excluded.length,
+    title: title, listHidden: listHidden, listRestored: listRestored,
+    ok: linkVisible && rulesN === app.audit.rules.length && exN === app.audit.excluded.length &&
+        title === '判断规则' && listRestored });
+})()`));
+/* K3. 复合饼图：每个交互地点核心含 SVG 饼图；直径随事件数增长；多类型地点多扇区 */
+console.log('K3 pie:', await ev(`(function(){
+  var app = window.GS_APP;
+  var places = app.places.filter(function(p){ return !p.ctx; });
+  var n = document.querySelectorAll('.place .core .pie').length;
+  function pieOf(id){ return document.querySelector('.place[data-place="' + id + '"] .core .pie'); }
+  var jer = pieOf('jerusalem'), pap = pieOf('paphos');
+  var cor = pieOf('corinth');
+  var jerPaths = jer ? jer.querySelectorAll('path').length : 0;
+  var corPaths = cor ? cor.querySelectorAll('path').length : 0;
+  var jerW = jer ? parseInt(jer.getAttribute('width'),10) : 0;
+  var papW = pap ? parseInt(pap.getAttribute('width'),10) : 0;
+  return JSON.stringify({ pieCount: n, places: places.length,
+    jerusalemW: jerW, paphosW: papW, jerusalemPaths: jerPaths, corinthPaths: corPaths,
+    ok: n === places.length && jerW > papW && jerPaths >= 3 && corPaths >= 3 });
+})()`));
+
 /* J. 移动端 */
 await ev(`sessionStorage.removeItem('gs.guide.seen.v1')`);
 await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });

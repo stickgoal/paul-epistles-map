@@ -772,8 +772,16 @@ button{font-family:inherit;border:none;background:none}
 .d-en{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-3);margin-top:3px}
 .d-meta{margin:18px 0 6px;border-top:1px solid var(--hair)}
 .m-row{display:flex;gap:14px;padding:9px 2px;border-bottom:1px solid var(--hair-2);font-size:13px}
-.m-row span{flex:none;width:64px;color:var(--ink-3);font-size:12px;padding-top:1px}
+.m-row span{flex:none;width:78px;color:var(--ink-3);font-size:12px;padding-top:1px}
 .m-row b{font-weight:600;color:var(--ink);line-height:1.5}
+/* 数据审计：判断规则 + 排除项（仿 battles-of-the-romans 的 Calls made / Left out） */
+.audit-link{display:block;margin:14px 0 2px;padding:9px 12px;border:1px solid var(--hair);border-radius:9px;background:var(--panel);color:var(--ink-2);font-size:12.5px;font-weight:600;cursor:pointer;text-align:left;letter-spacing:.01em;transition:border-color .25s,color .25s}
+.audit-link:hover{border-color:var(--accent);color:var(--accent-deep)}
+.audit-item{padding:10px 2px 12px;border-bottom:1px solid var(--hair-2)}
+.audit-item b{display:block;font-size:13px;color:var(--ink);font-weight:600}
+.audit-item p{margin-top:5px;font-size:12.5px;color:var(--ink-2);line-height:1.62}
+.audit-note{font-size:11.5px;color:var(--ink-3);line-height:1.62;margin:10px 2px 0}
+.prec-app{color:var(--accent-deep)}
 .d-h{font-size:11px;letter-spacing:.12em;color:var(--ink-3);font-weight:600;margin:18px 0 8px}
 .d-bg{font-size:13.5px;line-height:1.9;color:#33383e}
 .d-note{margin-top:12px;font-size:12px;line-height:1.75;color:#8a5a48;background:#faf3f0;border-left:2px solid var(--accent);padding:9px 12px;border-radius:0 8px 8px 0}
@@ -947,9 +955,11 @@ button{font-family:inherit;border:none;background:none}
 .leaflet-tooltip.ctx-tip::before{display:none}
 .hide-labels .leaflet-tooltip{display:none}
 
-/* 地点标记（核心 + 事件点） */
+/* 地点标记（核心 + 事件点）
+ * 注意：限定在 .place-icon 内，勿用裸 .place —— openEvent/openPlace 会给 #detail 加
+ * 'place' 类做详情样式，裸选择器会把详情面板塌缩成 96×96（2026-10-27 实测）。 */
 .place-icon{pointer-events:none}
-.place{position:relative;width:96px;height:96px}
+.place-icon .place{position:relative;width:96px;height:96px}
 .place .glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 6%,transparent) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
 .place.lit .glow{opacity:1}
 /* 呼吸环：双环错相半周期，5.6s 一叹（0→55% 扩张渐隐、55→100% 静息）。
@@ -957,8 +967,11 @@ button{font-family:inherit;border:none;background:none}
 .place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:breathe 5.6s cubic-bezier(.32,.52,.42,1) infinite;pointer-events:none;opacity:.5}
 .place .ring.b2{animation-delay:2.8s}
 @keyframes breathe{0%{transform:scale(1);opacity:.5}55%{transform:scale(2.5);opacity:0}100%{transform:scale(2.5);opacity:0}}
-.place .core{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#fff;border:3.5px solid #b9bdb4;box-shadow:0 1px 5px rgba(20,20,18,.25);cursor:pointer;pointer-events:auto;transition:transform .25s cubic-bezier(.34,1.56,.64,1),border-color .3s;z-index:4}
-.place:hover .core{transform:scale(1.25);border-color:var(--accent)}
+/* 复合核心：SVG 饼图（扇区=事件类型占比、面积=事件数），点击打开地点介绍。
+ * 直径随事件数增长、上限 24px，与标签避让用的 24px 视觉核心盒一致。 */
+.place .core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;background:none;border:none;box-shadow:none;padding:0;line-height:0;cursor:pointer;pointer-events:auto;transition:transform .25s cubic-bezier(.34,1.56,.64,1);z-index:4}
+.place .core .pie{display:block;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(20,20,18,.3))}
+.place:hover .core{transform:translate(-50%,-50%) scale(1.18)}
 
 /* 事件标记：按类型区分的线性图标（与地点核心的圆点形态明确区分） */
 .ev-dot{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:7px;background:#fff;border:1.6px solid var(--c);color:var(--c);display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;transform:scale(.2);opacity:0;transition:opacity .3s,transform .45s cubic-bezier(.34,1.56,.64,1),background .25s,color .25s,box-shadow .3s,border-color .3s;padding:0;z-index:3;box-shadow:0 1px 4px rgba(20,20,18,.18)}
@@ -1083,6 +1096,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
       <div class="list" id="list"></div>
       <div class="detail hidden" id="detail"></div>
       <p class="note" id="note">注：年代与地点采用学界主流推定，争议处在事件详情中标注；经文引自和合本（经两个独立版本逐字校对）。目前上线<span id="noteLive"></span>，后续章节将随里程碑补充。地图数据 © Natural Earth。</p>
+      <button class="audit-link" id="auditBtn" aria-label="数据判断规则与排除项">数据如何判定？判断规则与排除项 →</button>
     </div>
   </aside>
 
@@ -2262,7 +2276,9 @@ var PLACES = [
       32.45
     ],
     "note": "加拉太南部小城。生来瘸腿者在此得医治，保罗也在此被石头打（徒 14:8-19）；少年提摩太的家乡。",
-    "gloss": "路司得：卡帕多细亚境内的希腊化小城，在山麓。"
+    "gloss": "路司得：卡帕多细亚境内的希腊化小城，在山麓。",
+    "precision": "approximate",
+    "precisionNote": "路司得遗址通常推定在哈通萨赖（Hatunsaray）一带，但确切位置学界尚有争议。"
   },
   {
     "id": "derbe",
@@ -2274,7 +2290,9 @@ var PLACES = [
       33.2772
     ],
     "note": "第一次旅程所到最远处。二人于此传福音、教导了好些人（徒 14:21）。",
-    "gloss": "特庇：本次旅程最东端的城市，属吕卡onia边地。"
+    "gloss": "特庇：本次旅程最东端的城市，属吕卡onia边地。",
+    "precision": "approximate",
+    "precisionNote": "特庇遗址在克提土丘（Kerti Hüyük）与德夫里舍里（Devri Şehri）两处之间有争议，标记取主流推定位置。"
   },
   {
     "id": "jerusalem",
@@ -2395,7 +2413,9 @@ var PLACES = [
       27.3417
     ],
     "note": "亚西亚行省的首府与女神阿底米的崇拜中心。保罗在此住了约三年，宣讲引发焚书事件与底米丢煽动的骚乱（徒 19 章）。",
-    "gloss": "以弗所：爱琴海东岸的希腊化大港，亚底米（Artemis）女神的神庙所在地；城中有大剧场，可容两万五千人。"
+    "gloss": "以弗所：爱琴海东岸的希腊化大港，亚底米（Artemis）女神的神庙所在地；城中有大剧场，可容两万五千人。",
+    "precision": "approximate",
+    "precisionNote": "以弗所城址确定（今 Selçuk 考古区），但保罗活动的具体场所（会堂、推喇奴学房）不可考，标记取罗马城址中心。"
   },
   {
     "id": "caesarea",
@@ -2467,7 +2487,9 @@ var PLACES = [
       24.8167
     ],
     "note": "克里特岛南岸的小海湾港。船因风势受阻滞留于此，保罗曾劝众人改航菲尼基过冬（徒 27:8-12）。",
-    "gloss": "佳澳：克里特岛南岸的避风小港；保罗在此提出「性命难保」的警告，未被采纳。"
+    "gloss": "佳澳：克里特岛南岸的避风小港；保罗在此提出「性命难保」的警告，未被采纳。",
+    "precision": "approximate",
+    "precisionNote": "佳澳传统对应克里特南岸的 Kali Limenes（良港），但徒 27:8 所述锚地的确切位置学界仍有不同意见。"
   },
   {
     "id": "malta",
@@ -2479,7 +2501,9 @@ var PLACES = [
       14.4
     ],
     "note": "地中海中的岛国（徒 28:1 译作「米利大」）。保罗的船在此触礁搁浅，他被当地人款待，医好岛长之父，后在圣保罗湾登船（徒 28:1-10, 28:11）。",
-    "gloss": "马耳他：地中海中部的大岛，古代称米利大。保罗遇难后在此停留约三个月（徒 28:11），岛的南部今称圣保罗湾。"
+    "gloss": "马耳他：地中海中部的大岛，古代称米利大。保罗遇难后在此停留约三个月（徒 28:11），岛的南部今称圣保罗湾。",
+    "precision": "approximate",
+    "precisionNote": "「米利大」（徒 28:1）的识别有争议：主流认同马耳他，另有希腊凯法利尼亚一说；搁浅地点（圣保罗湾）为传统推定。"
   },
   {
     "id": "syracuse",
@@ -2527,7 +2551,9 @@ var PLACES = [
       12.4964
     ],
     "note": "帝国的首都。保罗在亚比乌市与三馆受到弟兄迎接，随后蒙准与一名看守同住（徒 28:15-16）；此后他在这里度过被囚的岁月。",
-    "gloss": "罗马：帝国的首都与最大的城市。亚比乌市（Via Appia）与三馆（Tres Tabernae）是进城大道旁的接待站；保罗蒙准与一名看守同住，而非住进监狱。"
+    "gloss": "罗马：帝国的首都与最大的城市。亚比乌市（Via Appia）与三馆（Tres Tabernae）是进城大道旁的接待站；保罗蒙准与一名看守同住，而非住进监狱。",
+    "precision": "approximate",
+    "precisionNote": "罗马城址确定，但保罗被囚住处与进城迎接处（亚比乌市、三馆）的具体位置不可考，标记取城中心。"
   }
 ]
 ;
@@ -4864,6 +4890,73 @@ var EVENTS = [
     "media": []
   }
 ];
+var AUDIT = {
+  "rulesTitle": "判断规则",
+  "rulesIntro": "地图上的每个点、每个年代与每段旅程，都按以下规则确定；争议之处在对应地点或事件的详情中注明，不静默采用。",
+  "rules": [
+    {
+      "h": "地点选取",
+      "d": "只收录使徒行传叙事中保罗实际到访或停靠的地点（30 处）。大数、大马士革仅作地图上下文参照，不参与事件（ctx 标记）。"
+    },
+    {
+      "h": "旅程切分",
+      "d": "六章以行传叙事段落为界：三次传道旅程（徒 13–14 / 15:36–18:22 / 18:23–21:16）→ 被捕与受审（徒 21–26）→ 赴罗马航程（徒 27–28）→ 罗马被囚与尾声。"
+    },
+    {
+      "h": "年代推定",
+      "d": "采用学界主流推定（出发点约 AD 46）。存在争议的年代（如耶路撒冷会议 AD 49/50）在事件 note 中标注分歧，不写成定论。"
+    },
+    {
+      "h": "地点置信分级",
+      "d": "三级：known＝遗址位置明确、标记落于遗址；approximate＝识别有争议或具体位置为推定；region-only＝仅能定位到区域。未标注即视为 known。每处 approximate 的具体争议写在地点详情的「定位精度」中。"
+    },
+    {
+      "h": "经文来源",
+      "d": "引用和合本；每条经文经两个独立版本（scrollmapper ChiUn 与 bible-versions zh/cuv.json）逐字校对，用字不一致即阻断上线，不凭印象引用。"
+    },
+    {
+      "h": "媒体许可",
+      "d": "仅使用 CC 许可或公有领域作品，署名 credit 与溯源链接必填；本地化图片压缩至 ≤300KB。"
+    }
+  ],
+  "excludedTitle": "排除项",
+  "excludedIntro": "以下候选曾被考虑，但因超出行传叙事范围、证据不足或识别存疑而未收录，逐条说明原因（仿 battles-of-the-romans 的 Left out 模式）。",
+  "excluded": [
+    {
+      "item": "以利哩古（罗 15:19）",
+      "why": "保罗自称福音已传到以利哩古，但使徒行传未记此行，年代与路线不可考，不入叙事。"
+    },
+    {
+      "item": "西班牙（罗 15:24,28）",
+      "why": "保罗的传道计划，行传未载是否成行，不入叙事。"
+    },
+    {
+      "item": "凯法利尼亚（希腊）作米利大",
+      "why": "徒 28:1「米利大」的另一种识别；采用主流马耳他说，地点 malta 标 approximate 并注明争议。"
+    },
+    {
+      "item": "菲尼基（徒 27:12）",
+      "why": "保罗建议过冬的克里特南岸港，船未成行、未停靠，不入地点。"
+    },
+    {
+      "item": "亚比乌市 / 三馆（徒 28:15）",
+      "why": "罗马城外迎接处，非独立停靠点，并入罗马地点的场所说明。"
+    },
+    {
+      "item": "歌罗西、希拉波立、老底嘉",
+      "why": "书信提及的小亚细亚教会，不在使徒行传叙事线上，不入事件。"
+    },
+    {
+      "item": "保罗殉道（约 AD 64–67）",
+      "why": "行传 28 止于罗马被囚两年；殉道属后世传统（革利免等），留待 M4 罗马被囚与尾声章节，暂不入库。"
+    },
+    {
+      "item": "耶路撒冷会议的另一年代（AD 50）",
+      "why": "学界两种主流说法并存；采用 AD 49，分歧写入会议事件（council 类型）的 note。"
+    }
+  ]
+}
+;
 
 /* 事件类型元数据：颜色与图例文案 */
 var TYPE_META = {
@@ -4970,6 +5063,33 @@ var routes = GS.routeEngine.init({
 });
 
 /* ================= 地点与事件标记 ================= */
+/* 复合标记：地点核心 = SVG 饼图，扇区=事件类型占比、面积=事件数（仿 battles-of-the-romans）。
+ * 直径随事件数增长（面积∝事件数），上限 24px = 标签避让的视觉核心盒，不会压到事件点。 */
+function buildPie(typeCounts, total) {
+  var n = total || 0;
+  var d = Math.min(24, 11 + 4 * Math.sqrt(n));
+  var r = d / 2, cx = r, cy = r;
+  var keys = Object.keys(typeCounts);
+  if (!keys.length) {
+    return '<svg class="pie" viewBox="0 0 ' + d + ' ' + d + '" width="' + d + '" height="' + d + '"></svg>';
+  }
+  if (keys.length === 1) {
+    return '<svg class="pie" viewBox="0 0 ' + d + ' ' + d + '" width="' + d + '" height="' + d + '">' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + TYPE_META[keys[0]].color + '"/></svg>';
+  }
+  var a = -Math.PI / 2, out = [];
+  keys.forEach(function (t) {
+    var ang = typeCounts[t] / n * Math.PI * 2;
+    var x1 = cx + r * Math.cos(a), y1 = cy + r * Math.sin(a);
+    var x2 = cx + r * Math.cos(a + ang), y2 = cy + r * Math.sin(a + ang);
+    var large = ang > Math.PI ? 1 : 0;
+    out.push('<path d="M' + cx + ' ' + cy + 'L' + x1.toFixed(3) + ' ' + y1.toFixed(3) +
+      'A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2.toFixed(3) + ' ' + y2.toFixed(3) +
+      'Z" fill="' + TYPE_META[t].color + '"/>');
+    a += ang;
+  });
+  return '<svg class="pie" viewBox="0 0 ' + d + ' ' + d + '" width="' + d + '" height="' + d + '">' + out.join('') + '</svg>';
+}
 PLACES.forEach(function (p) {
   if (p.ctx) {
     var ic = L.divIcon({ className: 'ctx-icon', html: '<div class="ctx"></div>', iconSize: [9, 9], iconAnchor: [4.5, 4.5] });
@@ -4978,8 +5098,10 @@ PLACES.forEach(function (p) {
     return;
   }
   var evs = EVENTS.filter(function (e) { return e.place === p.id; });
+  var tCounts = {};
+  evs.forEach(function (e) { tCounts[e.type] = (tCounts[e.type] || 0) + 1; });
   var BOX = 96, R = 34;
-  var html = '<div class="place" data-place="' + p.id + '"><span class="glow"></span><span class="ring"></span><span class="ring b2"></span><span class="core" title="' + esc(p.cn) + '"></span></div>';
+  var html = '<div class="place" data-place="' + p.id + '"><span class="glow"></span><span class="ring"></span><span class="ring b2"></span><span class="core" title="' + esc(p.cn) + '">' + buildPie(tCounts, evs.length) + '</span></div>';
   var icon = L.divIcon({ className: 'place-icon', html: html, iconSize: [BOX, BOX], iconAnchor: [BOX / 2, BOX / 2] });
   var mk = L.marker(p.ll, { icon: icon, riseOnHover: true, keyboard: false }).addTo(placeLayer);
   var tip = '<div>' + esc(p.cn) + (evs.length ? '<span class="cnt">' + evs.length + ' 个事件</span>' : '') + '</div><div class="en">' + esc(p.en) + '</div>';
@@ -5247,6 +5369,7 @@ function openPlace(id) {
     '<div class="d-en">' + esc(p.en) + '</div>' +
     '<div class="d-meta">' +
       mrow('今天所在', p.modern) +
+      mrow('定位精度', precisionLabel(p)) +
       (p.gloss ? mrow('场所说明', p.gloss) : '') +
     '</div>' +
     '<div class="d-h">缘 起</div><p class="d-bg">' + esc(p.note) + '</p>' +
@@ -5279,6 +5402,50 @@ function openPlace(id) {
   }
   try { history.replaceState(null, '', '#p/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
   GS.fx.emit('place:open', p);
+}
+
+/* 地点定位置信三级：known（遗址明确）/ approximate（识别有争议或位置为推定）/
+ * region-only（仅知区域）。未标注即 known；争议细节写在各地点 precisionNote。 */
+function precisionLabel(p) {
+  var pr = p.precision || 'known';
+  if (pr === 'approximate') return '<span class="prec-app">近似 · ' + esc(p.precisionNote || '识别有争议或具体位置为推定') + '</span>';
+  if (pr === 'region-only') return '<span class="prec-app">区域级 · ' + esc(p.precisionNote || '仅能定位到区域') + '</span>';
+  return '精确 · 遗址位置明确';
+}
+
+/* ================= 数据审计视图（可审计三件套） =================
+ * 判断规则页 + 排除项页，仿 battles-of-the-romans 的 Calls made / Left out 模式。
+ * 内容来自 data/audit.json（构建期内联），随考据更新修订。 */
+function openAudit() {
+  pause();
+  setStoryEnd(false);
+  state.focus = null;
+  state.detail = 'audit';
+  var rules = (AUDIT.rules || []).map(function (r) {
+    return '<div class="m-row"><span>' + esc(r.h) + '</span><b>' + esc(r.d) + '</b></div>';
+  }).join('');
+  var ex = (AUDIT.excluded || []).map(function (x) {
+    return '<div class="audit-item"><b>' + esc(x.item) + '</b><p>' + esc(x.why) + '</p></div>';
+  }).join('');
+  $('detail').innerHTML =
+    '<button class="back" id="backBtn">← 返回列表</button>' +
+    '<div class="d-type">数据与方法</div>' +
+    '<div class="d-cn">判断规则</div>' +
+    '<div class="d-en">地点、年代与旅程如何确定</div>' +
+    '<div class="d-meta">' + rules + '</div>' +
+    '<div class="d-h">排除项</div><p class="d-bg">' + esc(AUDIT.excludedIntro || '以下候选曾被考虑，但因超出行传叙事范围、证据不足或识别存疑而未收录。') + '</p>' +
+    ex +
+    '<p class="audit-note">规则随新章节与考据更新而修订；每处「近似」定位的争议都已在对应地点详情的「定位精度」中注明。</p>';
+  $('list').classList.add('hidden');
+  $('filterbar').classList.add('hidden');
+  var detail = $('detail');
+  detail.classList.remove('hidden');
+  detail.classList.add('place');
+  detail.classList.remove('in'); void detail.offsetWidth; detail.classList.add('in');
+  $('scroll').scrollTop = 0;
+  $('backBtn').addEventListener('click', closeEvent);
+  try { history.replaceState(null, '', '#audit'); } catch (err) { /* file:// 下受限则忽略 */ }
+  GS.fx.emit('audit:open');
 }
 
 /* ================= 年份驱动：事件点显隐 + 路线点亮 + 标记状态唯一收口 ====
@@ -5632,6 +5799,7 @@ function handleHash() {
   var h = (location.hash || '').replace(/^#/, '');
   var m;
   if ((m = h.match(/^e\/(.+)$/)) && EV_BY[m[1]]) { setTimeout(function () { openEvent(m[1]); }, 900); }
+  else if (h === 'audit') { setTimeout(function () { openAudit(); }, 900); }
   else if ((m = h.match(/^p\/(.+)$/)) && PLACE_BY[m[1]] && !PLACE_BY[m[1]].ctx) { setTimeout(function () { openPlace(m[1]); }, 900); }
   else if ((m = h.match(/^ch\/(.+)$/)) && CH_BY[m[1]]) { setTimeout(function () { jumpChapter(m[1]); }, 900); }
   else if ((m = h.match(/^(j[1-4])$/)) && R_BY[m[1]]) { setTimeout(function () { replayJourney(R_BY[m[1]]); }, 900); }
@@ -5692,6 +5860,7 @@ renderChapters();
 renderLegend();
 renderFilter();
 renderList();
+$('auditBtn').addEventListener('click', openAudit);
 mapCore.placeLabels(labelItems);   /* 兜底初始调用；尺寸稳定后 onReady 会重算 */
 timeline.setYear(D0);
 routes.drawAll(170);
@@ -5706,9 +5875,9 @@ handleHash();
 /* ================= 调试 / 验收钩子 =================
  * 供 CDP 自动化验收与后续自动化测试使用；不影响正常交互。 */
 window.GS_APP = {
-  events: EVENTS, seq: SEQ, places: PLACES, routes: ROUTES, chapters: CHAPTERS,
+  events: EVENTS, seq: SEQ, places: PLACES, routes: ROUTES, chapters: CHAPTERS, audit: AUDIT,
   state: state,
-  open: openEvent, openPlace: openPlace, close: closeEvent, play: startPlay, pause: pause,
+  open: openEvent, openPlace: openPlace, openAudit: openAudit, close: closeEvent, play: startPlay, pause: pause,
   step: stepEvent, jumpChapter: jumpChapter, setFilter: setFilter,
   dotEls: dotEls, map: map, timeline: timeline, setYear: function (y) { timeline.setYear(y); },
   timing: { TRAVEL: TRAVEL, SEEK_LEAD: SEEK_LEAD, CRUISE_MS: CRUISE_MS, ARRIVE_MS: ARRIVE_MS, DWELL: DWELL, CAM: CAM }

@@ -32,6 +32,7 @@ const inject = {
   '@@DATA_PLACES@@': () => read('data/places.json'),
   '@@DATA_ROUTES@@': () => read('data/routes.json'),
   '@@DATA_EVENTS@@': () => read('data/events.json'),
+  '@@DATA_AUDIT@@': () => read('data/audit.json'),
 };
 
 for (const [token, fn] of Object.entries(inject)) {
