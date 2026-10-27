@@ -193,6 +193,7 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 3. **媒体版权**：仅使用 CC 许可或公有领域作品；`credit` 与 `url` 必填；本地文件用 webp，单张 ≤ 300KB
 4. **新增事件流程**：只改 `data/events.json`（+ `places.json` / `routes.json`）→ `node build.mjs` → 静态回验（`node scripts/check-events.mjs` + `node scripts/check-routes.mjs`）→ CDP 验收（`scripts/run-cdp.ps1 verify.mjs`）
 5. **经文必须脚本回验，不靠人眼**：落库经文重新从双源提取、去标点逐字比对（`scripts/check-events.mjs`）；标点差异（给直接引语加「」、句末改句号）允许，用字差异一律阻断
+6. **待定（源自 [reference-projects.md §5](reference-projects.md#5-专题深拆iosiflazaridis--battles-of-the-romans2026-10-27)）**：本节纪律目前只写在文档里、读者不可见。拟补两项——① `places.json` 增 `precision`（`known` / `approximate` / `region`，米利大岛之争等）；② `note` 散文拆为结构化 `doubt` + `precision`。同时页面增「我们如何取舍」「未纳入的内容」两章。**方案已评估，待 M3 落地时决定是否采纳。**
 
 ## 5. M1 事件清单（第一次传道旅程 · 徒 13–14 + 徒 15）
 
