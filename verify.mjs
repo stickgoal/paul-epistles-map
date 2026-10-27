@@ -87,11 +87,14 @@ await send('Page.navigate', { url: PAGE });
 await sleep(4200);
 console.log('A8 guide:', await ev(`(function(){
   var g = document.getElementById('guide');
+  var btn = document.getElementById('playBtn');
+  var cs = getComputedStyle(btn);
   return JSON.stringify({ visible: !g.classList.contains('hidden'),
     count: document.getElementById('guideN').textContent,
     span: document.getElementById('guideSpan').textContent,
     cta: document.getElementById('guideAct').textContent,
-    playBtnHighlighted: document.getElementById('playBtn').classList.contains('hint') });
+    playBtnHighlighted: btn.classList.contains('hint'),
+    hintAnim: cs.animationName });
 })()`));
 await shot('f1b_guide.png');
 
@@ -671,11 +674,11 @@ console.log('D2 route-progress:', await ev(`(function(){
 })()`));
 await shot('f3_playing.png');
 
-/* D3. 相机与描线同步回归 + 跟车性能回归（2026-10-17 抖动修复后更新）：
+/* D3. 相机与描线同步回归 + 跟车性能回归（2026-10-27 稳定镜头更新）：
  * 1) 镜头中心紧跟路线行进光点（屏幕像素距离）——rig 只挪 pane，latLngToContainerPoint 仍准确；
- * 2) 缩放分段到位：巡航 5.5 → 到达推近 6.5。旧实现逐帧插值缩放，被 zoomSnap:.5 量化成
- *    5.5→6.0→6.5 三次瞬跳，是「抖动」的成因之一；新实现走 flyTo 动画通道。缩放放慢后
- *    （推近 1.15s）采样窗口可能截获动画中的小数值，故断言放宽为「不越出 [5.5, 6.5] 波段」；
+ * 2) 播放全程单档稳定缩放（zPlay=6.0）：开播前一次性落位，此后只平移跟车、
+ *    不再逐事件巡航 5.5 / 到达 6.5 反复推拉（旧行为即用户反馈的「缩放影响效果」）。
+ *    采样窗口内 zoom 应恒定 == 6.0（zoomSnap:.5 落桌），无任何缩放动画小数；
  * 3) 【事件风暴回归】跟车窗口内 map moveend 次数 ≈ 0。旧实现每帧一次 setView →
  *    每帧一次 moveend → 全场景 SVG 重投影（实测 12s 播放 31,466 次 d 重写 / 250 次 moveend），
  *    新实现 rig 走 _rawPanBy 零事件通道，窗口内只允许行程切换的个位数 moveend。 */
@@ -704,10 +707,9 @@ console.log('D3 samples:', JSON.stringify(valid));
 console.log('D3 verdict:', JSON.stringify({
   maxCenterDistPx: Math.max.apply(null, dists),
   avgCenterDistPx: Math.round(dists.reduce(function(a,b){return a+b;},0)/dists.length),
-  zoomChanged: Math.max.apply(null, zooms) !== Math.min.apply(null, zooms),
   zoomRange: [Math.min.apply(null, zooms), Math.max.apply(null, zooms)],
-  zoomWithinBand: zooms.every(function(z){ return z >= 5.5 - 1e-9 && z <= 6.5 + 1e-9; }),
-  zoomOnlyCruiseOrEvent: zooms.every(function(z){ return Math.abs(z-5.5) < 1e-9 || Math.abs(z-6.5) < 1e-9 || (z > 5.5 && z < 6.5); }),
+  zoomStable: zooms.every(function(z){ return Math.abs(z - 6.0) < 0.02; }),
+  zoomChanged: Math.max.apply(null, zooms) !== Math.min.apply(null, zooms),
   routeGrew: valid[valid.length-1].pts > valid[0].pts,
   eventStorm: evStorm,
   moveendInWindowOK: (function(){ var e = JSON.parse(evStorm); return e.moveend <= 4; })()
@@ -715,7 +717,7 @@ console.log('D3 verdict:', JSON.stringify({
 
 /* D4. 到达才弹出（需求1）：行程途中不得出现事件卡 / 当前事件高亮 / 地点点亮，
  * 路线抵达地点后才允许出现。旧实现在行程起点即 showCard + lit。
- * 时序（1×）：巡航 0–650ms → 描线 700–4200ms → 到达（卡片+点亮+推近 1.15s）→ 停留。 */
+ * 时序（1×）：开播落位 ~0.65s → 描线 700–4200ms → 到达（卡片+点亮，无推近缩放，镜头稳定）。 */
 await ev(`window.GS_APP.pause()`); await sleep(400);
 await ev(`window.GS_APP.timeline.setYear(46); window.GS_APP.state.speed = 1; window.GS_APP.play();`);
 await sleep(2400);   /* 行程中段 */
@@ -733,7 +735,7 @@ for (var a4 = 0; a4 < 45; a4++) {
   if (s4.cur > 0) { d4arrived = true; break; }
   if (s4.card) d4cardEarly = true;
 }
-await sleep(1500);   /* 等到达推近动画（1.15s）走完 */
+await sleep(1500);   /* 等到达效果（卡片/点亮）落定 */
 var d4after = await ev(`JSON.stringify({
   card: document.getElementById('now').classList.contains('show'),
   cardT: (document.querySelector('.card-t')||{}).textContent || '',
@@ -743,7 +745,18 @@ var d4after = await ev(`JSON.stringify({
   curDots: document.querySelectorAll('.ev-dot.cur').length })`);
 console.log('D4 arrive-gating: mid=' + d4mid);
 console.log('D4 verdict:', JSON.stringify({ arrived: d4arrived, cardBeforeArrival: d4cardEarly,
-  after: d4after, ok: d4arrived && !d4cardEarly && d4after.card && d4after.glow >= 1 && d4after.curDots === 1 && Math.abs(d4after.zoom - 6.5) < 0.01 }));
+  after: d4after, ok: d4arrived && !d4cardEarly && d4after.card && d4after.glow >= 1 && d4after.curDots === 1 && Math.abs(d4after.zoom - 6.0) < 0.01 }));
+
+/* D4b. 播放中环收敛（2026-10-27）：body.playing 时全图呼吸环应静息（animation:none），
+ * 避免跟车平移 × 全图 28 环持续扩散的双重动态（用户反馈的「闪」）；暂停后恢复呼吸。 */
+console.log('D4b ring-while-playing:', await ev(`(function(){
+  var r = document.querySelector('.place .ring');
+  var cs = r ? getComputedStyle(r) : null;
+  return JSON.stringify({ playing: document.body.classList.contains('playing'),
+    anim: cs ? cs.animationName : 'none',
+    opacity: cs ? parseFloat(cs.opacity) : -1,
+    ok: !!cs && cs.animationName === 'none' });
+})()`));
 
 /* D5. 路线精确经过地点（需求3）：每条旅程的每个站点必须落在路径上。
  * 旧中点平滑最近点偏离站点 |a+c-2b|/8（帕弗→别加→彼西底的安提阿一角约 0.26°）。 */
@@ -770,6 +783,9 @@ console.log('D5 route-through-places:', await ev(`(function(){
  * 注意：headless Chrome 默认 prefers-reduced-motion:reduce，全局动画被
  * prefers-reduced-motion 媒体查询压成 .01ms——必须先模拟 no-preference 再测计算值。 */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
+/* 环是「播放中静息、暂停恢复」的（2026-10-27 稳定镜头收敛，见 D4b），
+ * 呼吸动画须在非播放态断言：先暂停，body.playing 移除后环应恢复 breathe。 */
+await ev(`window.GS_APP.pause()`); await sleep(300);
 console.log('D6 breathing:', await ev(`(function(){
   var rings = document.querySelectorAll('.place[data-place="paphos"] .ring');
   var cs = rings.length ? getComputedStyle(rings[0]) : null;
@@ -777,7 +793,7 @@ console.log('D6 breathing:', await ev(`(function(){
     name: cs ? cs.animationName : 'none',
     duration: cs ? cs.animationDuration : 'none',
     ring2Delay: rings.length > 1 ? getComputedStyle(rings[1]).animationDelay : 'none',
-    ok: rings.length === 2 && !!cs && parseFloat(cs.animationDuration) >= 4 });
+    ok: rings.length === 2 && !!cs && cs.animationName === 'breathe' && parseFloat(cs.animationDuration) >= 4 });
 })()`));
 
 /* D7. 播放/缩放节奏放慢（需求2）：行程与推近时长须显著大于旧值（2600 / 550ms）。 */

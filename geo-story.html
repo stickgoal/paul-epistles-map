@@ -821,10 +821,14 @@ button{font-family:inherit;border:none;background:none}
 .play{display:flex;align-items:center;gap:6px;border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 13px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s}
 .play:hover{border-color:var(--ink-3);color:var(--ink)}
 .play.playing{background:var(--ink);border-color:var(--ink);color:#fff}
-/* 未播放时的主行动号召：深色实心 + 呼吸光晕，播放后恢复常规样式 */
-.play.hint{background:var(--ink);border-color:var(--ink);color:#fff;padding:7px 16px;font-size:12.5px;font-weight:600;box-shadow:0 2px 10px rgba(20,20,18,.18);animation:breathe 2.8s cubic-bezier(.4,0,.5,1) infinite}
+/* 未播放时的主行动号召：深色实心 + 呼吸光晕，播放后恢复常规样式
+ * 注意：按钮动画必须用独立 keyframes 名（playHint），勿与地图呼吸环共享 'breathe'——
+ * CSS 同名 keyframes 后定义者覆盖（环的 scale(2.5)+淡出 在后，约 302 行），
+ * 会让按钮「每 2.8s 放大 2.5 倍并闪没」（2026-10-27 实测）；
+ * verify D6 又要求环动画名保持 'breathe'，故改按钮名而非环名。 */
+.play.hint{background:var(--ink);border-color:var(--ink);color:#fff;padding:7px 16px;font-size:12.5px;font-weight:600;box-shadow:0 2px 10px rgba(20,20,18,.18);animation:playHint 2.8s cubic-bezier(.4,0,.5,1) infinite}
 .play.hint:hover{background:#000;border-color:#000}
-@keyframes breathe{0%,100%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 0 rgba(20,20,18,.16)}50%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 7px rgba(20,20,18,0)}}
+@keyframes playHint{0%,100%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 0 rgba(20,20,18,.16)}50%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 7px rgba(20,20,18,0)}}
 .play .i-pause{display:none}
 .play.playing .i-play{display:none}
 .play.playing .i-pause{display:block}
@@ -967,6 +971,9 @@ button{font-family:inherit;border:none;background:none}
 .place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:breathe 5.6s cubic-bezier(.32,.52,.42,1) infinite;pointer-events:none;opacity:.5}
 .place .ring.b2{animation-delay:2.8s}
 @keyframes breathe{0%{transform:scale(1);opacity:.5}55%{transform:scale(2.5);opacity:0}100%{transform:scale(2.5);opacity:0}}
+/* 播放中收敛：全图呼吸环静息（跟车平移 × 全图 28 环持续扩散 = 双重动态，观感「闪」）。
+ * 到达处的动态强调交给 fx-glow 单点光晕；暂停/播毕自动恢复呼吸（body.playing 移除）。 */
+body.playing .place .ring{animation:none;opacity:.18}
 /* 复合核心：SVG 饼图（扇区=事件类型占比、面积=事件数），点击打开地点介绍。
  * 直径随事件数增长、上限 24px，与标签避让用的 24px 视觉核心盒一致。 */
 .place .core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;background:none;border:none;box-shadow:none;padding:0;line-height:0;cursor:pointer;pointer-events:auto;transition:transform .25s cubic-bezier(.34,1.56,.64,1);z-index:4}
@@ -5517,7 +5524,8 @@ function hideCard() { $('now').classList.remove('show'); }
  * 每段行程结束用一次 setView 对齐内部状态。
  * 方案评估：不需要换技术（MapLibre GL/自绘 canvas）——Leaflet 自身的 flyTo 就是
  * 平滑动画，问题只在「每帧 setView」这个用法上。 */
-var CAM = { zEvent: 6.5, zCruise: 5.5 };   /* 取值对齐 zoomSnap:.5，落桌不再被二次取整 */
+var CAM = { zEvent: 6.5, zPlay: 6.0 };   /* zPlay：播放单档稳定缩放（开播落位一次，此后只平移跟车）；
+                                             zEvent：仅交互路径推近（点击定位/步进/地点详情） */
 var rig = { ll: null, dirty: false };      /* ll: 最近跟车目标；dirty: rig 挪过 pane 待对齐 */
 var camEv = null;                          /* 当前行程目标事件（到达时推近用） */
 var playToken = 0;                         /* 每次 startPlay +1：延迟启动的 seek 据此识别自己是否已过时 */
@@ -5539,13 +5547,10 @@ function camFollow(ll, t) {
   if (!map.getSize().x) return;                    /* 容器尺寸未就绪，跳过本帧 */
   rig.ll = ll;
   if (t >= 1) {
-    /* 行程终点：先对齐内部状态，再推近到事件特写（flyTo 动画通道），
-     * 与此同时才弹出事件卡 / 地点点亮 / 事件名——路线到达地点之后（需求1）。 */
+    /* 行程终点：先对齐内部状态，再触发到达效果（事件卡/地点点亮/事件名弹跳）。
+     * 不再推近缩放——播放全程单档稳定镜头（zPlay），避免逐事件 5.5↔6.5 反复推拉。 */
     syncRig();
-    if (camEv) {
-      mapCore.flyTo(camEv.ll, CAM.zEvent, ARRIVE_MS / state.speed);
-      arriveEvent(camEv);
-    }
+    if (camEv) arriveEvent(camEv);
     return;
   }
   var d = map.latLngToContainerPoint(ll).subtract(map.getSize().divideBy(2));
@@ -5559,12 +5564,10 @@ function revealEvent(ev) {
   state.focus = ev.id;
   state.arrivedId = null;         /* 本段行程尚未到达：卡片/标签/点亮全部等到抵达 */
   camEv = ev;
-  /* 先原地拉到巡航高度（flyTo 动画通道，时长随倍速缩放；旧实现用 setZoom，
-   * 其 250ms 硬编码在 Leaflet CSS 里无法放慢），给整段行程一个「拉远看全局」的开场。
-   * SEEK_LEAD 后才启动描线+跟车——缩放动画与 rig 平移不在同一时间窗，两套坐标系统不打架；
+  /* 播放相机已由 startPlay 一次性落位到 zPlay 单档缩放，本段不再巡航拉远/到达推近，
+   * 只做描线+跟车（rig 纯平移，零缩放零事件）。SEEK_LEAD 后才启动 seek——
    * 若窗口内被暂停/步进（state.playing 已假），放弃本次描线，由交互路径的 flyTo 接管相机。 */
   syncRig();
-  mapCore.flyTo(map.getCenter(), CAM.zCruise, CRUISE_MS / state.speed);
   var myToken = playToken;
   setTimeout(function () {
     /* 令牌校验：窗口内若发生 暂停→重播（startPlay 会 +1），本次延迟 seek 即过时，放弃 */
@@ -5601,33 +5604,47 @@ function startPlay() {
   state.arrivedId = null;         /* 新序列：首个事件抵达前不弹卡 */
   syncPlayBtn();
   applyReveal(state.year);
-  timeline.playEvents(ahead, {
-    speed: state.speed,
-    dwell: DWELL,
-    travel: TRAVEL,
-    onEvent: function (ev) { revealEvent(ev); },
-    onArrive: function (ev) { arriveEvent(ev); },   /* 与 seek 末帧双触发，arriveEvent 内幂等 */
-    onLeave: function (ev) {
-      var d = dotEls[ev.id];
-      if (d && state.detail !== ev.id) d.classList.remove('cur');
-      hideCard();
-      mapCore.clearLit();          /* 地点点亮持续整个停留，离开即收 */
-      applyReveal(state.year);
-    },
-    onEnd: function () {
-      state.playing = false; state.auto = false;
-      syncPlayBtn();
-      setStoryEnd(true);   /* 播完隐藏事件图标，回到干净底图 */
-      toast('AD ' + EV_LO + '–' + EV_HI, '故事播放完毕 · 点击地图任意处或拖动时间轴可回看');
-      GS.fx.emit('play:end');
-    }
-  });
+  /* 单档稳定镜头：开播前一次性落位到 zPlay（此后全程只平移跟车，不再逐事件推拉）。
+   * 已在 zPlay 则立即开播；否则先落位再启动序列——settle 缩放与 rig 平移分开时间窗，
+   * 两套坐标系统不打架。settle 窗口内若被暂停（state.playing 已假），放弃启动。 */
+  var settle = Math.abs(map.getZoom() - CAM.zPlay) > 0.01;
+  if (settle) mapCore.flyTo(map.getCenter(), CAM.zPlay, CRUISE_MS / state.speed);
+  var myToken = playToken;
+  var boot = function () {
+    if (!state.playing || myToken !== playToken) return;
+    timeline.playEvents(ahead, {
+      speed: state.speed,
+      dwell: DWELL,
+      travel: TRAVEL,
+      onEvent: function (ev) { revealEvent(ev); },
+      onArrive: function (ev) { arriveEvent(ev); },   /* 与 seek 末帧双触发，arriveEvent 内幂等 */
+      onLeave: function (ev) {
+        var d = dotEls[ev.id];
+        if (d && state.detail !== ev.id) d.classList.remove('cur');
+        hideCard();
+        mapCore.clearLit();          /* 地点点亮持续整个停留，离开即收 */
+        applyReveal(state.year);
+      },
+      onEnd: function () {
+        state.playing = false; state.auto = false;
+        document.body.classList.remove('playing');
+        syncPlayBtn();
+        setStoryEnd(true);   /* 播完隐藏事件图标，回到干净底图 */
+        toast('AD ' + EV_LO + '–' + EV_HI, '故事播放完毕 · 点击地图任意处或拖动时间轴可回看');
+        GS.fx.emit('play:end');
+      }
+    });
+  };
+  document.body.classList.add('playing');   /* 播放中：全图呼吸环静息，见 CSS body.playing .place .ring */
+  if (settle) setTimeout(boot, CRUISE_MS / state.speed + 120);
+  else boot();
   GS.fx.emit('play:start');
 }
 function pause() {
   var was = state.playing;
   timeline.pause();
   state.playing = false; state.auto = false;
+  document.body.classList.remove('playing');
   syncRig();               /* rig 半途停下：对齐 pane 位移，后续 flyTo 才不从陈旧中心起跳 */
   routes.release();   /* 暂停后描线交还年份驱动 */
   syncPlayBtn();
