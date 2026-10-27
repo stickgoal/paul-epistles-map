@@ -6,7 +6,7 @@ GS.mapCore = (function () {
   'use strict';
 
   var map = null, glowMarker = null, litTimer = null;
-  var lastItems = [], lastObstacleSel = '.place .core, .place .ev-dot, .ctx';
+  var lastItems = [], lastObstacleSel = '.place .ev-dot, .ctx';
   var labelTimer = null, lastLabelZoom = 0;
   var lastFit = null;
 
@@ -156,7 +156,17 @@ GS.mapCore = (function () {
   }
 
   /* 标签自动避位：在候选方位中为每个标签选择与障碍物（标记/圆点/其他标签）零碰撞的位置。
-   * items: [{ marker, html }]；obstacleSel: 参与碰撞的 DOM 选择器。缩放后自动重算。 */
+   * items: [{ marker, html }]；obstacleSel: 参与碰撞的 DOM 选择器。缩放后自动重算。
+   *
+   * M3 踩坑（25 个地点时 16 对标签互相压叠、97 处压住城市核心）：
+   *   旧实现只把「已放置的标签」当作障碍，且只避让 8px 的 .core 圆点——
+   *   而每个标签都从自己城市的 96px 命中盒中心伸出，必然压住邻近城市的核心。
+   *   修法三条：
+   *     1) 障碍集加入【全部地点核心】（.place-icon 命中盒），标签不得压住任何城市；
+   *     2) 豁免【自己的】核心 —— 否则标签必然与自身锚点重叠，永远选不到零碰撞位；
+   *     3) 若所有候选方位都有重叠，依次降级标签形态（去英文名 → 去事件计数 → 只留地名），
+   *        宁可信息少一点也不可糊成一团。
+   *   另：同分时优先选「尚未被同类标签用过」的方向，让密集区分散到不同侧。 */
   function placeLabels(items, obstacleSel) {
     lastItems = items || [];
     lastObstacleSel = obstacleSel || lastObstacleSel;
@@ -166,33 +176,137 @@ GS.mapCore = (function () {
       var r = elm.getBoundingClientRect();
       if (r.width > 0) obstacles.push(r);
     });
-    document.body.classList.remove('measuring');
-    var placed = [];
-    lastItems.forEach(function (cm) {
-      var best = null;
-      LABEL_CANDIDATES.forEach(function (opt) {
-        cm.marker.unbindTooltip();
-        cm.marker.bindTooltip(cm.html, { permanent: true, direction: opt[0], offset: opt[1], className: 'city-tip' });
-        var r = cm.marker.getTooltip().getElement().getBoundingClientRect();
-        var score = 0;
-        for (var i = 0; i < obstacles.length; i++) {
-          var o = obstacles[i];
-          var ox = Math.min(r.right, o.right) - Math.max(r.left, o.left);
-          var oy = Math.min(r.bottom, o.bottom) - Math.max(r.top, o.top);
-          if (ox > 0 && oy > 0) score += ox * oy;
-        }
-        for (var j = 0; j < placed.length; j++) {
-          var p = placed[j];
-          var ox2 = Math.min(r.right, p.right) - Math.max(r.left, p.left);
-          var oy2 = Math.min(r.bottom, p.bottom) - Math.max(r.top, p.top);
-          if (ox2 > 0 && oy2 > 0) score += ox2 * oy2;
-        }
-        if (!best || score < best.score) best = { score: score, dir: opt[0], off: opt[1], rect: r };
+    /* 地点核心作为障碍：取【核心视觉半径】的盒（24px），而不是 96px 的点击命中盒。
+     * M3 实测：用 96px 命中盒时，密集区（安纳托利亚/叙利亚）这些盒本身互相重叠，
+     * 于是「标签压住城市」被大量误判（实测 68 处，其中大半是盒盒重叠的连带结果），
+     * 真正该管的视觉冲突（标签盖住城市的 8px 圆点）反而被淹没。
+     * 24px 盒只覆盖可见核心周围，既反映真实冲突，又不互相误判。
+     * 自身核心豁免 —— 标签必然从自己的锚点伸出。 */
+    var cores = [];
+    document.querySelectorAll('.place-icon').forEach(function (elm) {
+      var inner = elm.querySelector('.place');
+      var r = elm.getBoundingClientRect();
+      if (!r.width) return;
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2, R = 12;
+      cores.push({
+        id: inner ? inner.getAttribute('data-place') : null,
+        rect: { left: cx - R, top: cy - R, right: cx + R, bottom: cy + R, width: R * 2, height: R * 2 }
       });
-      cm.marker.unbindTooltip();
-      cm.marker.bindTooltip(cm.html, { permanent: true, direction: best.dir, offset: best.off, className: 'city-tip' });
+    });
+    document.body.classList.remove('measuring');
+
+    var placed = [];
+    var dirUsed = {};            /* 方位使用计数：同分时偏好少用过的方向，实现分散 */
+    lastItems.forEach(function (cm) {
+      /* 该标签锚定在哪个地点上（用于豁免自身核心） */
+      var anchorId = cm.anchorId || null;
+      var variants = buildLabelVariants(cm.html);
+      /* tooltip 只绑定一次；后续候选只改 innerHTML 与样式偏移，
+       * 反复 unbind/bindTooltip 会让 Leaflet 残留旧 tooltip DOM
+       * （实测 28 个标签膨胀成 1883 个残留节点）。 */
+      var tip = cm.marker.getTooltip();
+      if (!tip) { cm.marker.bindTooltip(cm.html, { permanent: true, direction: 'right', offset: [16, 0], className: 'city-tip' }); tip = cm.marker.getTooltip(); }
+      var tipEl = tip.getElement();
+
+      /* 逐形态评估：先算每一档形态的最优候选，再按「信息量优先」挑选。
+       * M3 踩坑（修法）：旧实现把形态优先级写成 tie 里的微权重
+       *   `(variants.length - 1 - vi) * 0.001` —— vi 越大（信息越少）tie 越小，
+       *   于是低信息形态只要 score 略低就被选中，实测 25 个标签【全部】退化成只剩地名，
+       *   英文名与事件计数消失。修正为硬约束：
+       *   1) 完整形态能零碰撞 → 直接采用，绝不降级；
+       *   2) 否则依次尝试降级形态，取【最早能零碰撞】的那一档（保留最多信息）；
+       *   3) 若没有任何形态能零碰撞 → 取重叠面积最小者（同分取信息量最大的一档）。 */
+      var viBests = [];
+      for (var vi = 0; vi < variants.length; vi++) {
+        var html = variants[vi].html;
+        var viBest = null;
+        for (var oi = 0; oi < LABEL_CANDIDATES.length; oi++) {
+          var opt = LABEL_CANDIDATES[oi];
+          tipEl.innerHTML = html;
+          applyTipDirection(tipEl, opt[0], opt[1]);
+          var r = tipEl.getBoundingClientRect();
+          var score = 0;
+          for (var i = 0; i < obstacles.length; i++) {
+            var o = obstacles[i];
+            var ox = Math.min(r.right, o.right) - Math.max(r.left, o.left);
+            var oy = Math.min(r.bottom, o.bottom) - Math.max(r.top, o.top);
+            if (ox > 0 && oy > 0) score += ox * oy;
+          }
+          /* 地点核心：自身豁免，其余一律计入 */
+          for (var c = 0; c < cores.length; c++) {
+            var cr = cores[c].rect;
+            if (anchorId && cr.id === anchorId) continue;
+            var cx = Math.min(r.right, cr.right) - Math.max(r.left, cr.left);
+            var cy = Math.min(r.bottom, cr.bottom) - Math.max(r.top, cr.top);
+            if (cx > 0 && cy > 0) score += cx * cy * 3;   /* 压住城市核心的代价更高 */
+          }
+          for (var j = 0; j < placed.length; j++) {
+            var p = placed[j];
+            var ox2 = Math.min(r.right, p.right) - Math.max(r.left, p.left);
+            var oy2 = Math.min(r.bottom, p.bottom) - Math.max(r.top, p.top);
+            if (ox2 > 0 && oy2 > 0) score += ox2 * oy2;
+          }
+          /* 同一档形态内部：同分时偏好少用过的方向（分散到不同侧） */
+          var tie = (dirUsed[opt[0]] || 0) * 0.5;
+          if (!viBest || score + tie < viBest.score + viBest.tie) {
+            viBest = { score: score, tie: tie, dir: opt[0], off: opt[1], rect: r, html: html };
+          }
+        }
+        viBests.push(viBest);
+      }
+
+      var best = viBests[0];
+      if (best && best.score > 0) {
+        var downgraded = null;
+        for (var vj = 1; vj < viBests.length; vj++) {
+          if (viBests[vj] && viBests[vj].score <= 0) { downgraded = viBests[vj]; break; }
+        }
+        if (downgraded) best = downgraded;
+        else {
+          var minS = Infinity;
+          for (var vk = 0; vk < viBests.length; vk++) {
+            var cand = viBests[vk];
+            if (cand && cand.score < minS) { minS = cand.score; best = cand; }
+          }
+        }
+      }
+
+      /* 落定：把内容与方位写回（不重新绑定，避免 tooltip DOM 泄漏） */
+      tipEl.innerHTML = best.html;
+      applyTipDirection(tipEl, best.dir, best.off);
+      dirUsed[best.dir] = (dirUsed[best.dir] || 0) + 1;
       placed.push(best.rect);
     });
+  }
+
+  /* 直接改 tooltip 元素的方位与偏移（Leaflet 的 direction/offset 由内联样式控制）。
+   * 不重新绑定 —— 反复 unbind/bindTooltip 会残留旧 tooltip DOM。
+   * 注意：Leaflet 的 .leaflet-tooltip-right 等 class 自带 margin（6px/12px），
+   * 直接覆盖 margin 会破坏基础定位，故偏移改走 CSS 变量 --tx/--ty，
+   * 由模板的 .city-tip 规则叠加。 */
+  function applyTipDirection(el, dir, off) {
+    if (!el) return;
+    el.classList.remove('leaflet-tooltip-right', 'leaflet-tooltip-left',
+                        'leaflet-tooltip-top', 'leaflet-tooltip-bottom');
+    el.classList.add('leaflet-tooltip-' + dir);
+    var x = off && off[0] ? off[0] : 0;
+    var y = off && off[1] ? off[1] : 0;
+    el.style.setProperty('--tx', x + 'px');
+    el.style.setProperty('--ty', y + 'px');
+  }
+
+  /* 标签形态降级序列：完整 → 去事件计数 → 去英文名 → 两者都去（只留地名）。
+   * 每降一级占位更小，在密集区提高零碰撞的概率。 */
+  function buildLabelVariants(html) {
+    var out = [{ html: html }];
+    if (typeof html !== 'string') return out;
+    var noCnt = html.replace(/<span class="cnt">[\s\S]*?<\/span>/, '');
+    if (noCnt !== html) out.push({ html: noCnt });
+    var noEn = html.replace(/<div class="en">[\s\S]*?<\/div>/, '');
+    if (noEn !== html) out.push({ html: noEn });
+    var bare = noCnt.replace(/<div class="en">[\s\S]*?<\/div>/, '');
+    if (bare !== noCnt && bare !== noEn) out.push({ html: bare });
+    return out;
   }
 
   var api = {
