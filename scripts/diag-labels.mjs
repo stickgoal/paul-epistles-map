@@ -47,11 +47,15 @@ console.log(await ev(`(function(){
     var oy = Math.min(a.b, b.b) - Math.max(a.t, b.t);
     if (ox > 0 && oy > 0) pairs.push({ a: a.name, b: b.name, area: Math.round(ox * oy) });
   }
-  /* 标签与地点核心（.place 的 96px 命中盒）重叠 */
+  /* 标签与地点核心（视觉核心盒 24px）重叠。
+     不能用 .place-icon 的整盒（96px 命中盒）：它含透明留白与内边距，
+     会把「标签贴着图标边缘」也误判为压住核心 ⇒ labelOverCore 连带误报。 */
+  var CORE_HALF = 12;            /* 视觉核心盒 = 24×24，以 .place-icon 中心为基准 */
   var cores = [].slice.call(document.querySelectorAll('.place')).map(function (p) {
     var pid = p.getAttribute('data-place');
     var r = p.closest('.place-icon').getBoundingClientRect();
-    return { id: pid, l: r.left, t: r.top, r: r.right, b: r.bottom };
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    return { id: pid, l: cx - CORE_HALF, t: cy - CORE_HALF, r: cx + CORE_HALF, b: cy + CORE_HALF };
   });
   var coreHits = [];
   boxes.forEach(function (bx) {
