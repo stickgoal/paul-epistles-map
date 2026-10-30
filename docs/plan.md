@@ -17,6 +17,7 @@
 | M4 | 富媒体与尾声 | ch6 罗马被囚与尾声 13 事件；39 张图本地 webp + 内联 + 署名溯源 | 媒体加载 / 回退 / 授权断言 | ✅ 完成（97 事件 / 6 章，M4-1…M4-8 全绿，零控制台错误） |
 | M5 | 共享回灌（可选） | `paul-epistles-map` 改用 `shared/` 引擎 | 归档 `verify.mjs` 全绿 | 暂缓（归档优先，避免无收益改动） |
 | M6 | 音效与增强动画 | GS.fx 总线订阅点落地：WebAudio 合成音效（零素材）/ 抵达外扩动画 | 不破坏现有 A–J 断言 | ✅ 完成（`shared/audio.js` + 开关持久化，M6-1…M6-4 全绿） |
+| M7 | 构图重构：全屏地图 | 整屏交给地图，侧栏 / 时间轴 / 图例 / 图层开关 / 缩放全部改为浮在地图上的玻璃卡片；安全区（insets）随浮层自适应；**播放期镜头完全静止**；呼吸环放慢至 9s | D3 断言「参考点漂移 = 0、中心/缩放不变、路线仍在生长」；D6 周期 ≥ 8s；J/J2 全屏地图 + 抽屉 | ✅ 完成（D3 `maxRefDriftPx:0` / `moveend:0`；37 项断言全绿，零 JS 异常） |
 
 > **为什么引擎随 M1 抽取**：`shared/` 的抽象边界（哪些参数化、哪些回调）只有出现真实消费方后才能定形；M0 先冻结目录与构建管线，M1 边写消费方边上抽，避免无消费者的预先抽象。
 >
@@ -70,17 +71,26 @@
 > 3. **动画断言要读 `animationName`，不要看类名**：类名在动画被 `prefers-reduced-motion` 压成 `.01ms` 时依然存在，读类名等于无条件通过。M6-4 轮询 `.ev-dot.arrive` 并取 `getComputedStyle(...).animationName === 'arriveRing'` 才算数（配合 `Emulation.setEmulatedMedia` 解除 reduced-motion）。
 > 4. **音效开关必须真实点击**：初版 M6-1 用 DOM `.click()` 一次就绿，但那样测不到「按钮被 `.tl-cap` 遮挡」这类真实缺陷 —— 与 §9 的教训同源。已改 `realClick()`；同时把断言判定搬到 Node 侧（页面只回传 `aria-pressed` / `localStorage` / `GS.audio.state` 快照），避免在模板字符串里再套 `${}`。
 
+> **M7 踩坑记录（构图重构：全屏地图 + 浮动浮层 + 播放期镜头静止）**：
+> 1. **⚠️ CSS 自定义属性在 Leaflet 容器子树内不重新解析**：`--tlh`（底部时间轴实测高度）写在 `:root` 上，`.mapctl` 的 `bottom: calc(var(--tlh) + 16px)` 却按**旧值**算——`var-probe` 探针显示 `:root` 已是 `261px`，而 `.mapctl` 的 computed `bottom` 仍按 `152px` 得出 `275px`。原因是 `#map` 是 Leaflet 容器（`overflow:hidden` + 自成层叠上下文），其子树内的自定义属性取值停留在首次计算。**修法：所有依赖 `--tlh` / `--panelw` 的浮层（`.chips` / `.mapctl` / `.legend` / `.now`）一律搬到 `#map` 之外的 `.app` 层。** 教训：`--x` 在 `position:absolute` 浮层里「看起来没生效」时，先查它是不是某个独立层叠上下文的后代。
+> 2. **⚠️ Leaflet 角容器不包住浮动的子控件**：`.leaflet-control{float:left;clear:both}` 让 `.leaflet-top`/`.leaflet-bottom` 的高度恒为 0，于是把角容器 `bottom` 抬到时间轴之上后，控件仍从容器底边往下溢（实测 `bottom:269px` 而控件落在 `y=676`，正好压在时间轴上）。`margin-bottom` / flex 列两种尝试均无效。**修法：彻底放弃 `L.control.zoom` 与 `L.control.scale`，改用模板自带的 `.mapctl` 浮层按钮**（`map.zoomIn(1)` / `map.zoomOut(1)`）。同理，任何要参与布局的控件都不要交给 Leaflet 的角容器托管。
+> 3. **`fitBounds` 的 padding 只影响缩放，不影响居中**：它按 padding 求 zoom，但中心仍是**容器中心**——全屏地图下故事内容被左侧面板与底部时间轴压住（罗马紧贴面板右缘、耶路撒冷被时间轴盖住）。`fit-probe` 实测「安全区中心 `[918,337]` vs 故事中心 `[918,383]`」相差 46px。**修法：自写 `fitStory()`**——先用 `getBoundsZoom(b, false, pad)` 求缩放，再把地理中心 `project` 后平移到安全区中心点再 `unproject`，最后 `flyTo/setView`。
+> 4. **首次 fit 拿到的是「浮层还没长高」时的安全区**：`fits` 日志 `[56,16,175,412]` → `[56,16,190,412]` → `[56,16,283,412]`，前两次底部 inset 只有 175/190（真实值 283），故事整体偏下 46px。**修法：`needFit` 判定除「窗口尺寸变化」外，再加「inset 实质变化 > 16px 也重适配」**，并让 `setInsets` 在容器 `< 200×120` 时直接返回（避开布局中间态把 zoom 爆到 max）。
+> 5. **⚠️ 验收断言「字符串当对象用」会静默失效**：D4 原写 `var d4after = await ev('JSON.stringify({...})')` —— `ev()` 返回**字符串**，`d4after.card` 恒为 `undefined`，于是 `ok` 变 `undefined`，而 `JSON.stringify` 会把 `undefined` 键**直接丢掉**（打印里只有 `after`、没有 `ok`），这条断言其实从未生效过。**纪律：`ev()` 的回传值必须先 `JSON.parse`；判定结果单独存一个 `d4ok` 布尔变量再打印**，不要指望「打印里没看到 false 就是通过」。
+> 6. **`onPending` 后漏一个逗号 = 整页脚本不执行**：`onPending: function () { ... }` 紧跟 `onState:` 缺逗号，`SyntaxError: Unexpected identifier 'onState'` 让**整个 `<script>` 块**不解析——地图全空、控制台只有一条语法错。**纪律：改完 `template.html` 的 JS 立刻 `node build.mjs` + `node verify.mjs`，并看 `Runtime.exceptionThrown` 是否为 NONE。**
+> 7. **呼吸环「抽搐」不是频率单一维度的问题**：原 5.6s 周期 + 快起步缓动（`cubic-bezier(.4,0,.6,1)` 前段斜率大）+ 双层错相 2.8s，观感是「一弹一弹」。**修法：周期拉到 9s、错相 4.5s、缓动改成两头慢（`.4,.05,.5,.95`），并让 62% 就收到 `opacity:0` 后停住**（后半程不动 = 留白，视觉上才是「吸气—屏息—呼出」）。同步放慢 `.fx-glow`（5.6s→9s）与路线光点脉冲（1.7s→2.4s），否则局部快慢不一会更显突兀。D6 断言周期 `>= 8` 且错相 = 周期/2。
+
 ## 1. 架构
 
 ### 1.1 目录结构
 
 ```
 geo-story/
-├── template.html        # 页面结构 + CSS + UI 编排（侧栏 / 详情 / 播放控件）
+├── template.html        # 页面结构 + CSS + UI 编排（浮动面板 / 详情 / 播放控件）
 ├── shared/              # 与 paul-epistles-map 共用的引擎（构建期内联，产物仍是单文件）
 │   ├── fx.js            #   事件总线（音效 / 增强动画订阅点，M6 消费）
 │   ├── audio.js         #   WebAudio 合成音效（零素材）：音色表 / 懒初始化 / 开关持久化
-│   ├── map-core.js      #   地图基底：GeoJSON 底图 / 经纬网 / flyTo / 点亮 / 涟漪 / 标签避位
+│   ├── map-core.js      #   地图基底：GeoJSON 底图 / 经纬网 / 安全区 fitStory / 点亮 / 涟漪 / 标签避位
 │   ├── route-engine.js  #   平滑路径 / 累计里程 / 按年代截取点亮 / 路线光点 / 旅程重播
 │   └── timeline.js      #   时间轴控件（拖拽 / 键盘 / 圆点 / 色带）+ 播放调度 + 事件序列播放
 ├── data/                # 纯数据（改内容只动这里）
@@ -106,6 +116,7 @@ geo-story/
 │   ├── diag-boot.mjs    #   启动时序探针（boot 时刻 / 轨道定型 / 首帧耗时）
 │   ├── diag-offset.mjs  #   标记/事件点偏移探针（对照 _size 陈旧缺陷）
 │   ├── diag-tl.mjs      #   时间轴轨道几何探针（圆点尺寸 / 行数 / 簇排布）
+│   ├── diag-layout.mjs  #   构图探针（浮层矩形 / --tlh 取值 / fitStory 入参 / 压叠面积 / 安全区）
 │   └── run-cdp.ps1      #   验收 runner：只关闭自己启动的 headless Chrome
 ├── docs/plan.md         # 本文件
 ├── paul-epistles-map/   # 归档：保罗书信地图（冻结，不再改动）
@@ -187,12 +198,24 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎 + 图片全内
 ### 2.1 事件驱动播放（与书信地图「年份扫描」的区别）
 
 - **播放 = 按事件序列推进**：时间轴光标平滑移至下一事件年代 → 到达 → 地图上该事件标记弹出（pop 动画）+ 事件卡滑入 → 停留 dwell（默认 5s，可配 0.5x / 1x / 2x）→ 继续下一事件
-- **智能跟随**：事件地点在视口外才 `flyTo`，避免全程镜头眩晕；路线沿年代延伸由 `route-engine` 负责
+- **播放期镜头完全静止（M7 修订）**：播放只在开播前做一次 `resetView`（若当前视野已覆盖整个故事则跳过），此后**逐帧跟车平移全部移除**——不 `setView`、不 `_rawPanBy`、不 `flyTo`，只有路线在生长。稳定感优先于「镜头跟着光点跑」。交互路径（点击事件标记 / 时间轴圆点 / 「在地图上定位」）仍会推近到 `CAM.zEvent = 6.5`。
 - 拖动时间轴 / 打开详情 / 点击章节 → 自动暂停
 
-### 2.2 控件
+### 2.2 控件与构图（M7 起为「全屏地图 + 浮动浮层」）
 
-播放 / 暂停、上一事件 / 下一事件（步进）、速度切换、章节下拉跳转、重置视图、图层开关（路线 / 事件 / 标签）
+整屏交给地图（`#map{position:absolute;inset:0}`），所有数据面做成浮在地图上的半透明玻璃卡片（`background:color-mix(in srgb,var(--panel) 86%,transparent)` + `backdrop-filter:blur(20px)`）：
+
+| 浮层 | 位置 | 说明 |
+|---|---|---|
+| 事件面板 `.sidebar` | 左 14 / 上 14 / 下 14，宽 `--sb:384px` | 章节、事件列表、详情、判断规则页；`#panelToggle` 贴其右缘，折叠后停在地图左上角显示「事件」 |
+| 时间轴 `.tl` | 左 `--sb+28` / 右 14 / 下 14 | 播放、步进、倍速、章节、圆点轨道；底部一行并排放键盘提示与底图署名 |
+| 图层开关 `.chips` | 右上（图例之上） | 路线 / 事件 / 标签 |
+| 图例 `.legend` | 右上 `top:58px`，宽 ≤ 248 | 事件类型色板 |
+| 缩放 `.mapctl` | 右下 `bottom:calc(var(--tlh) + 16px)` | **自建按钮**，不用 `L.control.zoom`（见 M7 踩坑 2） |
+| 事件卡 `.now` | 底部居中，浮在时间轴之上 | 当前事件的类型 / 标题 / 地点 |
+
+- **安全区（insets）**：`map-core` 维护 `{t,r,b,l}` 像素值，表示「被浮层遮住的区域」。`syncInsets()` 实测 `.tl` / `.sidebar` 高度后写入，并在窗口 resize、浮层 `ResizeObserver`、时间轴待播事件变化时重算。`fitStory()` 用它同时算缩放与**居中**（M7 踩坑 3）。容器小于 200×120 时直接返回，避免布局中间态。
+- **窄屏（≤960px）**：地图仍整屏；`.sidebar` 变底部抽屉（`height:44dvh;max-height:520px`）且**默认收起**，`#panelToggle` 变「事件」胶囊。抽屉拉起后地图安全区底部同步加上抽屉高度。
 
 ### 2.3 详情面板（点击事件标记 / 时间轴圆点 / 章节列表项）
 
@@ -213,6 +236,18 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎 + 图片全内
 | preach 传道 / 教导 | `#8fa79a` | trial 被捕 / 审讯 | `#7d6b5d` |
 | miracle 神迹 | `#b39c8a` | letter 书信写作 | `#a493b6` |
 | council 教会决议 | `#6f7f74` | | |
+
+### 3.1 动效节奏（M7 收敛）
+
+「呼吸」类循环动画统一走**长周期 + 两头慢 + 后半程留白**，避免读成抽搐：
+
+| 元素 | 周期 | 说明 |
+|---|---|---|
+| 地点呼吸环 `.place .ring` | 9s（`.b2` 错相 4.5s） | `cubic-bezier(.4,.05,.5,.95)`；62% 收到 `opacity:0` 后停住不缩放 |
+| 抵达辉光 `.fx-glow` | 9s | 与呼吸环同频，避免局部快慢不一 |
+| 路线光点 `.rh::after` | 2.4s | 描线头的高频小脉冲（位移型，不参与「呼吸」语义） |
+
+D6 断言看守：周期 `>= 8s`、双环错相 = 周期 / 2。
 
 ## 4. 数据规范（学术纪律）
 
@@ -341,6 +376,11 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎 + 图片全内
 - **工具**：`cdp-shot.mjs`（原样搬入）+ 新写 `verify.mjs`；headless Chrome 真实时间驱动（冻结 CSS 过渡的 `--virtual-time-budget` 截图模式有伪影，禁用）
 - **断言不变量（反漂移）**：事件总数 == 数据声明数；播放至终态时最后一个事件详情可打开；点击事件标记后详情含经文引用；媒体本地缺失时显示回退链接；控制台零错误
 - **M1 十项**：A 启动态 / B 点击详情 / C 返回列表 / D 播放 / E 步进 / F 深链 / G 章节筛选 / H 地点筛选 / I 重置 / J 移动端 + 截图 f1–f5
+- **M7 修订的三条**：
+  - **D3（镜头静止）**：取固定参考点（耶路撒冷 31.78,35.23）每 200ms 采样其容器像素坐标，断言 `maxRefDriftPx < 0.01`、`centerMoved === false`、`zoomChanged === false`、travel 窗口内 `moveend <= 2`，**同时** `routeGrew === true`（防止「靠把描线也停掉」来假通过）。
+  - **D6（呼吸节奏）**：`animationName === 'breathe'`（不读类名）、`duration >= 8s`、双环延迟 = duration/2。
+  - **J / J2（窄屏构图）**：J 断言地图 `fullBleed`（= 视口尺寸）、抽屉默认收起、`chips` 在视口内、抽屉不压播放按钮；J2 真实点击 `#panelToggle` 拉起抽屉后断言「可用高度 / 行高 ≥ 3 行」且地图仍有 180px 以上可见。
+- **构图探针**：`scripts/diag-layout.mjs` 输出浮层矩形、`--tlh` 在各层的实际取值、每次 `fitStory` 入参、故事中心 vs 安全区中心偏差、浮层两两压叠面积、`JS EXCEPTIONS`。
 - **截图核对**：每里程碑关键态截图（播放中事件卡 / 详情富媒体 / 移动端）
 
 ## 8. 已知限制与风险
@@ -350,6 +390,7 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎 + 图片全内
 3. **换行符形态**：仓库 blob 为 LF，Windows 工作区因 `core.autocrlf=true` 检出为 CRLF；构建产物继承 CRLF（与归档项目既有形态一致），非 bug
 4. **单文件体积与首帧（M4 引入）**：39 张 webp 内联后 HTML 约 2.9MB，`DOMContentLoaded` 在无 GPU 的 headless 下约 4.4s（普通桌面约 1s）。这是「单文件离线」的代价：若要更快的首屏，只能改回外链图片（`assets/media/` 随包分发），但那就不再是单文件。当前取单文件优先。
 5. **音效默认开启，但受自动播放策略约束（M6 引入）**：首次出声一定发生在某次真实点击之后（点播放/点事件），页面加载时不会有任何声音；无 WebAudio 的环境里开关按钮自动隐藏。偏好存 localStorage，隐私模式下写入失败按「开」处理，不影响功能。
+6. **首屏仍有 2 对地点标签压叠（M7 观察）**：`彼西底的安提阿 / 路司得`、`推罗 / 西顿` 在初始 zoom 下互相压叠。这是 M3 标签退让算法的余量问题（18 档候选已把首屏重叠从 4 对降到 2 对），缩放到 z6 会自然缓解。彻底解决需要引入「标签连引线」或「同名簇聚合」，成本高于当前收益，暂列为已知限制。
 
 ## 9. 播放体验轮踩坑（2026-10-17，需求：同步/慢放/过点/呼吸/地点介绍）
 

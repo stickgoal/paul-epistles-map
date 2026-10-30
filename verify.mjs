@@ -894,14 +894,12 @@ console.log('D2 route-progress:', await ev(`(function(){
 })()`));
 await shot('f3_playing.png');
 
-/* D3. 相机与描线同步回归 + 跟车性能回归（2026-10-27 稳定镜头更新）：
- * 1) 镜头中心紧跟路线行进光点（屏幕像素距离）——rig 只挪 pane，latLngToContainerPoint 仍准确；
- * 2) 播放全程单档稳定缩放（zPlay=6.0）：开播前一次性落位，此后只平移跟车、
- *    不再逐事件巡航 5.5 / 到达 6.5 反复推拉（旧行为即用户反馈的「缩放影响效果」）。
- *    采样窗口内 zoom 应恒定 == 6.0（zoomSnap:.5 落桌），无任何缩放动画小数；
- * 3) 【事件风暴回归】跟车窗口内 map moveend 次数 ≈ 0。旧实现每帧一次 setView →
- *    每帧一次 moveend → 全场景 SVG 重投影（实测 12s 播放 31,466 次 d 重写 / 250 次 moveend），
- *    新实现 rig 走 _rawPanBy 零事件通道，窗口内只允许行程切换的个位数 moveend。 */
+/* D3. 镜头静止（2026-10-30 构图轮）：播放全程不得移动、不得缩放。
+ * 演进：M1 每帧 setView 跟车（抖动）→ 2026-10-27 改 _rawPanBy 纯平移跟车（单档缩放）→
+ * 本轮按需求「线条播放时镜头不动，保持稳定感」彻底取消跟车。
+ * 断言方式：取一个固定参考点（耶路撒冷），每 200ms 采样它在容器内的像素坐标——
+ * 镜头一旦有任何平移/缩放，这个坐标必然变化；全部相等 ⇒ 画面完全静止。
+ * 同时要求描线仍在推进（routeGrew）、且没有 moveend 风暴。 */
 await ev(`(function(){
   window.__ev = { moveend: 0, zoomend: 0 };
   var map = GS_APP.map;
@@ -912,33 +910,45 @@ var syncSamples = [];
 for (var s = 0; s < 16; s++) {
   syncSamples.push(await ev(`(function(){
     var map = GS_APP.map, j1 = GS.routeEngine.api.byId('j1');
-    if (!j1.headOn) return null;
-    var R = map.getSize();
-    var c = map.latLngToContainerPoint(j1.head.getLatLng());
-    return { d: Math.round(Math.sqrt(Math.pow(c.x-R.x/2,2)+Math.pow(c.y-R.y/2,2))), z: map.getZoom(), pts: j1.base.getLatLngs().length };
+    var c = map.getCenter();
+    var ref = map.latLngToContainerPoint(L.latLng(31.78, 35.23));   /* 耶路撒冷：固定参考点 */
+    return { lat: c.lat, lng: c.lng, z: map.getZoom(),
+      rx: Math.round(ref.x * 100) / 100, ry: Math.round(ref.y * 100) / 100,
+      pts: j1.base.getLatLngs().length };
   })()`));
   await sleep(200);
 }
 var evStorm = await ev(`JSON.stringify(window.__ev)`);
 var valid = syncSamples.filter(Boolean);
-var dists = valid.map(v => v.d);
-var zooms = valid.map(v => v.z);
+var z0 = valid[0].z;
+var drift = 0;
+valid.forEach(function (v) {
+  drift = Math.max(drift, Math.abs(v.rx - valid[0].rx), Math.abs(v.ry - valid[0].ry));
+});
+var centerMoved = valid.some(function (v) {
+  return Math.abs(v.lat - valid[0].lat) > 1e-9 || Math.abs(v.lng - valid[0].lng) > 1e-9;
+});
+var zoomChanged = valid.some(function (v) { return v.z !== z0; });
 console.log('D3 samples:', JSON.stringify(valid));
 console.log('D3 verdict:', JSON.stringify({
-  maxCenterDistPx: Math.max.apply(null, dists),
-  avgCenterDistPx: Math.round(dists.reduce(function(a,b){return a+b;},0)/dists.length),
-  zoomRange: [Math.min.apply(null, zooms), Math.max.apply(null, zooms)],
-  zoomStable: zooms.every(function(z){ return Math.abs(z - 6.0) < 0.02; }),
-  zoomChanged: Math.max.apply(null, zooms) !== Math.min.apply(null, zooms),
-  routeGrew: valid[valid.length-1].pts > valid[0].pts,
+  samples: valid.length,
+  zoom: z0,
+  maxRefDriftPx: Math.round(drift * 100) / 100,
+  centerMoved: centerMoved,
+  zoomChanged: zoomChanged,
+  routeGrew: valid[valid.length - 1].pts > valid[0].pts,
   eventStorm: evStorm,
-  moveendInWindowOK: (function(){ var e = JSON.parse(evStorm); return e.moveend <= 4; })()
+  moveendInWindowOK: (function () { var e = JSON.parse(evStorm); return e.moveend <= 2; })(),
+  ok: drift < 0.01 && !centerMoved && !zoomChanged &&
+      valid[valid.length - 1].pts > valid[0].pts &&
+      JSON.parse(evStorm).moveend <= 2
 }));
 
 /* D4. 到达才弹出（需求1）：行程途中不得出现事件卡 / 当前事件高亮 / 地点点亮，
  * 路线抵达地点后才允许出现。旧实现在行程起点即 showCard + lit。
  * 时序（1×）：开播落位 ~0.65s → 描线 700–4200ms → 到达（卡片+点亮，无推近缩放，镜头稳定）。 */
 await ev(`window.GS_APP.pause()`); await sleep(400);
+var d4zoom0 = await ev(`GS_APP.map.getZoom()`);   /* 开播前缩放：播放期镜头静止 ⇒ 到达后必须与它一致 */
 await ev(`window.GS_APP.timeline.setYear(46); window.GS_APP.state.speed = 1; window.GS_APP.play();`);
 await sleep(2400);   /* 行程中段 */
 var d4mid = await ev(`JSON.stringify({
@@ -956,16 +966,21 @@ for (var a4 = 0; a4 < 45; a4++) {
   if (s4.card) d4cardEarly = true;
 }
 await sleep(1500);   /* 等到达效果（卡片/点亮）落定 */
-var d4after = await ev(`JSON.stringify({
+/* 注意：必须 JSON.parse —— 上一版把 ev() 返回的【字符串】直接当对象用，
+ * d4after.card 恒为 undefined，于是 ok 变成 undefined 被 JSON.stringify 静默丢弃，
+ * 这条断言其实从未生效过（打印里只有 after、没有 ok）。 */
+var d4after = JSON.parse(await ev(`JSON.stringify({
   card: document.getElementById('now').classList.contains('show'),
   cardT: (document.querySelector('.card-t')||{}).textContent || '',
   cardP: (document.querySelector('.card-p')||{}).textContent || '',
   glow: document.querySelectorAll('.fx-glow').length,
   zoom: GS_APP.map.getZoom(),
-  curDots: document.querySelectorAll('.ev-dot.cur').length })`);
+  curDots: document.querySelectorAll('.ev-dot.cur').length })`));
+var d4ok = !!(d4arrived && !d4cardEarly && d4after.card && d4after.glow >= 1 &&
+  d4after.curDots === 1 && d4after.zoom === d4zoom0);
 console.log('D4 arrive-gating: mid=' + d4mid);
 console.log('D4 verdict:', JSON.stringify({ arrived: d4arrived, cardBeforeArrival: d4cardEarly,
-  after: d4after, ok: d4arrived && !d4cardEarly && d4after.card && d4after.glow >= 1 && d4after.curDots === 1 && Math.abs(d4after.zoom - 6.0) < 0.01 }));
+  zoomBefore: d4zoom0, after: d4after, ok: d4ok }));
 
 /* D4b. 播放中环收敛（2026-10-27）：body.playing 时全图呼吸环应静息（animation:none），
  * 避免跟车平移 × 全图 28 环持续扩散的双重动态（用户反馈的「闪」）；暂停后恢复呼吸。 */
@@ -998,22 +1013,25 @@ console.log('D5 route-through-places:', await ev(`(function(){
   return JSON.stringify({ maxDevDeg: Math.round(worst*1e6)/1e6, worstAt: worstAt, exact: worst < 0.001 });
 })()`));
 
-/* D6. 地点呼吸频率（需求4）：每地点双环错相、周期 ≥ 4s。
- * 旧实现单环 4.6s 且 70→100% 强制熄屏，读作「闪烁」。
+/* D6. 地点呼吸频率（需求「呼吸环太急，像抽搐」）：双环错相半周期、周期 ≥ 8s。
+ * 旧实现 5.6s / 错相 2.8s + 起步极快的 cubic-bezier(.32,.52,.42,1)：每 2.8s 就有一圈
+ * 「啪」地弹出去，读作抽搐。现为 9s / 4.5s，缓动改成两头慢的 in-out。
  * 注意：headless Chrome 默认 prefers-reduced-motion:reduce，全局动画被
  * prefers-reduced-motion 媒体查询压成 .01ms——必须先模拟 no-preference 再测计算值。 */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
-/* 环是「播放中静息、暂停恢复」的（2026-10-27 稳定镜头收敛，见 D4b），
- * 呼吸动画须在非播放态断言：先暂停，body.playing 移除后环应恢复 breathe。 */
+/* 环是「播放中静息、暂停恢复」的（见 D4b），呼吸动画须在非播放态断言 */
 await ev(`window.GS_APP.pause()`); await sleep(300);
 console.log('D6 breathing:', await ev(`(function(){
   var rings = document.querySelectorAll('.place[data-place="paphos"] .ring');
   var cs = rings.length ? getComputedStyle(rings[0]) : null;
+  var dur = cs ? parseFloat(cs.animationDuration) : 0;
+  var d2 = rings.length > 1 ? parseFloat(getComputedStyle(rings[1]).animationDelay) : -1;
   return JSON.stringify({ rings: rings.length,
     name: cs ? cs.animationName : 'none',
     duration: cs ? cs.animationDuration : 'none',
     ring2Delay: rings.length > 1 ? getComputedStyle(rings[1]).animationDelay : 'none',
-    ok: rings.length === 2 && !!cs && cs.animationName === 'breathe' && parseFloat(cs.animationDuration) >= 4 });
+    halfCycleOffset: Math.abs(d2 - dur / 2) < 0.05,
+    ok: rings.length === 2 && !!cs && cs.animationName === 'breathe' && dur >= 8 && Math.abs(d2 - dur / 2) < 0.05 });
 })()`));
 
 /* D7. 播放/缩放节奏放慢（需求2）：行程与推近时长须显著大于旧值（2600 / 550ms）。 */
@@ -1166,59 +1184,54 @@ console.log('K3 pie:', await ev(`(function(){
     ok: n === places.length && jerW > papW && jerPaths >= 3 && corPaths >= 3 });
 })()`));
 
-/* J. 移动端 */
+/* J. 移动端：地图整屏 + 浮层，事件抽屉默认收起（把整块屏幕让给地图）。
+ * 旧版是「地图 32dvh + 下方列表」的两段式，手机上一半屏幕给了列表。 */
 await ev(`sessionStorage.removeItem('gs.guide.seen.v1')`);
 await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });
 await send('Page.navigate', { url: PAGE });
 await sleep(6200);
-console.log('J mobile mapH:', await ev(`Math.round(document.getElementById('map').getBoundingClientRect().height)`));
-console.log('J mobile guide:', await ev(`(function(){
-  var gd = document.getElementById('guide');
-  var g = gd.getBoundingClientRect();
-  function ov(elm){ var r=elm.getBoundingClientRect();
-    return Math.round(Math.max(0,Math.min(g.right,r.right)-Math.max(g.left,r.left)) * Math.max(0,Math.min(g.bottom,r.bottom)-Math.max(g.top,r.top))); }
-  return JSON.stringify({ visible: !gd.classList.contains('hidden'),
-    mapOverlap: ov(document.getElementById('map')),
-    playBtnOverlap: ov(document.getElementById('playBtn')),
-    inViewport: g.left >= 0 && g.right <= innerWidth && g.top >= 0 && g.bottom <= innerHeight });
+console.log('J mobile full-bleed:', await ev(`(function(){
+  var m = document.getElementById('map').getBoundingClientRect();
+  var chips = document.querySelector('.chips').getBoundingClientRect();
+  var pb = document.getElementById('playBtn').getBoundingClientRect();
+  var sb = document.querySelector('.sidebar').getBoundingClientRect();
+  function ov(a,b){ return Math.round(Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top))); }
+  return JSON.stringify({
+    mapW: Math.round(m.width), mapH: Math.round(m.height),
+    fullBleed: Math.round(m.width) === innerWidth && Math.round(m.height) === innerHeight,
+    drawerOff: document.body.classList.contains('panel-off'),
+    chipsInViewport: chips.top >= 0 && chips.bottom <= innerHeight && chips.right <= innerWidth,
+    playBtnInViewport: pb.top >= 0 && pb.bottom <= innerHeight,
+    playHint: document.getElementById('playBtn').classList.contains('hint'),
+    drawerOverPlayBtn: ov(sb, pb),
+    ok: Math.round(m.width) === innerWidth && Math.round(m.height) === innerHeight &&
+        document.body.classList.contains('panel-off') && pb.bottom <= innerHeight && ov(sb, pb) === 0
+  });
 })()`));
-/* J2. 窄屏高度分配：事件列表区必须仍可容纳至少 3 行事件（曾实测被压到 45px，
-   列表整体不可见、引导横幅压住播放按钮 —— 且当时没有任何断言覆盖这条）。
-   M2 后时间轴圆点由 3 行增至 4 行（轨道 60→73px），列表区被压缩，
-   故稳态（引导横幅收起后）仍须留有 3 行；横幅在场时至少 2 行且可滚动。 */
-console.log('J2 mobile-layout (guide on):', await ev(`(function(){
-  var sc = document.getElementById('scroll');
-  var rows = [].slice.call(document.querySelectorAll('#list .ev'));
-  var rowH = rows.length ? rows[0].getBoundingClientRect().height : 0;
-  var cb = document.getElementById('chapterbar').getBoundingClientRect();
-  var gd = document.getElementById('guide');
-  var guideH = gd.classList.contains('hidden') ? 0 : gd.getBoundingClientRect().height;
-  var usable = sc.getBoundingClientRect().height - cb.height - guideH;
-  return JSON.stringify({ rowH: Math.round(rowH), guideH: Math.round(guideH),
-    usableForRows: Math.round(usable), visibleRows: Math.max(0, Math.floor(usable / Math.max(1, rowH))),
-    scrollable: sc.scrollHeight > sc.clientHeight + 1 });
-})()`));
-/* 收起引导横幅：在地图上落一次真实 pointerdown（横幅在任何交互时自动让位） */
-await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 215, y: 200, button: 'left', clickCount: 1 });
-await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 215, y: 200, button: 'left', clickCount: 1 });
-await sleep(500);
-console.log('J2 mobile-layout:', await ev(`(function(){
+/* J2. 拉起事件抽屉后：列表区仍须容纳 ≥3 行事件，且抽屉不能吃掉整块地图。
+ * （旧断言测的是「两段式布局下列表被压扁」；抽屉化之后要测的是「抽屉展开时列表可用」） */
+var tog = await centerOf('#panelToggle');
+console.log('J2 toggle-found:', tog ? 'yes' : 'MISSING');
+if (tog) { await realClick(tog.x, tog.y); await sleep(700); }
+console.log('J2 mobile-drawer:', await ev(`(function(){
   var scEl = document.getElementById('scroll');
   var sc = scEl.getBoundingClientRect();
   var cb = document.getElementById('chapterbar').getBoundingClientRect();
-  /* 统计 scroll 区内有多少事件行有实际可视高度（未被压扁/挤出） */
-  var rows = [].slice.call(document.querySelectorAll('.ev'));
+  var rows = [].slice.call(document.querySelectorAll('#list .ev'));
   var rowH = rows.length ? rows[0].getBoundingClientRect().height : 0;
   var usable = sc.height - cb.height;
+  var sb = document.querySelector('.sidebar').getBoundingClientRect();
   return JSON.stringify({
+    drawerOpen: !document.body.classList.contains('panel-off'),
     scrollH: Math.round(sc.height),
     chapterbarH: Math.round(cb.height),
     usableForRows: Math.round(usable),
     visibleRows: Math.max(0, Math.floor(usable / Math.max(1, rowH))),
-    mapH: Math.round(document.getElementById('map').getBoundingClientRect().height),
+    mapAboveDrawer: Math.round(sb.top),
     listRows: rows.length,
     scrollable: scEl.scrollHeight > scEl.clientHeight + 1,
-    ok: sc.height >= 88 && usable / Math.max(1, rowH) >= 3
+    ok: !document.body.classList.contains('panel-off') && sc.height >= 88 &&
+        usable / Math.max(1, rowH) >= 3 && sb.top >= 180
   });
 })()`));
 await shot('f5_mobile.png');

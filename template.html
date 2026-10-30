@@ -25,8 +25,10 @@
   --j3:#b39c8a;
   --j4:#a34a33;
   --j5:#a493b6;
-  --sb:424px;         /* 侧栏宽度：引导卡水平定位依赖它，改动须同步 */
+  --sb:384px;         /* 浮动面板宽度（浮在地图上，不再占列）；JS 会把实际值写进 --panelw */
+  --tlh:150px;        /* 底部浮动时间轴高度（JS 实测写入，供 .now / .attri / 图例定位） */
   --shadow:0 1px 2px rgba(20,20,18,.04),0 10px 30px rgba(20,20,18,.07);
+  --glass:color-mix(in srgb,var(--panel) 86%,transparent);
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
   --cjk-serif:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,SimSun,serif;
 }
@@ -43,13 +45,36 @@ body{
 button{font-family:inherit;border:none;background:none}
 .hidden{display:none!important}
 
-.app{display:flex;height:100vh;height:100dvh;width:100vw}
+/* ============ 全屏地图 + 浮动浮层 ============
+ * 2026-10-30 构图重做：地图铺满整个视口，侧栏与时间轴都变成浮在地图上的
+ * 半透明卡片（数据即「地图上的标签」）。地图的可视安全区由 JS 实测浮层尺寸后
+ * 通过 mapCore.setInsets 传入，fitBounds 只把故事范围塞进没被遮住的那块，
+ * 否则罗马与马耳他会躲在左侧面板背后。 */
+.app{position:relative;height:100vh;height:100dvh;width:100vw;overflow:hidden}
 
-/* ============ 侧栏 ============ */
+/* ============ 浮动面板（原侧栏） ============ */
 .sidebar{
-  width:var(--sb);flex:none;height:100%;background:var(--panel);
-  border-right:1px solid var(--hair);display:flex;flex-direction:column;z-index:10;
+  position:absolute;left:14px;top:14px;bottom:14px;width:var(--sb);z-index:1400;
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--glass);
+  -webkit-backdrop-filter:blur(20px) saturate(1.08);backdrop-filter:blur(20px) saturate(1.08);
+  border:1px solid rgba(231,231,225,.9);border-radius:18px;
+  box-shadow:0 18px 50px rgba(20,20,18,.15),0 2px 6px rgba(20,20,18,.05);
+  transition:transform .34s cubic-bezier(.3,.8,.3,1),opacity .34s;
 }
+/* 折叠：整块滑出屏幕，把地图完整让出来（时间轴同步左移，见 .tl） */
+body.panel-off .sidebar{transform:translateX(calc(-100% - 24px));opacity:.001;pointer-events:none}
+/* 折叠/展开开关：跟着面板右边缘走，折叠后停在地图左上角 */
+#panelToggle{position:absolute;z-index:1500;left:calc(14px + var(--sb) - 40px);top:24px;height:28px;min-width:28px;
+  display:flex;align-items:center;justify-content:center;gap:4px;padding:0 7px;border-radius:999px;
+  background:rgba(255,255,255,.94);border:1px solid var(--hair);color:var(--ink-2);cursor:pointer;
+  box-shadow:0 2px 10px rgba(20,20,18,.10);transition:left .34s cubic-bezier(.3,.8,.3,1),background .2s,color .2s}
+#panelToggle:hover{background:#fff;color:var(--ink)}
+#panelToggle .pt-lb{display:none;font-size:11.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap}
+body.panel-off #panelToggle{left:14px;top:14px;height:32px;padding:0 12px}
+body.panel-off #panelToggle .pt-lb{display:inline}
+#panelToggle svg{transition:transform .34s cubic-bezier(.3,.8,.3,1);flex:none}
+body.panel-off #panelToggle svg{transform:rotate(180deg)}
 .hd{padding:30px 30px 22px;border-bottom:1px solid var(--hair)}
 .eyebrow{font-size:11px;letter-spacing:.14em;color:var(--ink-3);font-weight:600;margin-bottom:14px}
 .hd h1{font-size:27px;font-weight:700;letter-spacing:-.01em;line-height:1.15}
@@ -158,8 +183,15 @@ button{font-family:inherit;border:none;background:none}
 
 .note{margin:8px 26px 26px;font-size:11px;line-height:1.85;color:var(--ink-3)}
 
-/* ============ 时间轴 ============ */
-.tl{flex:none;border-top:1px solid var(--hair);padding:14px 26px 16px;background:var(--panel)}
+/* ============ 时间轴（浮在地图底部的卡片） ============ */
+.tl{position:absolute;left:calc(var(--sb) + 28px);right:14px;bottom:14px;z-index:1400;
+  padding:12px 20px 11px;border-radius:16px;
+  background:var(--glass);
+  -webkit-backdrop-filter:blur(20px) saturate(1.08);backdrop-filter:blur(20px) saturate(1.08);
+  border:1px solid rgba(231,231,225,.9);
+  box-shadow:0 18px 50px rgba(20,20,18,.15),0 2px 6px rgba(20,20,18,.05);
+  transition:left .34s cubic-bezier(.3,.8,.3,1)}
+body.panel-off .tl{left:14px}
 .tl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px}
 .tl-cap{font-size:11px;letter-spacing:.1em;color:var(--ink-3);font-weight:600;white-space:nowrap}
 .tl-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -209,7 +241,7 @@ button{font-family:inherit;border:none;background:none}
 .tl-track:active .tl-knob{transform:scale(1.12)}
 .tl-knob::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ink)}
 .tl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-feature-settings:"tnum";margin-top:2px}
-.tl-keys{margin-top:10px;font-size:11.5px;color:var(--ink-2);letter-spacing:.02em}
+.tl-keys{font-size:11.5px;color:var(--ink-2);letter-spacing:.02em}
 
 /* ============ 首屏引导卡（H-2：让「可播放」可发现） ============ */
 /* 首屏引导横幅：核心交互「时间轴故事播放」的可发现性（H-2）。
@@ -227,20 +259,29 @@ button{font-family:inherit;border:none;background:none}
 .guide .g-act:hover{background:#000}
 @media (max-width:960px){.guide{margin:12px 16px 0}}
 
-/* ============ 地图 ============ */
-/* 地图列：地图在上、时间轴在下（桌面）。时间轴移出侧栏，轨道即获整列宽
-   （侧栏 424 → 地图列 ~1200px），是时间轴 8 行问题的决定性修复。 */
-.mapcol{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
-#map{flex:1;min-height:0;position:relative;background:radial-gradient(1100px 720px at 32% 18%,#eef0ec,#e5e8e2)}
+/* ============ 地图（铺满视口，其余全部浮在它上面） ============ */
+.mapcol{position:absolute;inset:0}
+#map{position:absolute;inset:0;background:radial-gradient(1100px 720px at 32% 18%,#eef0ec,#e5e8e2)}
 .leaflet-container{background:transparent;font-family:inherit}
 
-.chips{position:absolute;left:16px;top:16px;display:flex;gap:8px;z-index:1200;flex-wrap:wrap;max-width:calc(100% - 32px)}
+.chips{position:absolute;right:14px;top:14px;display:flex;gap:8px;z-index:1200;flex-wrap:wrap;max-width:calc(100% - 32px);justify-content:flex-end}
+
+/* 缩放按钮：自带浮层（不用 Leaflet 角容器，见下方注释），位置随 --tlh 让开时间轴 */
+.mapctl{position:absolute;right:14px;bottom:calc(var(--tlh) + 16px);z-index:1200;display:flex;flex-direction:column;
+  background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border:1px solid var(--hair);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.mapctl button{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--ink-2);cursor:pointer;transition:background .2s,color .2s;padding:0}
+.mapctl button + button{border-top:1px solid var(--hair-2)}
+.mapctl button:hover{background:#fff;color:var(--ink)}
+.mapctl svg{display:block}
 .chip{border:1px solid var(--hair);background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:7px 13px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s;display:flex;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(20,20,18,.04)}
 .chip:hover{border-color:#cfcfc6;color:var(--ink)}
 .chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
 .chip.ghost{background:rgba(255,255,255,.75)}
 
-.legend{position:absolute;left:16px;bottom:16px;z-index:1200;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:11px 15px 11px;box-shadow:var(--shadow);min-width:212px}
+/* 图例：右侧竖向浮层（原左下角会被浮动面板与事件卡夹住）。
+   折叠摘要态只有一行；展开后最高 420px，仍在视口内。 */
+.legend{position:absolute;right:14px;top:58px;z-index:1200;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:11px 15px 11px;box-shadow:var(--shadow);min-width:212px;max-width:248px}
 .legend h4{font-size:10.5px;color:var(--ink-3);letter-spacing:.12em;margin-bottom:9px;font-weight:600}
 /* L-1：折叠态只留一行摘要；<1100px 时强制收起（与播放中事件卡的空间冲突） */
 .lg-toggle{display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
@@ -270,9 +311,10 @@ button{font-family:inherit;border:none;background:none}
 .lg-j.future{opacity:.38}
 .lg-hint{margin-top:9px;padding-top:9px;border-top:1px solid var(--hair-2);font-size:10.5px;color:var(--ink-3)}
 
-/* 播放中的事件卡 */
-.now{position:absolute;left:50%;bottom:24px;transform:translate(-50%,16px);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:12px 16px 11px;box-shadow:var(--shadow);opacity:0;transition:opacity .35s,transform .35s cubic-bezier(.2,.7,.3,1);pointer-events:none;z-index:1250;max-width:min(480px,calc(100% - 40px))}
-.now.show{opacity:1;transform:translate(-50%,0);pointer-events:none}
+/* 播放中的事件卡：浮在时间轴上方，居中于「没被面板遮住」的那块地图 */
+.now{position:absolute;left:calc(var(--sb) + 28px);right:14px;bottom:calc(var(--tlh) + 14px);margin:0 auto;width:max-content;max-width:min(480px,calc(100vw - var(--sb) - 62px));transform:translateY(14px);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:12px 16px 11px;box-shadow:var(--shadow);opacity:0;transition:opacity .35s,transform .35s cubic-bezier(.2,.7,.3,1);pointer-events:none;z-index:1250}
+.now.show{opacity:1;transform:translateY(0);pointer-events:none}
+body.panel-off .now{left:14px;max-width:min(480px,calc(100vw - 30px))}
 .card-more{pointer-events:auto}
 .card-bar{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--ink-3)}
 .card-bar i{width:8px;height:8px;border-radius:50%;flex:none}
@@ -286,16 +328,17 @@ button{font-family:inherit;border:none;background:none}
 .card-more{margin-top:9px;font-size:11.5px;color:var(--accent-deep);cursor:pointer;font-weight:600}
 .card-more:hover{text-decoration:underline}
 
-.attri{position:absolute;right:12px;bottom:10px;z-index:1200;font-size:10px;color:var(--ink-3);letter-spacing:.02em}
+/* 署名与来源：随浮动时间轴卡片走（地图右下角要留给缩放与比例尺） */
+.attri{font-size:10px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap}
+.tl-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px}
+.tl-foot .attri{margin-left:auto;text-align:right}
 
-/* Leaflet 控件样式覆盖 */
-.leaflet-top.leaflet-right{margin-top:14px;margin-right:14px}
+/* Leaflet 控件样式覆盖（缩放按钮已改为模板自带的 .mapctl，见下） */
 .leaflet-bar{border:1px solid var(--hair)!important;border-radius:10px!important;box-shadow:var(--shadow)!important;overflow:hidden}
 .leaflet-bar a{background:rgba(255,255,255,.94)!important;color:var(--ink-2)!important;border-bottom:1px solid var(--hair-2)!important;width:32px!important;height:32px!important;line-height:31px!important;font-size:17px!important}
 .leaflet-bar a:last-child{border-bottom:none!important}
 .leaflet-bar a:hover{background:#fff!important;color:var(--ink)!important}
 .leaflet-control-scale-line{border-color:#c3c6bd!important;color:var(--ink-2);background:rgba(255,255,255,.75);border-radius:2px;font-size:10px;padding:1px 5px}
-.leaflet-bottom.leaflet-right{margin-bottom:6px}
 
 .leaflet-tooltip.city-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink);font-size:12.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;pointer-events:none}
 /* 标签避让的附加偏移：map-core 用 --tx/--ty 指定（不重绑 tooltip，避免 DOM 泄漏）。
@@ -319,11 +362,14 @@ button{font-family:inherit;border:none;background:none}
 .place-icon .place{position:relative;width:96px;height:96px}
 .place .glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 6%,transparent) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
 .place.lit .glow{opacity:1}
-/* 呼吸环：双环错相半周期，5.6s 一叹（0→55% 扩张渐隐、55→100% 静息）。
- * 旧实现单环 4.6s 且 70→100% 强制熄屏，读作「闪烁」；呼吸频率下应无全局熄屏帧。 */
-.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:breathe 5.6s cubic-bezier(.32,.52,.42,1) infinite;pointer-events:none;opacity:.5}
-.place .ring.b2{animation-delay:2.8s}
-@keyframes breathe{0%{transform:scale(1);opacity:.5}55%{transform:scale(2.5);opacity:0}100%{transform:scale(2.5);opacity:0}}
+/* 呼吸环：双环错相半周期，9s 一叹（0→62% 扩张渐隐、62→100% 静息）。
+ * 2026-10-30 放慢（原 5.6s / 错相 2.8s）：旧曲线 cubic-bezier(.32,.52,.42,1)
+ * 起步极快 —— 每 2.8s 就有一圈「啪」地弹出去，观感是抽搐而不是呼吸。
+ * 改法两条：周期 5.6 → 9s（每 4.5s 才起一圈），缓动换成两头慢的
+ * cubic-bezier(.4,.05,.5,.95)（真正的吸气—呼气），扩到 2.15 倍即止。 */
+.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:breathe 9s cubic-bezier(.4,.05,.5,.95) infinite;pointer-events:none;opacity:.45}
+.place .ring.b2{animation-delay:4.5s}
+@keyframes breathe{0%{transform:scale(1);opacity:.45}62%{transform:scale(2.15);opacity:0}100%{transform:scale(2.15);opacity:0}}
 /* 播放中收敛：全图呼吸环静息（跟车平移 × 全图 28 环持续扩散 = 双重动态，观感「闪」）。
  * 到达处的动态强调交给 fx-glow 单点光晕；暂停/播毕自动恢复呼吸（body.playing 移除）。 */
 body.playing .place .ring{animation:none;opacity:.18}
@@ -361,11 +407,11 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 .ctx-icon{pointer-events:none}
 .ctx{width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #b9bdb4;box-shadow:0 1px 3px rgba(20,20,18,.15)}
 
-/* 点亮特效：柔光淡入后进入 5.6s 呼吸（与地点环同频） */
+/* 点亮特效：柔光淡入后进入 9s 呼吸（与地点环同频；原 5.6s 同样偏快） */
 .fx-ic{pointer-events:none}
-.fx-glow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin 1.8s ease-out forwards,glowbreathe 5.6s ease-in-out 1.8s infinite}
+.fx-glow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin 1.8s ease-out forwards,glowbreathe 9s ease-in-out 1.8s infinite}
 @keyframes fxin{0%{opacity:0}22%{opacity:1}to{opacity:1}}
-@keyframes glowbreathe{0%,100%{opacity:.72}50%{opacity:1}}
+@keyframes glowbreathe{0%,100%{opacity:.8}50%{opacity:1}}
 
 /* 旅程动画 */
 .travel-ic{pointer-events:none}
@@ -376,28 +422,25 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 @keyframes pulse{0%{transform:scale(1);opacity:.45}70%{transform:scale(3);opacity:0}100%{transform:scale(3);opacity:0}}
 .rh-ic{pointer-events:none}
 .rh{width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#c2593f) 20%,transparent),0 0 14px color-mix(in srgb,var(--c,#c2593f) 65%,transparent);position:relative}
-.rh::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.5;animation:pulse 1.7s ease-out infinite}
+.rh::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.5;animation:pulse 2.4s ease-out infinite}
 
-/* 响应式 */
+/* 响应式：窄屏同样「地图铺满 + 浮层」，事件面板变成可收起的底部抽屉。
+ * 手机屏幕放不下「地图 + 3 行列表 + 169px 时间轴」，因此默认收起抽屉，
+ * 把整块屏幕让给地图（与桌面同一主张）；点「事件」胶囊拉起抽屉。 */
 @media (max-width: 960px){
-  .app{flex-direction:column}
-  /* 移动端：地图列收在侧栏下方；时间轴用 order 保持在「列表与地图之间」（与旧版同位置，
-     避免把播放控件压到屏幕最底）。height 须覆写基础 height:100% —— 否则列布局下
-     地图列占满 100dvh，把侧栏事件列表挤到最小高度。 */
-  .mapcol{flex:none;height:auto;display:flex;flex-direction:column;min-height:0}
-  .mapcol .tl{order:-1}
-  /* 移动端高度分配：侧栏至少要能容下 hd + 引导横幅 + 若干事件行 + 时间轴。
-     原 56dvh 会把 .scroll 压到 ~45px（列表整体不可见、横幅压住播放按钮），
-     故地图降到 34dvh 并压缩 hd 的纵向留白。
-     M2 后事件数 12 → 53，时间轴圆点由 3 行增到 4 行（轨道 60px → 73px），
-     列表区随之被压到只剩 2 行事件。故再让出三处：地图 37→34dvh、
-     隐藏键盘提示行（触屏无键盘）、引导横幅内边距收紧。 */
-  /* M4 再让一档：事件 84 → 97，时间轴轨道 114 → 169px（窄屏一年只有 15px），
-     地图 34 → 32dvh，把列表区稳定在 3 行以上（J2 断言）。 */
-  #map{height:32dvh;flex:none}
-  .sidebar{width:100%;height:auto;flex:1;min-height:0;border-right:none;border-top:1px solid var(--hair)}
+  .sidebar{left:10px;right:10px;top:auto;bottom:calc(var(--tlh) + 10px);width:auto;
+    height:44dvh;max-height:520px;border-radius:16px}
+  body.panel-off .sidebar{transform:translateY(calc(100% + 14px));opacity:.001;pointer-events:none}
+  /* 开关：抽屉展开时贴在其右上角，收起后浮在时间轴上方（左），不挡缩放控件 */
+  #panelToggle{left:auto;right:16px;top:auto;bottom:calc(var(--tlh) + 10px + 44dvh - 46px);height:30px;padding:0 10px}
+  #panelToggle .pt-lb{display:inline}
+  body.panel-off #panelToggle{left:10px;right:auto;top:auto;bottom:calc(var(--tlh) + 10px);height:32px;padding:0 12px}
+  #panelToggle svg{transform:rotate(90deg)}                    /* ‹ → 向上：拉起列表 */
+  body.panel-off #panelToggle svg{transform:rotate(-90deg)}    /* 展开态：向下收起 */
+  .tl{left:10px;right:10px;bottom:10px}
+  body.panel-off .tl{left:10px}
   .legend{display:none}
-  .hd{padding:13px 20px 10px}
+  .hd{padding:13px 18px 10px}
   .hd h1{font-size:20px;line-height:1.1}
   .hd .sub{font-size:11.5px;margin-top:4px}
   .eyebrow{margin-bottom:7px;font-size:10.5px}
@@ -407,7 +450,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
   .stat b{font-size:14px}
   .stat span{font-size:9.5px;margin-top:2px}
   /* 章节 chip 单行横向滚动，不换行 —— 换行会占掉两整行高度，
-     在窄屏上把事件列表挤到只剩一两行（scroll 区总共才 181px）。 */
+     在窄屏上把事件列表挤到只剩一两行。 */
   .chapterbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:11px 16px 3px;align-items:center}
   .chapterbar::-webkit-scrollbar{display:none}
   /* flex:none 只固定了主轴（宽）尺寸，交叉轴仍被容器 align-items 拉伸；
@@ -417,25 +460,28 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
      计数信息在时间轴「N / 12 事件」里已有。 */
   .ch-chip em{display:none}
   .list{padding:4px 12px 12px}
-  .tl{padding:10px 20px 12px}
-  /* 窄屏时间轴让位（M4）：97 个事件把轨道撑到 185px，加上两行控件共 302px，
-     列表区只剩 2 行。此处两处收紧——① 隐藏「时间轴 · 事件发生之时」标题行
-     （控件本来就自成一行，标题只是装饰）；② 收窄上下内边距。 */
+  .tl{padding:10px 18px 9px}
+  /* 窄屏时间轴让位（M4）：97 个事件把轨道撑到 185px，加上两行控件共 302px。
+     此处两处收紧——① 隐藏「时间轴 · 事件发生之时」标题行；
+     ② 收窄上下内边距。 */
   .tl-cap{display:none}
   .tl-top{margin-bottom:2px}
-  /* 触屏没有物理键盘，「空格播放 / ← → 步进」一行纯占位：窄屏下把这 32px 让给事件列表 */
+  /* 触屏没有物理键盘，「空格播放 / ← → 步进」一行纯占位 */
   .tl-keys{display:none}
-  .chips{top:10px;left:10px;gap:6px}
+  .tl-foot{margin-top:6px}
+  .chips{top:10px;left:10px;right:10px;gap:6px;justify-content:flex-start}
   .chip{padding:6px 11px;font-size:11.5px}
   .guide{margin:8px 16px 0;padding:7px 11px}
   .guide .g-txt b{font-size:12px}
   .guide .g-txt span{font-size:10.5px}
   .guide .g-ic{width:23px;height:23px}
   .guide .g-act{padding:5px 11px;font-size:11.5px}
-  /* L-3：事件卡改顶部通栏，把底部留给地图；chips 同步让位 */
-  .now{top:52px;left:12px;right:12px;bottom:auto;transform:translateY(-14px);max-width:none;border-radius:12px;padding:11px 14px 10px}
+  /* L-3：事件卡改顶部通栏，避开底部抽屉与时间轴；chips 同步让位 */
+  .now{top:52px;left:10px;right:10px;bottom:auto;width:auto;max-width:none;transform:translateY(-14px);border-radius:12px;padding:11px 14px 10px}
   .now.show{transform:translateY(0)}
   .card-more{padding:6px 12px;font-size:11.5px}
+  .leaflet-bottom.leaflet-right{bottom:calc(var(--tlh) + 8px);margin-right:10px}
+  .mapctl{right:10px;bottom:calc(var(--tlh) + 12px)}
 }
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.01ms!important;transition-duration:.01ms!important}
@@ -444,6 +490,11 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 </head>
 <body>
 <div class="app">
+  <!-- 面板折叠开关：浮在面板右边缘，折叠后停在地图左上角 -->
+  <button id="panelToggle" aria-controls="scroll" aria-expanded="true" title="收起 / 展开事件面板">
+    <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M7.5 2.5 4 6l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="pt-lb">事件</span>
+  </button>
   <aside class="sidebar">
     <header class="hd">
       <div class="eyebrow">新约 · 使徒行传与保罗书信</div>
@@ -475,31 +526,42 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
   </aside>
 
   <div class="mapcol">
-    <main id="map">
-      <div class="chips">
-        <button class="chip on" data-layer="routes">传道旅程</button>
-        <button class="chip on" data-layer="places">事件地点</button>
-        <button class="chip on" data-layer="labels">地名</button>
-        <button class="chip ghost" id="resetBtn">重置视图</button>
+    <main id="map"></main>
+    <!-- 浮层：全部挂在 .app 上而不是 #map 里。
+         #map 是 Leaflet 容器（overflow:hidden + 自己的层叠上下文），把浮层放进去后
+         calc(var(--tlh)) 在容器二次变化后不重新解析（实测 --tlh=261px 时 bottom 仍按 152px
+         算，控件整块压到时间轴上）；挂到 .app 层后与 #panelToggle 同一坐标系，实测正确。 -->
+    <div class="chips">
+      <button class="chip on" data-layer="routes">传道旅程</button>
+      <button class="chip on" data-layer="places">事件地点</button>
+      <button class="chip on" data-layer="labels">地名</button>
+      <button class="chip ghost" id="resetBtn">重置视图</button>
+    </div>
+    <!-- 缩放：自带浮层按钮（Leaflet 角容器在浮层构图下会把控件溢出到时间轴上） -->
+    <div class="mapctl" role="group" aria-label="地图缩放">
+      <button id="zoomIn" aria-label="放大" title="放大">
+        <svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true"><path d="M7 2.4v9.2M2.4 7h9.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+      <button id="zoomOut" aria-label="缩小" title="缩小">
+        <svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true"><path d="M2.4 7h9.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <!-- L-1：图例可折叠（旅程信息与统计区/时间轴色带三处重复，默认收起摘要） -->
+    <div class="legend" id="legend">
+      <button class="lg-toggle" id="lgToggle" aria-expanded="false">
+        <h4>图例</h4>
+        <span class="lg-sum" id="lgSum">7 类事件 · 1 段旅程 · 点击展开</span>
+        <svg viewBox="0 0 12 12" width="10" height="10" class="lg-caret"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="lg-body" id="lgBody">
+        <h4>事件类型</h4>
+        <div id="typeLegend"></div>
+        <h4 style="margin-top:11px">传道旅程</h4>
+        <div id="journeyLegend"></div>
+        <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
       </div>
-      <!-- L-1：图例可折叠（旅程信息与统计区/时间轴色带三处重复，默认收起摘要） -->
-      <div class="legend" id="legend">
-        <button class="lg-toggle" id="lgToggle" aria-expanded="false">
-          <h4>图例</h4>
-          <span class="lg-sum" id="lgSum">7 类事件 · 1 段旅程 · 点击展开</span>
-          <svg viewBox="0 0 12 12" width="10" height="10" class="lg-caret"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="lg-body" id="lgBody">
-          <h4>事件类型</h4>
-          <div id="typeLegend"></div>
-          <h4 style="margin-top:11px">传道旅程</h4>
-          <div id="journeyLegend"></div>
-          <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
-        </div>
-      </div>
-      <div class="now" id="now"></div>
-      <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet · 经文引自和合本</div>
-    </main>
+    </div>
+    <div class="now" id="now"></div>
 
     <footer class="tl">
       <div class="tl-top">
@@ -534,7 +596,10 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
         <div class="tl-knob" id="tlKnob"></div>
       </div>
       <div class="tl-scale" id="tlScale"></div>
-      <div class="tl-keys">空格 播放 / 暂停 · ← → 步进事件 · Esc 返回列表 · 点击地点或事件标记查看介绍</div>
+      <div class="tl-foot">
+        <div class="tl-keys">空格 播放 / 暂停 · ← → 步进事件 · Esc 返回列表 · 点击地点或事件标记查看介绍</div>
+        <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet · 经文引自和合本</div>
+      </div>
     </footer>
   </div>
 </div>
@@ -658,6 +723,67 @@ var placeLayer = L.layerGroup().addTo(map);
 var labelItems = [];
 var dotEls = {};    /* 事件 id -> 地图上的事件点 DOM */
 var placeEls = {};  /* 地点 id -> .place DOM */
+
+/* ================= 浮层安全区 =================
+ * 全屏地图下，面板与时间轴都盖在图上。把「被盖住」的尺寸交给 mapCore，
+ * fitBounds 只把故事范围塞进剩下的可视区 —— 否则罗马与马耳他会躲在面板背后。
+ * refit 只在「视口尺寸真的变了 / 首次 / 用户折叠面板」时做：
+ * 其余情况（如时间轴轨道高度微调）只更新 padding，不动读者当前的视野。 */
+var lastFitW = 0, lastFitH = 0, lastMobile = null, lastInsB = -1, lastInsL = -1;
+var mobileMQ = window.matchMedia('(max-width:960px)');
+/* 面板默认态：窄屏收起抽屉（整屏给地图），桌面展开 */
+function applyPanelDefault() {
+  var off = mobileMQ.matches;
+  document.body.classList.toggle('panel-off', off);
+  $('panelToggle').setAttribute('aria-expanded', off ? 'false' : 'true');
+}
+function syncInsets(force) {
+  var tl = document.querySelector('.tl');
+  var sb = document.querySelector('.sidebar');
+  var mobile = mobileMQ.matches;
+  if (lastMobile !== null && mobile !== lastMobile) applyPanelDefault();   /* 跨断点：恢复默认态 */
+  lastMobile = mobile;
+  var tlh = tl ? Math.round(tl.getBoundingClientRect().height) : 0;
+  var sbw = sb ? Math.round(sb.getBoundingClientRect().width) : 0;
+  var off = document.body.classList.contains('panel-off');
+  document.documentElement.style.setProperty('--tlh', tlh + 'px');
+  document.documentElement.style.setProperty('--panelw', sbw + 'px');
+  var ins;
+  if (mobile) {
+    /* 抽屉收起时不占位（transform 已把它移出视口，但 rect 高度仍是 44dvh） */
+    var panelH = (off || !sb) ? 0 : Math.round(sb.getBoundingClientRect().height) + 10;
+    ins = { t: 56, r: 10, b: tlh + 10 + panelH, l: 10 };
+  } else {
+    ins = { t: 56, r: 16, b: tlh + 28, l: off ? 54 : sbw + 28 };
+  }
+  var needFit = !!force || window.innerWidth !== lastFitW ||
+    Math.abs(window.innerHeight - lastFitH) > 60 ||
+    /* 浮层尺寸实质变化（时间轴轨道在首帧后才定型，桌面 162→255px）也要重适配，
+     * 否则首次 fit 用的是「轨道还没长高」时的安全区，故事会整体偏下压在时间轴上。 */
+    Math.abs(ins.b - lastInsB) > 16 || Math.abs(ins.l - lastInsL) > 16;
+  lastFitW = window.innerWidth; lastFitH = window.innerHeight;
+  lastInsB = ins.b; lastInsL = ins.l;
+  mapCore.setInsets(ins, needFit);
+}
+function showPanel() {
+  if (!document.body.classList.contains('panel-off')) return;
+  document.body.classList.remove('panel-off');
+  $('panelToggle').setAttribute('aria-expanded', 'true');
+  setTimeout(function () { syncInsets(true); }, 380);
+}
+$('panelToggle').addEventListener('click', function () {
+  var off = document.body.classList.toggle('panel-off');
+  this.setAttribute('aria-expanded', off ? 'false' : 'true');
+  setTimeout(function () { syncInsets(true); }, 380);
+});
+window.addEventListener('resize', function () { syncInsets(false); });
+if (window.ResizeObserver) {
+  var ro = new ResizeObserver(function () { syncInsets(false); });
+  ro.observe(document.querySelector('.tl'));
+  ro.observe(document.querySelector('.sidebar'));
+}
+applyPanelDefault();
+syncInsets(true);
 
 /* ================= 路线引擎 ================= */
 var routes = GS.routeEngine.init({
@@ -890,6 +1016,7 @@ function renderMedia(media) {
 function openEvent(id) {
   var ev = EV_BY[id];
   if (!ev) return;
+  showPanel();   /* 面板被收起时先展开：详情是要读的，不能只换个地图状态 */
   /* 从地点介绍窗进入：记住来源，返回时回介绍窗（placeBack 仅一层） */
   placeBack = (state.detail && state.detail.indexOf('place:') === 0) ? state.detail.slice(6) : null;
   state.detail = id;
@@ -966,6 +1093,7 @@ var placeBack = null;
 function openPlace(id) {
   var p = PLACE_BY[id];
   if (!p || p.ctx) return;
+  showPanel();
   placeBack = null;
   state.detail = 'place:' + id;
   setStoryEnd(false);
@@ -1036,6 +1164,7 @@ function precisionLabel(p) {
 function openAudit() {
   pause();
   setStoryEnd(false);
+  showPanel();
   state.focus = null;
   state.detail = 'audit';
   var rules = (AUDIT.rules || []).map(function (r) {
@@ -1118,71 +1247,43 @@ function showCard(ev) {
 function hideCard() { $('now').classList.remove('show'); }
 
 /* ================= 播放控制 ================= */
-/* 相机跟车 rig：与路线描线共用 seek 的帧回调，两者严格同拍（M-5「同一时钟」不变）。
+/* 镜头策略（2026-10-30 第二次改，需求：「线条播放时镜头不动，保持稳定感」）
  *
- * 抖动根因（2026-10-17 实测定位）：跟车帧里调用 map.setView(animate:false) 会走
- * _moveStart/_move/_moveEnd 全事件链——每帧 zoomstart/movestart/zoom/move/zoomend/moveend。
- * 其中 moveend → L.Renderer._update → _updatePaths 把【整个场景】的 SVG 路径
- * （地中海底图 + 经纬网 + 全部路线 + 圆点）全部重新投影并重写 d 属性；
- * zoomend → _onZoomEnd 再全量 _project 一遍。实测 12s 播放：31,466 次 d 重写、
- * 250 次 moveend。再叠加 zoomSnap:.5 把逐帧插值的缩放假量化为 5.5→6.0→6.5 三次瞬跳
- * ——两者叠加就是用户看到的「抖」。
+ * 演进：M1 每帧 setView 跟车 → 抖动（12s 播放 31,466 次 d 重写 / 250 次 moveend）；
+ *      2026-10-27 改 _rawPanBy 纯平移跟车（零事件、零重投影）+ 单档缩放；
+ *      本轮干脆不跟车：播放全程镜头一动不动，只有线在长、点在亮。
  *
- * rig 只平移 pane（map._rawPanBy：纯 CSS transform，零事件、零重投影），
- * 缩放改走 Leaflet 动画通道（flyTo：JS rAF + 每帧 _move({flyTo:true})，
- * 不触发 Renderer 重投影、末帧一次 _moveEnd 收口；时长可控，可放慢求优雅），
- * 每段行程结束用一次 setView 对齐内部状态。
- * 方案评估：不需要换技术（MapLibre GL/自绘 canvas）——Leaflet 自身的 flyTo 就是
- * 平滑动画，问题只在「每帧 setView」这个用法上。 */
-var CAM = { zEvent: 6.5, zPlay: 6.0 };   /* zPlay：播放单档稳定缩放（开播落位一次，此后只平移跟车）；
-                                             zEvent：仅交互路径推近（点击定位/步进/地点详情） */
-var rig = { ll: null, dirty: false };      /* ll: 最近跟车目标；dirty: rig 挪过 pane 待对齐 */
-var camEv = null;                          /* 当前行程目标事件（到达时推近用） */
+ * 为什么可以完全不动：初始视野（STORY_FIT + 浮层安全区）已容纳全部 25 个事件地点，
+ * 播放期间不会有事件落到视野外。镜头静止后屏幕上只剩「线在生长」这一个运动源，
+ * 这正是「稳定感」的来源 —— 旧实现里镜头与描线是两个运动源，再平滑也会互相打架。
+ *
+ * 唯一例外：开播前若当前视野没盖住故事范围（读者先放大到了罗马），先落位一次，
+ * 落位完成才启动描线。默认状态下不发生，按下播放即刻开演、镜头零位移。
+ * 点击事件 / 地点 / 步进仍会 flyTo —— 那是读者主动发起的定位，不属于播放期镜头。 */
+var CAM = { zEvent: 6.5 };                 /* 仅交互路径推近（点击定位 / 步进 / 地点详情） */
+var camEv = null;                          /* 当前行程目标事件（到达时用） */
 var playToken = 0;                         /* 每次 startPlay +1：延迟启动的 seek 据此识别自己是否已过时 */
 function syncPlayBtn() {
   $('playBtn').classList.toggle('playing', state.playing);
   $('playLb').textContent = state.playing ? '暂停' : '播放';
 }
-/* rig 只挪 pane，Leaflet 内部状态（_lastCenter/_pixelOrigin）会陈旧，
- * 后续任何 flyTo 都会从陈旧中心起跳。用一次 setView 以「视觉中心」对齐（零位移、一次重建）。
- * 只在 rig 真的挪动过后执行；视觉中心用 containerPointToLatLng 取，与 pane 位移严格一致。 */
-function syncRig() {
-  if (!rig.dirty) return;
-  rig.dirty = false;
-  if (!rig.ll) return;
-  map.setView(map.containerPointToLatLng(map.getSize().divideBy(2)), map.getZoom(), { animate: false });
-}
-/* seek 每帧回调：ll = 当前描线头的插值坐标，t = 缓动后进度 [0,1] */
-function camFollow(ll, t) {
-  if (!map.getSize().x) return;                    /* 容器尺寸未就绪，跳过本帧 */
-  rig.ll = ll;
-  if (t >= 1) {
-    /* 行程终点：先对齐内部状态，再触发到达效果（事件卡/地点点亮/事件名弹跳）。
-     * 不再推近缩放——播放全程单档稳定镜头（zPlay），避免逐事件 5.5↔6.5 反复推拉。 */
-    syncRig();
-    if (camEv) arriveEvent(camEv);
-    return;
-  }
-  var d = map.latLngToContainerPoint(ll).subtract(map.getSize().divideBy(2));
-  if (Math.abs(d.x) < .5 && Math.abs(d.y) < .5) return;   /* 已居中，免一次无谓 transform */
-  rig.dirty = true;
-  if (map._rawPanBy) map._rawPanBy(d);             /* 只平移：零事件、零重投影 */
-  else map.panTo(ll, { animate: false, noMoveStart: true });   /* 兜底（bundled Leaflet 必有 _rawPanBy） */
+/* seek 每帧回调：只等末帧触发「到达」，不碰相机。
+ * 保留 (ll, t) 签名是为了与 route-engine 的回调契约一致（ll 仍可用于调试）。 */
+function onSeekFrame(ll, t) {
+  if (t >= 1 && camEv) arriveEvent(camEv);
 }
 function revealEvent(ev) {
   setStoryEnd(false);
   state.focus = ev.id;
   state.arrivedId = null;         /* 本段行程尚未到达：卡片/标签/点亮全部等到抵达 */
   camEv = ev;
-  /* 播放相机已由 startPlay 一次性落位到 zPlay 单档缩放，本段不再巡航拉远/到达推近，
-   * 只做描线+跟车（rig 纯平移，零缩放零事件）。SEEK_LEAD 后才启动 seek——
-   * 若窗口内被暂停/步进（state.playing 已假），放弃本次描线，由交互路径的 flyTo 接管相机。 */
-  syncRig();
+  /* 镜头全程不动（见上方策略注释）：这里只启动描线，不碰相机。
+   * SEEK_LEAD 后才启动 seek —— 若窗口内被暂停/步进（state.playing 已假），放弃本次描线。 */
   var myToken = playToken;
   setTimeout(function () {
     /* 令牌校验：窗口内若发生 暂停→重播（startPlay 会 +1），本次延迟 seek 即过时，放弃 */
     if (!state.playing || myToken !== playToken) return;
-    routes.seek(ev, (TRAVEL - SEEK_LEAD) / state.speed, camFollow);
+    routes.seek(ev, (TRAVEL - SEEK_LEAD) / state.speed, onSeekFrame);
   }, SEEK_LEAD / state.speed);
   applyReveal(state.year);   /* 标记状态唯一收口：当前行程中（traveling）/ 其余 .dim */
   GS.fx.emit('event:depart', ev);
@@ -1219,11 +1320,10 @@ function startPlay() {
   state.arrivedId = null;         /* 新序列：首个事件抵达前不弹卡 */
   syncPlayBtn();
   applyReveal(state.year);
-  /* 单档稳定镜头：开播前一次性落位到 zPlay（此后全程只平移跟车，不再逐事件推拉）。
-   * 已在 zPlay 则立即开播；否则先落位再启动序列——settle 缩放与 rig 平移分开时间窗，
-   * 两套坐标系统不打架。settle 窗口内若被暂停（state.playing 已假），放弃启动。 */
-  var settle = Math.abs(map.getZoom() - CAM.zPlay) > 0.01;
-  if (settle) mapCore.flyTo(map.getCenter(), CAM.zPlay, CRUISE_MS / state.speed);
+  /* 开播前唯一可能的一次落位：当前视野没盖住故事范围（读者先放大到某地）才做，
+   * 落位完成再启动描线。默认视野已覆盖 ⇒ settle=false，按下即开演、镜头零位移。 */
+  var settle = !mapCore.coversStory();
+  if (settle) mapCore.resetView(CRUISE_MS / state.speed);
   var myToken = playToken;
   var boot = function () {
     if (!state.playing || myToken !== playToken) return;
@@ -1260,7 +1360,6 @@ function pause() {
   timeline.pause();
   state.playing = false; state.auto = false;
   document.body.classList.remove('playing');
-  syncRig();               /* rig 半途停下：对齐 pane 位移，后续 flyTo 才不从陈旧中心起跳 */
   routes.release();   /* 暂停后描线交还年份驱动 */
   syncPlayBtn();
   hideCard();
@@ -1365,6 +1464,9 @@ $('resetBtn').addEventListener('click', function () {
   timeline.setYear(D0);
   mapCore.resetView();
 });
+/* 缩放按钮：走 Leaflet 的 zoomIn/zoomOut（与滚轮同一通道，会触发 zoomstart ⇒ 接管镜头） */
+$('zoomIn').addEventListener('click', function () { map.zoomIn(1); });
+$('zoomOut').addEventListener('click', function () { map.zoomOut(1); });
 
 /* ================= 键盘 ================= */
 document.addEventListener('keydown', function (e) {
@@ -1407,9 +1509,11 @@ var timeline = GS.timeline.init({
   },
   onMark: function (m) { pause(); openEvent(m.id); },
   onBand: function (b) { jumpChapter(b.id); },
+  onState: function (playing) { state.playing = playing; state.auto = playing; syncPlayBtn(); },
   /* 轨道高度 / 色带位置已由 timeline 簇模型在 pickLayout 后直接写入 DOM（点径随轨道宽
-     自适应，行距随 D 变化），此处不再用硬编码 13px 行距覆盖布局。 */
-  onState: function (playing) { state.playing = playing; state.auto = playing; syncPlayBtn(); }
+     自适应，行距随 D 变化），此处不再用硬编码 13px 行距覆盖布局。
+     onPending 在布局落定后回调：此刻 .tl 的真实高度才确定，重算安全区并重适配视野。 */
+  onPending: function () { syncInsets(true); }
 });
 EVENTS.forEach(function (e) {
   for (var i = 0; i < tlMarks.length; i++) {
@@ -1532,6 +1636,9 @@ window.GS_APP = {
   open: openEvent, openPlace: openPlace, openAudit: openAudit, close: closeEvent, play: startPlay, pause: pause,
   step: stepEvent, jumpChapter: jumpChapter, setFilter: setFilter,
   dotEls: dotEls, map: map, timeline: timeline, setYear: function (y) { timeline.setYear(y); },
+  insets: function () { return mapCore.insets(); },
+  fits: function () { return mapCore.fits(); },
+  togglePanel: function () { $('panelToggle').click(); },
   timing: { TRAVEL: TRAVEL, SEEK_LEAD: SEEK_LEAD, CRUISE_MS: CRUISE_MS, ARRIVE_MS: ARRIVE_MS, DWELL: DWELL, CAM: CAM }
 };
 

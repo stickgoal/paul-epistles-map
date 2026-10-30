@@ -1,5 +1,7 @@
 .cdp-profile/
 *.png
 .workbuddy/
+.workbuddy-ai/
+.verify-last.txt
 target/
 .tools/

@@ -9,6 +9,45 @@ GS.mapCore = (function () {
   var lastItems = [], lastObstacleSel = '.place .ev-dot, .ctx';
   var labelTimer = null, lastLabelZoom = 0;
   var lastFit = null;
+  /* 安全区（px）：浮在地图上的面板/时间轴遮住的区域。fitBounds 只把故事范围塞进
+   * 「没被遮住」的那块，否则全屏地图下罗马与马耳他会躲在左侧面板背后。 */
+  var insets = { t: 26, r: 26, b: 26, l: 26 };
+
+  /* 把故事范围塞进「没被浮层遮住」的那块，并在这块里居中。
+   *
+   * 为什么不用 map.fitBounds({paddingTopLeft, paddingBottomRight})：Leaflet 只用 padding
+   * 算缩放，中心仍然是【容器中心】。全屏地图 + 左侧面板 + 底部时间轴的构图里，
+   * 容器中心离安全区中心很远（1440×900 下偏左 190px、偏下 107px），故事会整体压到
+   * 面板与时间轴底下（实测罗马紧贴面板边缘、耶路撒冷被时间轴盖住）。
+   * 这里先按缩小后的尺寸求 zoom，再把「地理中心」摆到安全区的中心点上。 */
+  var fitLog = [];   /* 最近若干次 fitStory 的入参快照（诊断用：insets/zoom/中心） */
+  function fitStory(animate, durMs) {
+    var b = L.latLngBounds(lastFit || DEFAULT_FIT);
+    var size = map.getSize();
+    if (size.x < 200 || size.y < 120) return;
+    var pad = L.point(insets.l + insets.r, insets.t + insets.b);
+    var zoom = Math.min(map.getMaxZoom(), map.getBoundsZoom(b, false, pad));
+    var boxC = L.point((insets.l + size.x - insets.r) / 2, (insets.t + size.y - insets.b) / 2);
+    var px = map.project(b.getCenter(), zoom).add(size.divideBy(2).subtract(boxC));
+    var center = map.unproject(px, zoom);
+    fitLog.push([insets.t, insets.r, insets.b, insets.l, zoom, Math.round(boxC.x), Math.round(boxC.y), animate ? 'anim' : 'set']);
+    if (fitLog.length > 24) fitLog.shift();
+    if (animate) map.flyTo(center, zoom, { duration: (durMs || 1200) / 1000 });
+    else map.setView(center, zoom, { animate: false });
+  }
+  /* 安全区过大（小窗口 + 宽面板）时按比例收缩，保证至少留出 160×120 的可视区 */
+  function clampInsets() {
+    var s = map ? map.getSize() : { x: 800, y: 600 };
+    var maxL = Math.max(8, s.x - 160), maxT = Math.max(8, s.y - 120);
+    if (insets.l + insets.r > maxL) {
+      var k = maxL / (insets.l + insets.r);
+      insets.l = Math.round(insets.l * k); insets.r = Math.round(insets.r * k);
+    }
+    if (insets.t + insets.b > maxT) {
+      var k2 = maxT / (insets.t + insets.b);
+      insets.t = Math.round(insets.t * k2); insets.b = Math.round(insets.b * k2);
+    }
+  }
 
   var DEFAULT_FIT = [[27.6, -11.8], [47.8, 44.2]];
   var LABEL_CANDIDATES = [
@@ -21,14 +60,18 @@ GS.mapCore = (function () {
 
   function init(opts) {
     opts = opts || {};
+    if (opts.insets) insets = { t: opts.insets.t, r: opts.insets.r, b: opts.insets.b, l: opts.insets.l };
     map = L.map('map', {
       zoomControl: false, attributionControl: false,
       minZoom: 3, maxZoom: 10, zoomSnap: .5, wheelPxPerZoomLevel: 140
     });
     var fit = lastFit = opts.fit || DEFAULT_FIT;
-    map.fitBounds(fit, { padding: [26, 26], animate: false });
-    L.control.zoom({ position: 'topright' }).addTo(map);
-    L.control.scale({ position: 'bottomright', imperial: false, maxWidth: 120 }).addTo(map);
+    clampInsets();
+    fitStory(false);
+    /* 缩放与比例尺不再交给 Leaflet 的角容器：它的 .leaflet-control 是 float:left;clear:both，
+     * 角容器不包住浮动子元素（高度 0），在「浮层构图」里无论怎么调 bottom/margin 都会从
+     * 容器底边往下溢，压住底部时间轴（实测 bottom:269px 时控件仍在 y=676）。
+     * 缩放改由模板自带的 .mapctl 浮层按钮驱动（map.zoomIn/zoomOut），位置随 --tlh 走。 */
 
     L.geoJSON(opts.geo, {
       interactive: false,
@@ -57,7 +100,7 @@ GS.mapCore = (function () {
       if (!validSize()) return;   /* 布局未就绪，等下一次时机 */
       var before = map.getSize();
       map.invalidateSize();
-      map.fitBounds(fit, { padding: [26, 26], animate: false });
+      fitStory(false);
       if (Math.abs(map.getSize().x - before.x) < 1 && Math.abs(map.getSize().y - before.y) < 1) {
         ready = true;
         if (opts.onReady) opts.onReady();
@@ -86,7 +129,7 @@ GS.mapCore = (function () {
       map.invalidateSize();
       if (locked) return;
       if (!ready) { settle(); return; }
-      map.fitBounds(fit, { padding: [26, 26], animate: false });
+      fitStory(false);
       clearTimeout(labelTimer);
       labelTimer = setTimeout(function () { if (lastItems.length) placeLabels(lastItems, lastObstacleSel); }, 180);
     }
@@ -371,7 +414,31 @@ GS.mapCore = (function () {
     ripple: ripple,
     placeLabels: placeLabels,
     setLabelsVisible: function (v) { map.getContainer().classList.toggle('hide-labels', !v); },
-    resetView: function () { map.flyToBounds(lastFit || DEFAULT_FIT, { padding: [26, 26], duration: 1.2 }); }
+    /* 更新安全区并（可选）重新适配视野。浮层尺寸变化后由调用方触发；
+     * refit=false 只更新 padding（下次 fitBounds 生效），不动当前视野。 */
+    setInsets: function (o, refit) {
+      if (!o) return;
+      insets = { t: o.t, r: o.r, b: o.b, l: o.l };
+      clampInsets();
+      if (refit === false || !map) return;
+      var s = map.getSize();
+      if (s.x < 200 || s.y < 120) return;   /* 布局中间态：fitBounds 会把 zoom 算爆 */
+      map.invalidateSize();
+      fitStory(false);
+      clearTimeout(labelTimer);
+      labelTimer = setTimeout(function () { if (lastItems.length) placeLabels(lastItems, lastObstacleSel); }, 180);
+    },
+    insets: function () { return { t: insets.t, r: insets.r, b: insets.b, l: insets.l }; },
+    fits: function () { return fitLog.slice(); },
+    resetView: function (durMs) {
+      fitStory(true, durMs);
+    },
+    /* 当前视野是否已覆盖故事范围（供「开播前才落位」判断） */
+    coversStory: function () {
+      if (!lastFit) return true;
+      var b = map.getBounds();
+      return b.contains(lastFit[0]) && b.contains(lastFit[1]);
+    }
   };
   return { init: init };
 })();
