@@ -30,6 +30,7 @@ const MEDIA = {
   syracuse: { kind: 'site', title: '叙拉古的希腊剧场', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/The_Greek_theatre_of_Syracuse%2C_Sicily.jpg/960px-The_Greek_theatre_of_Syracuse%2C_Sicily.jpg', credit: 'Nicolas Chadeville · CC BY-SA 4.0', url: 'https://commons.wikimedia.org/wiki/File:The_Greek_theatre_of_Syracuse,_Sicily.jpg' },
   maltaBay: { kind: 'site', title: '圣保罗湾（保罗遇难登陆处）', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/St_Paul%27s_Islands%2C_Malta.jpg/960px-St_Paul%27s_Islands%2C_Malta.jpg', credit: '公有领域（Public domain）', url: "https://commons.wikimedia.org/wiki/File:St_Paul's_Islands,_Malta.jpg" },
   maltaChurch: { kind: 'site', title: '沉船湾的圣保罗船难教堂', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/St_Paul_Bay_Shipwreck_Church_Malta_1.jpg/960px-St_Paul_Bay_Shipwreck_Church_Malta_1.jpg', credit: 'Karelj · CC BY-SA 3.0', url: 'https://commons.wikimedia.org/wiki/File:St_Paul_Bay_Shipwreck_Church_Malta_1.jpg' },
+  grandHarbour: { kind: 'site', title: '瓦莱塔大港（Grand Harbour）——保罗一行在此换乘亚历山大的船', src: null, credit: null, url: 'https://commons.wikimedia.org/wiki/File:Grand_Harbour_-_Senglea.jpg' },
   thornhill: { kind: 'art', title: '詹姆斯·桑希尔的《马耳他沉难》（圣保罗座堂藏）', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/James_Thornhill_%281675-1676-1734%29_-_Shipwreck_at_Malta_-_8208_-_St_Paul%27s_Cathedral.jpg/960px-James_Thornhill_%281675-1676-1734%29_-_Shipwreck_at_Malta_-_8208_-_St_Paul%27s_Cathedral.jpg', credit: 'James Thornhill · 公有领域（Public domain）', url: "https://commons.wikimedia.org/wiki/File:James_Thornhill_(1675-1676-1734)_-_Shipwreck_at_Malta_-_8208_-_St_Paul's_Cathedral.jpg" },
   forum: { kind: 'site', title: '罗马广场遗址', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Ruins_of_Roman_Forum_Rome.JPG/960px-Ruins_of_Roman_Forum_Rome.JPG', credit: 'Atoorva · CC BY-SA 3.0', url: 'https://commons.wikimedia.org/wiki/File:Ruins_of_Roman_Forum_Rome.JPG' },
   raphael: { kind: 'art', title: '拉斐尔《保罗在雅典讲道》（1515）', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/V%26A_-_Raphael%2C_St_Paul_Preaching_in_Athens_%281515%29.jpg/960px-V%26A_-_Raphael%2C_St_Paul_Preaching_in_Athens_%281515%29.jpg', credit: 'Raphael · 公有领域（Public domain）', url: 'https://commons.wikimedia.org/wiki/File:V&A_-_Raphael,_St_Paul_Preaching_in_Athens_(1515).jpg' },
@@ -259,7 +260,7 @@ const CH5 = [
     place: 'malta',
     brief: '乘亚历山大的船（以丢斯双子为记）离岛北上',
     narrative: '过了三个月，他们上了亚历山大的船往前行——这船以丢斯双子为记，是在那海岛过了冬的。三个月的停留是保罗在岛上留下的时间：他不只是被救上岸的囚犯，而是被岛民当作自家人送行的客人。岛上的病人得了医治，部百流的家成了教会，航线从这里重新接上通往帝国首都的水路。',
-    verses: V('使徒行传 28:11'), media: M('maltaChurch')
+    verses: V('使徒行传 28:11'), media: M('grandHarbour')
   },
   {
     id: 'ch5-syracuse', ch: 'ch5', type: 'arrival', from: 60, to: 60,
@@ -324,17 +325,23 @@ const kept = events.filter(e => !m3Ids.has(e.id));
 const chapterAnchor = {};
 kept.forEach((e, i) => { if (!(e.ch in chapterAnchor)) chapterAnchor[e.ch] = i; });
 
+/* 章节顺序由 CH_ORDER 统一收口（2026-10-30 修）：原实现「先插 ch5 再插 ch4」的倒序插入
+ * 会让 ch5 的事件整体排在 ch4 之前，而 SEQ 的同年 tie-break 用的是数组下标 ——
+ * 于是 AD 59 的「无可定罪」（ch4 末）被排到同年的启航之后，播放顺序与叙事顺序相反。
+ * 改为按章节序稳定重排：章内顺序（手工叙事顺序）原样保留。 */
+const CH_ORDER = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6'];
 const CH4_ARR = CH4, CH5_ARR = CH5;
 const merged = kept.slice();
-/* ch4 在 ch3 之后、ch5 在 ch4 之后 —— 按锚点顺序插入 */
-function insertChapter(ch, arr) {
-  const anchor = chapterAnchor[ch];
-  const at = anchor === undefined ? merged.length : anchor;
+CH_ORDER.forEach((ch, idx) => {
+  const arr = ch === 'ch4' ? CH4_ARR : (ch === 'ch5' ? CH5_ARR : null);
+  if (!arr) return;
+  /* 插到「下一个已存在章节」之前；不存在则追加到末尾 */
+  let at = merged.length;
+  for (let i = 0; i < merged.length; i++) {
+    if (CH_ORDER.indexOf(merged[i].ch) > idx) { at = i; break; }
+  }
   merged.splice(at, 0, ...arr);
-}
-/* 先插 ch5 再插 ch4：插入 ch4 会推动 ch5 的位置，故倒序插入 */
-insertChapter('ch5', CH5_ARR);
-insertChapter('ch4', CH4_ARR);
+});
 
 fs.writeFileSync(file, JSON.stringify(merged, null, 2));
 console.log('写入完成：原有 ' + events.length + ' 条，M3 覆盖/新增 ' + incoming.length + ' 条，现共 ' + merged.length + ' 条');

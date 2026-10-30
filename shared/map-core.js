@@ -74,12 +74,17 @@ GS.mapCore = (function () {
     var lastW = map.getContainer().getBoundingClientRect().width;
     var lastH = map.getContainer().getBoundingClientRect().height;
     function onContainerResize() {
-      if (locked) return;
       var r = map.getContainer().getBoundingClientRect();
       if (r.width < 1 || r.height < 1) return;               /* 布局中间态，跳过 */
       if (Math.abs(r.width - lastW) < 1 && Math.abs(r.height - lastH) < 1) return;
       lastW = r.width; lastH = r.height;
+      /* 尺寸修正必须【无条件】执行：_size 一旦陈旧，所有 marker 会整体偏移
+       * 半个差值（2026-10-30 实测：时间轴轨道由 60px 长到 114px，标记整体下移 7px，
+       * A3 位置断言可见）。原实现把 invalidateSize 也放在 locked 之后，
+       * 而 locked 会被首次 settle() 自己的 fitBounds 置真 ⇒ 此后尺寸永远不修正。
+       * 视野重适配仍只在不被用户接管镜头时做。 */
       map.invalidateSize();
+      if (locked) return;
       if (!ready) { settle(); return; }
       map.fitBounds(fit, { padding: [26, 26], animate: false });
       clearTimeout(labelTimer);

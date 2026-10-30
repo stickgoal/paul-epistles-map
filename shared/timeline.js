@@ -39,12 +39,16 @@ GS.timeline = (function () {
   var SPAN_MAX = 1.0;              /* 簇横向跨度硬上限（年）：超过则邻年被误读为有事件 */
   var MAX_COLS = 6;                /* 单簇列数搜索上限 */
 
-  /* 圆点直径随轨道宽自适应：轨道越窄，点越小（否则点本身就占满一年） */
+  /* 圆点直径随轨道宽自适应：轨道越窄，点越小（否则点本身就占满一年）。
+   * 2026-10-30（M4）：事件数 84 → 97，窄屏轨道 390px 只有 15px/年，
+   * AD 57 一年 19 个事件 ⇒ 簇只能 2 列 × 10 行，轨道涨到 185px，
+   * 把移动端事件列表压到 2 行。点径 9 → 8、步长 10 → 9 后轨道降到 ~114px。
+   * 移动端时间轴是次要入口（列表行才是主入口），8px 可点，配合列表不受影响。 */
   function dotSize(W) {
     if (W >= 900) return 12;
     if (W >= 600) return 11;
-    if (W >= 420) return 10;
-    return 9;
+    if (W >= 430) return 10;
+    return 8;
   }
 
   /* 给定 D 与 colsCap，算出每簇的位置、层分配与全部圆点坐标（与 sim-timeline8 同构） */
@@ -186,7 +190,13 @@ GS.timeline = (function () {
      * 点径随轨道宽自适应（dotSize）；簇列数按实际轨道宽运行期搜索择优（pickLayout）。 */
     (function stagger() {
       var w = els.track.getBoundingClientRect().width;
-      if (!w) { setTimeout(stagger, 120); return; }
+      if (!w) {
+        /* 首帧前布局可能尚未就绪（本项目 97 事件 + 内联媒体的首帧约 4s）。
+         * 用 rAF 等下一帧而不是 setTimeout：rAF 回调先于绘制执行，
+         * 轨道高度能在第一帧就定型，用户不会看到 60px → 114px 的跳动。 */
+        requestAnimationFrame(stagger);
+        return;
+      }
       var best = pickLayout(w, marks);
       if (!best) return;
 

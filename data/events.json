@@ -43,8 +43,8 @@
       {
         "kind": "art",
         "title": "帕弗出土马赛克《丽达与天鹅》（公元 4 世纪出土于帕弗附近）",
-        "src": null,
-        "credit": "Unknown author · Public domain · Wikimedia Commons",
+        "src": "assets/media/paphos-sergius-1.webp",
+        "credit": "Unknown author · Public domain",
         "url": "https://commons.wikimedia.org/wiki/File:Leda_mosaic.jpg"
       }
     ]
@@ -74,8 +74,8 @@
       {
         "kind": "photo",
         "title": "彼西底的安提阿：奥古斯都神庙遗址",
-        "src": null,
-        "credit": "Dosseman · CC BY-SA 4.0 · Wikimedia Commons",
+        "src": "assets/media/antioch-pisidia-sermon-1.webp",
+        "credit": "Dosseman · CC BY-SA 4.0",
         "url": "https://commons.wikimedia.org/wiki/File:Antioch_in_Pisidia_Augustus_Temple_2937.jpg"
       }
     ]
@@ -101,8 +101,8 @@
       {
         "kind": "photo",
         "title": "彼西底的安提阿：古剧场——保罗讲道后人群聚集于此",
-        "src": null,
-        "credit": "Dosseman · CC BY-SA 4.0 · Wikimedia Commons",
+        "src": "assets/media/antioch-pisidia-expelled-1.webp",
+        "credit": "Dosseman · CC BY-SA 4.0",
         "url": "https://commons.wikimedia.org/wiki/File:Antioch_in_Pisidia_Theatre_2963.jpg"
       }
     ]
@@ -166,8 +166,8 @@
       {
         "kind": "art",
         "title": "《路司得的献祭》：保罗一行被误当神明献祭的场景（ Pieter Coecke van Aelst，约 1529–1530）",
-        "src": null,
-        "credit": "Pieter Coecke van Aelst (Flemish、1502 - 1550)  – artist (Flemish) · Public domain · Wikimedia Commons",
+        "src": "assets/media/lystra-stoning-1.webp",
+        "credit": "Pieter Coecke van Aelst (Flemish, 1502 - 1550) (1502 - 1550) · Public domain",
         "url": "https://commons.wikimedia.org/wiki/File:Pieter_Coecke_van_Aelst_(Flemish_-_The_Sacrifice_at_Lystra_-_Google_Art_Project.jpg"
       }
     ]
@@ -212,8 +212,8 @@
       {
         "kind": "photo",
         "title": "撒拉米：罗马时期遗址与 basilica 遗迹",
-        "src": null,
-        "credit": "George Groutas · CC BY 2.0 · Wikimedia Commons",
+        "src": "assets/media/return-visit-1.webp",
+        "credit": "George Groutas · CC BY 2.0",
         "url": "https://commons.wikimedia.org/wiki/File:Salamis_Ruins,_Cyprus.jpg"
       }
     ]
@@ -239,8 +239,8 @@
       {
         "kind": "art",
         "title": "加拉太地区在罗马帝国行省图中的位置",
-        "src": null,
-        "credit": "Immanuel Giel · Public domain · Wikimedia Commons",
+        "src": "assets/media/antioch-report-1.webp",
+        "credit": "Immanuel Giel · Public domain",
         "url": "https://commons.wikimedia.org/wiki/File:Galatia_(Imperium_Romanum).png"
       }
     ]
@@ -290,8 +290,8 @@
       {
         "kind": "photo",
         "title": "耶路撒冷第二圣殿时期模型（圣殿与公会堂的格局）",
-        "src": null,
-        "credit": "Daniel Ventura · CC BY-SA 4.0 · Wikimedia Commons",
+        "src": "assets/media/jerusalem-council-1.webp",
+        "credit": "Daniel Ventura · CC BY-SA 4.0",
         "url": "https://commons.wikimedia.org/wiki/File:Model_of_Jerusalem_in_the_Late_Second_Temple_Period_09.jpg"
       }
     ]
@@ -356,8 +356,8 @@
       {
         "kind": "photo",
         "title": "特罗亚（小亚细亚西北岸）：靠近特洛伊遗址的希腊化港城一带",
-        "src": null,
-        "credit": "Radosław Botev · CC BY 3.0 · Wikimedia Commons",
+        "src": "assets/media/ch2-troas-vision-1.webp",
+        "credit": "Radosław Botev · CC BY 3.0 pl",
         "url": "https://commons.wikimedia.org/wiki/File:Troy_archaeological_site_-_Turkey_(1).jpg"
       }
     ]
@@ -383,8 +383,8 @@
       {
         "kind": "photo",
         "title": "腓立比：考古遗址与古罗马城的市场区遗迹",
-        "src": null,
-        "credit": "Salwa Farwaneh Dameh · CC0 · Wikimedia Commons",
+        "src": "assets/media/ch2-lydia-1.webp",
+        "credit": "Salwa Farwaneh Dameh · CC0",
         "url": "https://commons.wikimedia.org/wiki/File:Ruins_at_the_Archaeological_Site_of_Philippi,_Greece.jpg"
       }
     ]
@@ -468,8 +468,8 @@
       {
         "kind": "photo",
         "title": "帖撒罗尼迦：古罗马市场（Agora）遗址",
-        "src": null,
-        "credit": "Leandro Neumann Ciuffo · CC BY 2.0 · Wikimedia Commons",
+        "src": "assets/media/ch2-thessalonica-1.webp",
+        "credit": "Leandro Neumann Ciuffo from Rio de Janeiro, Brazil · CC BY 2.0",
         "url": "https://commons.wikimedia.org/wiki/File:The_Roman_forum.jpg"
       }
     ]
@@ -514,8 +514,8 @@
       {
         "kind": "photo",
         "title": "雅典：从亚略巴古望出去的全城与卫城",
-        "src": null,
-        "credit": "Ggia · CC BY-SA 3.0 · Wikimedia Commons",
+        "src": "assets/media/ch2-athens-god-1.webp",
+        "credit": "Ggia · CC BY-SA 3.0",
         "url": "https://commons.wikimedia.org/wiki/File:20101024_Acropolis_panoramic_view_from_Areopagus_hill_Athens_Greece.jpg"
       }
     ]
@@ -560,8 +560,8 @@
       {
         "kind": "photo",
         "title": "哥林多：阿波罗神庙遗址（古城的宗教与商路中心）",
-        "src": null,
-        "credit": "Zde · CC BY-SA 4.0 · Wikimedia Commons",
+        "src": "assets/media/ch2-corinth-titus-1.webp",
+        "credit": "Zde · CC BY-SA 4.0",
         "url": "https://commons.wikimedia.org/wiki/File:Temple_of_Apollo_in_Corinth,_203000.jpg"
       }
     ]
@@ -608,8 +608,8 @@
       {
         "kind": "art",
         "title": "《使徒保罗》：伦勃朗的保罗半身像（约 1633 年）",
-        "src": null,
-        "credit": "Rembrandt · Public domain · Wikimedia Commons",
+        "src": "assets/media/ch2-1th-1.webp",
+        "credit": "Rembrandt · Public domain",
         "url": "https://commons.wikimedia.org/wiki/File:Rembrandt_-_Apostle_Paul_-_WGA19120.jpg"
       }
     ]
@@ -674,8 +674,8 @@
       {
         "kind": "photo",
         "title": "以弗所：大剧场（可容两万五千人）——保罗讲道后人群聚集之地",
-        "src": null,
-        "credit": "Warren LeMay · CC BY-SA 2.0 · Wikimedia Commons",
+        "src": "assets/media/ch2-depart-ephesus-1.webp",
+        "credit": "Warren LeMay from Chicago, IL, United States · CC BY-SA 2.0",
         "url": "https://commons.wikimedia.org/wiki/File:The_Great_Theatre_of_Ephesus,_Ephesus_Archaeological_Site,_Selcuk,_Turkiye_(53526094926).jpg"
       }
     ]
@@ -701,8 +701,8 @@
       {
         "kind": "photo",
         "title": "凯撒利亚：罗马犹太行省总督驻地的海岸遗址与马赛克",
-        "src": null,
-        "credit": "Anthony Baratier · CC BY-SA 4.0 · Wikimedia Commons",
+        "src": "assets/media/ch2-caesarea-land-1.webp",
+        "credit": "Anthony Baratier · CC BY-SA 4.0",
         "url": "https://commons.wikimedia.org/wiki/File:Ruins_and_mosaics_in_Caesarea_Maritima.jpg"
       }
     ]
@@ -844,8 +844,8 @@
       {
         "kind": "photo",
         "title": "以弗所：阿底米（亚底米）神庙遗址——银匠们赖以营生的神龛所在",
-        "src": null,
-        "credit": "Roy Egloff · CC BY-SA 4.0 · Wikimedia Commons",
+        "src": "assets/media/ch3-silversmith-1.webp",
+        "credit": "Roy Egloff · CC BY-SA 4.0",
         "url": "https://commons.wikimedia.org/wiki/File:TR.IZ.Selcuk_Ephesus_2011-10-04_Temple-of-Artemis_07_3x2-R_5K.jpg"
       }
     ]
@@ -1027,8 +1027,8 @@
       {
         "kind": "photo",
         "title": "米利都：古集市（Agora）的柱廊遗址",
-        "src": null,
-        "credit": "Michele · CC BY 2.0 · Wikimedia Commons",
+        "src": "assets/media/ch3-miletus-1.webp",
+        "credit": "Michele · CC BY 2.0",
         "url": "https://commons.wikimedia.org/wiki/File:Stoa_in_the_Agora_of_Miletus,Turkey.jpg"
       }
     ]
@@ -1093,8 +1093,8 @@
       {
         "kind": "photo",
         "title": "推罗（腓尼基）：腓尼基海港大城的罗马时期遗址",
-        "src": null,
-        "credit": "RomanDeckert · CC BY-SA 4.0 · Wikimedia Commons",
+        "src": "assets/media/ch3-tyre-1.webp",
+        "credit": "RomanDeckert · CC BY-SA 4.0",
         "url": "https://commons.wikimedia.org/wiki/File:Tyre-Ruins_RomanDeckert02112018.jpg"
       }
     ]
@@ -1176,320 +1176,6 @@
     "media": []
   },
   {
-    "id": "ch5-embark",
-    "ch": "ch5",
-    "type": "arrival",
-    "from": 59,
-    "to": 59,
-    "title": "从凯撒利亚上船",
-    "en": "Embarking from Caesarea",
-    "place": "caesarea",
-    "brief": "交给百夫长犹推斯；乘亚大米田的船，沿海走",
-    "narrative": "非斯都定规了叫他们坐船往义大利去，便将保罗和别的囚犯交给御营里的一个百夫长，名叫犹推斯。有一只亚大米田的船，要沿着亚西亚一带地方的海边走，保罗他们就上了那船开行。第二日到了西顿，犹推斯宽待保罗，准他往朋友那里去受他们的照应；从那里又开船，因为风不顺，就贴着居比路背风岸行去，过了基利家、旁非利亚前面的海，就到了吕家的每拉。在那里，百夫长遇见一只亚力山大的船要往义大利去，便叫他们上了那船。",
-    "verses": [
-      {
-        "ref": "使徒行传 27:1-6",
-        "text": "非斯都既然定规了，叫我们坐船往义大利去，便将保罗和别的囚犯交给御营里的一个百夫长，名叫犹流。有一只亚大米田的船，要沿著亚西亚一带地方的海边走，我们就上了那船开行；有马其顿的帖撒罗尼迦人亚里达古和我们同去。第二天，到了西顿；犹流宽待保罗，准他往朋友那里去，受他们的照应。从那里又开船，因为风不顺，就贴著居比路背风岸行去。过了基利家、旁非利亚前面的海，就到了吕家的每拉。在那里，百夫长遇见一只亚力山大的船，要往义大利去，便叫我们上了那船。"
-      }
-    ],
-    "media": []
-  },
-  {
-    "id": "ch5-sidon",
-    "ch": "ch5",
-    "type": "arrival",
-    "from": 59,
-    "to": 59,
-    "title": "西顿探友",
-    "en": "Ashore at Sidon",
-    "place": "sidon",
-    "brief": "百夫长准他上岸与朋友相见",
-    "narrative": "腓尼基海岸的第一站。船因风不顺而贴岸缓行，百夫长犹推斯给了保罗一项别人没有的优待：准他往朋友那里去，受他们的照应。这不是押解途中的例行停靠，而是一次具体的友谊——保罗在腓尼基的旧交；推罗是腓尼基的港口大城，但保罗的根不在这里。他的根在耶路撒冷，在安提阿，在一个个刚建立起来的教会。",
-    "verses": [
-      {
-        "ref": "使徒行传 27:3-4",
-        "text": "第二天，到了西顿；犹流宽待保罗，准他往朋友那里去，受他们的照应。从那里又开船，因为风不顺，就贴著居比路背风岸行去。"
-      }
-    ],
-    "media": []
-  },
-  {
-    "id": "ch5-myra",
-    "ch": "ch5",
-    "type": "arrival",
-    "from": 59,
-    "to": 59,
-    "title": "每拉换船",
-    "en": "Changing Ships at Myra",
-    "place": "myra",
-    "brief": "呂基亚港口，换乘亚历山大来的船",
-    "narrative": "船沿着小亚细亚南岸缓慢西行，走了很久才到每拉——呂基亚的主要港口。百夫长在那里遇见一只亚历山大的船，正好要往义大利去，于是全船人改乘这一只。这次换船意味着旅程的方向与规模都变了：从沿海航行的小船，转入跑地中海贸易航线的大船。保罗在甲板上的最后一段旅程，就从这间港口开始。",
-    "verses": [
-      {
-        "ref": "使徒行传 27:5-6",
-        "text": "过了基利家、旁非利亚前面的海，就到了吕家的每拉。在那里，百夫长遇见一只亚力山大的船，要往义大利去，便叫我们上了那船。"
-      }
-    ],
-    "media": []
-  },
-  {
-    "id": "ch5-fair-haven",
-    "ch": "ch5",
-    "type": "arrival",
-    "from": 59,
-    "to": 59,
-    "title": "滞留佳澳",
-    "en": "Stranded at Fair Havens",
-    "place": "fair-haven",
-    "brief": "风阻难行，行船又危险；保罗劝改航，非尼基过冬被拒",
-    "narrative": "一连多日船行得慢，仅仅来到革尼土的对面；被风拦阻，就贴着克里特背风岸从撒摩尼对面行过，沿岸行到名叫佳澳的地方，离那里不远有拉西亚城。走的日子多了，已经过了禁食的节期，行船又危险，保罗就劝众人：众位，我看这次行船不但货物和船要受伤损、大遭破坏，连我们的性命也难保。但百夫长信从掌船的和船主，不信从保罗所说的；且因在这海口过冬不便，船上的人就多半说不如开船离开这地方，或者能到菲尼基过冬。保罗的警告被当作耳旁风——而这场风暴正是他警告的兑现。",
-    "verses": [
-      {
-        "ref": "使徒行传 27:7-12",
-        "text": "一连多日，船行得慢，仅仅来到革尼土的对面。因为被风拦阻，就贴著革哩底背风岸，从撒摩尼对面行过。我们沿岸行走，仅仅来到一个地方，名叫佳澳；离那里不远，有拉西亚城。走的日子多了，已经过了禁食的节期，行船又危险，保罗就劝众人说：众位，我看这次行船，不但货物和船要受伤损，大遭破坏，连我们的性命也难保。但百夫长信从掌船的和船主，不信从保罗所说的。且因在这海口过冬不便，船上的人就多半说：不如开船离开这地方，或者能到非尼基过冬。非尼基是革哩底的一个海口，一面朝东北，一面朝东南。"
-      }
-    ],
-    "media": []
-  },
-  {
-    "id": "ch5-storm",
-    "ch": "ch5",
-    "type": "persecution",
-    "from": 59,
-    "to": 59,
-    "title": "友拉革罗风",
-    "en": "The Euroclydon Storm",
-    "place": "fair-haven",
-    "brief": "狂风从岛上扑来，抛货抛具，得救的指望都绝了",
-    "narrative": "微微起了南风，他们以为得意就起了锚，贴近克里特行去。不多几时，狂风从岛上扑下来，那风名叫友拉革罗；船被风抓住，敌不住风，就任风刮去。贴着一个叫「高大」的小岛背风岸奔行，仅仅收住了小船；用缆索捆绑船底，又恐怕在赛耳底沙滩上搁浅，就落下篷来任船飘去。众人被风浪逼得甚急，第二天就把货物抛在海里，第三天又亲手把船上的器具抛弃了。太阳和星辰多日不显露，又有狂风大浪催逼，我们得救的指望就都绝了。",
-    "verses": [
-      {
-        "ref": "使徒行传 27:13-20",
-        "text": "这时，微微起了南风，他们以为得意，就起了锚，贴近革哩底行去。不多几时，狂风从岛上扑下来；那风名叫友拉革罗。船被风抓住，敌不住风，我们就任风刮去。贴著一个小岛的背风岸奔行，那岛名叫高大，在那里仅仅收住了小船。既然把小船拉上来，就用缆索捆绑船底，又恐怕在赛耳底沙滩上搁了浅，就落下篷来，任船飘去。我们被风浪逼得甚急，第二天众人就把货物抛在海里。到第三天，他们又亲手把船上的器具抛弃了。太阳和星辰多日不显露，又有狂风大浪催逼，我们得救的指望就都绝了。"
-      }
-    ],
-    "media": []
-  },
-  {
-    "id": "ch5-reassurance",
-    "ch": "ch5",
-    "type": "preach",
-    "from": 59,
-    "to": 59,
-    "title": "「你们可以放心」",
-    "en": "Take Heart, No One Will Be Lost",
-    "place": "fair-haven",
-    "brief": "保罗说：性命一个也不失丧，惟独失丧这船；必站该撒面前",
-    "narrative": "众人多日没有吃什么，保罗就出来站在他们中间说：众位，你们本该听我的话，不离开克里特，免得遭这样的伤损破坏。现在我还劝你们放心，你们的性命一个也不失丧，惟独失丧这船。因我所属所事奉的神，他的使者昨夜站在我旁边，说：保罗，不要害怕，你必定站在该撒面前，并且与你同船的人，神都赐给你了。保罗在风浪里所做的，不是求自己脱险，而是把众人的命放在「必站该撒面前」这个应许之下。",
-    "verses": [
-      {
-        "ref": "使徒行传 27:21-27",
-        "text": "众人多日没有吃甚么，保罗就出来站在他们中间，说：众位，你们本该听我的话，不离开革哩底，免得遭这样的伤损破坏。现在我还劝你们放心，你们的性命一个也不失丧，惟独失丧这船。因我所属所事奉的神，他的使者昨夜站在我旁边，说：保罗，不要害怕，你必定站在该撒面前，并且与你同船的人，神都赐给你了。所以众位可以放心，我信神他怎样对我说：事情也要怎样成就。只是我们必要撞在一个岛上。到了第十四天夜间，船在亚底亚海飘来飘去。约到半夜，水手以为渐近旱地，"
-      }
-    ],
-    "media": []
-  },
-  {
-    "id": "ch5-shipwreck",
-    "ch": "ch5",
-    "type": "persecution",
-    "from": 59,
-    "to": 59,
-    "title": "触礁搁浅",
-    "en": "Running Aground",
-    "place": "malta",
-    "brief": "船头胶住、船尾冲坏；百夫长不许杀囚犯，众人皆得救",
-    "narrative": "到了天亮，他们不认识那地方，但见一个海湾有岸可登。砍断缆索、弃锚在海，同时松开舵绳拉起头篷，顺着风向岸行去；但遇着两水夹流的地方，就把船搁了浅——船头胶住不动，船尾被浪的猛力冲坏。兵丁的意思是要杀了囚犯，恐怕有洑水脱逃的；百夫长要救保罗，不准他们任意而行，就吩咐会洑水的先跳水，其余的人可以用板子或船上的零碎东西上岸。这样，众人都得了救，上了岸。",
-    "verses": [
-      {
-        "ref": "使徒行传 27:39-44",
-        "text": "到了天亮，他们不认识那地方，但见一个海湾，有岸可登，就商议能把船拢进去不能。于是砍断缆索，弃锚在海里；同时也松开舵绳，拉起头篷，顺著风向岸行去。但遇著两水夹流的地方，就把船搁了浅；船头胶住不动，船尾被浪的猛力冲坏。兵丁的意思要把囚犯杀了，恐怕有洑水脱逃的。但百夫长要救保罗，不准他们任意而行，就吩咐会洑水的，跳下水去先上岸；其余的人可以用板子或船上的零碎东西上岸。这样，众人都得了救，上了岸。"
-      }
-    ],
-    "media": [
-      {
-        "kind": "art",
-        "title": "詹姆斯·桑希尔的《马耳他沉难》（圣保罗座堂藏）",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/James_Thornhill_%281675-1676-1734%29_-_Shipwreck_at_Malta_-_8208_-_St_Paul%27s_Cathedral.jpg/960px-James_Thornhill_%281675-1676-1734%29_-_Shipwreck_at_Malta_-_8208_-_St_Paul%27s_Cathedral.jpg",
-        "credit": "James Thornhill · 公有领域（Public domain）",
-        "url": "https://commons.wikimedia.org/wiki/File:James_Thornhill_(1675-1676-1734)_-_Shipwreck_at_Malta_-_8208_-_St_Paul's_Cathedral.jpg"
-      }
-    ]
-  },
-  {
-    "id": "ch5-barbarian",
-    "ch": "ch5",
-    "type": "miracle",
-    "from": 59,
-    "to": 59,
-    "title": "岛民的款待",
-    "en": "Kindness of the Islanders",
-    "place": "malta",
-    "brief": "下雨天冷，土人生火接待；毒蛇咬手却毫发无伤",
-    "narrative": "他们既已得救，才知道那岛名叫米利大。土人看待他们有非常的情分：因为当时下雨、天气又冷，就生火接待众人。那时保罗拾起一捆柴放在火上，有一条毒蛇因为热了出来，咬住他的手；土人看见那毒蛇悬在他手上，就彼此说：这人必是个凶手，虽然从海里救上来，天理还不容他活着。保罗竟把那毒蛇甩在火里，并没有受伤。土人想他必要肿起来或忽然仆倒死了，看了多时见他无害，就转念说：他是个神。",
-    "verses": [
-      {
-        "ref": "使徒行传 28:1-6",
-        "text": "我们既已得救，才知道那岛名叫米利大。土人看待我们，有非常的情分；因为当时下雨，天气又冷，就生火接待我们众人。那时，保罗拾起一捆柴，放在火上，有一条毒蛇，因为热了出来，咬住他的手。土人看见那毒蛇悬在他手上，就彼此说：这人必是个凶手，虽然从海里救上来，天理还不容他活著。保罗竟把那毒蛇甩在火里，并没有受伤。土人想他必要肿起来，或是忽然仆倒死了；看了多时，见他无害，就转念，说：他是个神。"
-      }
-    ],
-    "media": [
-      {
-        "kind": "site",
-        "title": "圣保罗湾（保罗遇难登陆处）",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/St_Paul%27s_Islands%2C_Malta.jpg/960px-St_Paul%27s_Islands%2C_Malta.jpg",
-        "credit": "公有领域（Public domain）",
-        "url": "https://commons.wikimedia.org/wiki/File:St_Paul's_Islands,_Malta.jpg"
-      }
-    ]
-  },
-  {
-    "id": "ch5-publius",
-    "ch": "ch5",
-    "type": "miracle",
-    "from": 59,
-    "to": 59,
-    "title": "医好部百流的父亲",
-    "en": "Healing the Father of the Chief Man",
-    "place": "malta",
-    "brief": "为岛长之父祷告按手，岛上其余病人也都得医治",
-    "narrative": "离那地方不远，有田产是岛长部百流的；他接纳他们，尽情款待三日。当时部百流的父亲患热病和痢疾躺着，保罗进去为他祷告，按手在他身上，治好了他。从此岛上其余的病人也来，得了医治；他们又多方地尊敬他们，到了开船的时候，也把所需用的送到船上。一段与传道无关的插曲，却是保罗在异乡落地生根的样例：先医治，再建立教会。",
-    "verses": [
-      {
-        "ref": "使徒行传 28:7-10",
-        "text": "离那地方不远，有田产是岛长部百流的；他接纳我们，尽情款待三日。当时，部百流的父亲患热病和痢疾躺著。保罗进去，为他祷告，按手在他身上，治好了他。从此，岛上其余的病人也来，得了医治。他们又多方的尊敬我们；到了开船的时候，也把我们所需用的送到船上。"
-      }
-    ],
-    "media": [
-      {
-        "kind": "site",
-        "title": "沉船湾的圣保罗船难教堂",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/St_Paul_Bay_Shipwreck_Church_Malta_1.jpg/960px-St_Paul_Bay_Shipwreck_Church_Malta_1.jpg",
-        "credit": "Karelj · CC BY-SA 3.0",
-        "url": "https://commons.wikimedia.org/wiki/File:St_Paul_Bay_Shipwreck_Church_Malta_1.jpg"
-      }
-    ]
-  },
-  {
-    "id": "ch5-depart-malta",
-    "ch": "ch5",
-    "type": "arrival",
-    "from": 60,
-    "to": 60,
-    "title": "过了三个月启航",
-    "en": "Departing Malta after Three Months",
-    "place": "malta",
-    "brief": "乘亚历山大的船（以丢斯双子为记）离岛北上",
-    "narrative": "过了三个月，他们上了亚历山大的船往前行——这船以丢斯双子为记，是在那海岛过了冬的。三个月的停留是保罗在岛上留下的时间：他不只是被救上岸的囚犯，而是被岛民当作自家人送行的客人。岛上的病人得了医治，部百流的家成了教会，航线从这里重新接上通往帝国首都的水路。",
-    "verses": [
-      {
-        "ref": "使徒行传 28:11",
-        "text": "过了三个月，我们上了亚力山大的船往前行；这船以丢斯双子为记，是在那海岛过了冬的。"
-      }
-    ],
-    "media": [
-      {
-        "kind": "site",
-        "title": "沉船湾的圣保罗船难教堂",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/St_Paul_Bay_Shipwreck_Church_Malta_1.jpg/960px-St_Paul_Bay_Shipwreck_Church_Malta_1.jpg",
-        "credit": "Karelj · CC BY-SA 3.0",
-        "url": "https://commons.wikimedia.org/wiki/File:St_Paul_Bay_Shipwreck_Church_Malta_1.jpg"
-      }
-    ]
-  },
-  {
-    "id": "ch5-syracuse",
-    "ch": "ch5",
-    "type": "arrival",
-    "from": 60,
-    "to": 60,
-    "title": "停泊叙拉古",
-    "en": "Calling at Syracuse",
-    "place": "syracuse",
-    "brief": "在西西里东岸的希腊名城停泊三日",
-    "narrative": "到了叙拉古，他们停泊三日。这是整段航程里最后一次长期停靠，也是地理上的一个明确坐标——船从马耳他向北、沿西西里东岸而上。叙拉古是希腊化的名城，古代的数学家阿基米德之城。保罗在这里没有讲道、没有治病，只是路过；路加记下这三天，是因为它们标记了「从爱琴海进入西西里、离意大利越来越近」的位置。",
-    "verses": [
-      {
-        "ref": "使徒行传 28:12",
-        "text": "到了叙拉古，我们停泊三日；"
-      }
-    ],
-    "media": [
-      {
-        "kind": "site",
-        "title": "叙拉古的希腊剧场",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/The_Greek_theatre_of_Syracuse%2C_Sicily.jpg/960px-The_Greek_theatre_of_Syracuse%2C_Sicily.jpg",
-        "credit": "Nicolas Chadeville · CC BY-SA 4.0",
-        "url": "https://commons.wikimedia.org/wiki/File:The_Greek_theatre_of_Syracuse,_Sicily.jpg"
-      }
-    ]
-  },
-  {
-    "id": "ch5-rhegium",
-    "ch": "ch5",
-    "type": "arrival",
-    "from": 60,
-    "to": 60,
-    "title": "绕行利基翁",
-    "en": "Rounding Rhegium",
-    "place": "rhegium",
-    "brief": "从叙拉古绕行到利基翁，次日乘南风直抵部丢利",
-    "narrative": "又从那里绕行，来到利基翁。过了一天，起了南风，第二天就来到部丢利。利基翁就是雷吉姆，在意大利「靴尖」的最南端，与西西里隔海相望——从这里起，保罗踏上的是意大利本土的土地。绕行海峡、再借南风北上，正是古代商船最省力的一条航路。",
-    "verses": [
-      {
-        "ref": "使徒行传 28:13",
-        "text": "又从那里绕行，来到利基翁。过了一天，起了南风，第二天就来到部丢利。"
-      }
-    ],
-    "media": []
-  },
-  {
-    "id": "ch5-puteoli",
-    "ch": "ch5",
-    "type": "arrival",
-    "from": 60,
-    "to": 60,
-    "title": "部丢利遇弟兄",
-    "en": "Welcomed at Puteoli",
-    "place": "puteoli",
-    "brief": "罗马的弟兄请他们同住七天",
-    "narrative": "在部丢利，他们遇见罗马的弟兄，请他们同住七天。这样，就来到罗马——一趟耗时半年以上、经历了一场沉船的航程，终于走完了。从凯撒利亚上船到踏入罗马，用了七个多月的海路；而保罗最后一段路，是靠罗马教会的弟兄在港口接上的。",
-    "verses": [
-      {
-        "ref": "使徒行传 28:14",
-        "text": "在那里遇见弟兄们，请我们与他们同住了七天。这样，我们来到罗马。"
-      }
-    ],
-    "media": []
-  },
-  {
-    "id": "ch5-rome-arrival",
-    "ch": "ch5",
-    "type": "arrival",
-    "from": 60,
-    "to": 60,
-    "title": "进了罗马城",
-    "en": "Entering Rome",
-    "place": "rome",
-    "brief": "弟兄到亚比乌市与三馆迎接；蒙准与一名看守同住",
-    "narrative": "罗马的弟兄一听见他们的信息就出来，到亚比乌市和三馆地方迎接他们。保罗见了他们，就感谢神，放心壮胆——这是他自耶路撒冷下监以来第一次真正放松。进城后，他蒙准和一个看守他的兵另住在一处，而不是被关进监狱。第五幕在这里收束：一个被四重审讯判定「没有犯罪」的人，靠着公民身份与上诉权走完了两千公里的海路；接下来等待他的，是罗马的两年与《罗马书》的写成。",
-    "verses": [
-      {
-        "ref": "使徒行传 28:15-16",
-        "text": "那里的弟兄们一听见我们的信息就出来，到亚比乌市和三馆地方迎接我们。保罗见了他们，就感谢神，放心壮胆。进了罗马城，（有古卷在此有：百夫长把众囚犯交给御营的统领，惟有）保罗蒙准和一个看守他的兵另住在一处。"
-      }
-    ],
-    "media": [
-      {
-        "kind": "site",
-        "title": "罗马广场遗址",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Ruins_of_Roman_Forum_Rome.JPG/960px-Ruins_of_Roman_Forum_Rome.JPG",
-        "credit": "Atoorva · CC BY-SA 3.0",
-        "url": "https://commons.wikimedia.org/wiki/File:Ruins_of_Roman_Forum_Rome.JPG"
-      }
-    ]
-  },
-  {
     "id": "ch4-jerusalem-welcome",
     "ch": "ch4",
     "type": "arrival",
@@ -1510,7 +1196,7 @@
       {
         "kind": "site",
         "title": "耶路撒冷圣殿西墙",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Westen_%28Wailing%29_Wall%2C_Jerusalem%2C_2007.jpg/960px-Westen_%28Wailing%29_Wall%2C_Jerusalem%2C_2007.jpg",
+        "src": "assets/media/ch4-jerusalem-welcome-1.webp",
         "credit": "Godot13 · CC BY-SA 4.0",
         "url": "https://commons.wikimedia.org/wiki/File:Westen_(Wailing)_Wall,_Jerusalem,_2007.jpg"
       }
@@ -1537,7 +1223,7 @@
       {
         "kind": "site",
         "title": "圣殿山航拍（旧圣殿遗址）",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Jerusalem-2013-Aerial-Temple_Mount_03.jpg/960px-Jerusalem-2013-Aerial-Temple_Mount_03.jpg",
+        "src": "assets/media/ch4-temple-riot-1.webp",
         "credit": "Godot13 · CC BY-SA 4.0",
         "url": "https://commons.wikimedia.org/wiki/File:Jerusalem-2013-Aerial-Temple_Mount_03.jpg"
       }
@@ -1697,7 +1383,7 @@
       {
         "kind": "site",
         "title": "凯撒利亚的高架引水道",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Caesarea-13-Aqueducts.jpg/960px-Caesarea-13-Aqueducts.jpg",
+        "src": "assets/media/ch4-felix-1.webp",
         "credit": "Ian and Wendy Sewell · CC BY-SA 3.0",
         "url": "https://commons.wikimedia.org/wiki/File:Caesarea-13-Aqueducts.jpg"
       }
@@ -1800,8 +1486,8 @@
       {
         "kind": "art",
         "title": "拉斐尔《保罗在雅典讲道》（1515）",
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/V%26A_-_Raphael%2C_St_Paul_Preaching_in_Athens_%281515%29.jpg/960px-V%26A_-_Raphael%2C_St_Paul_Preaching_in_Athens_%281515%29.jpg",
-        "credit": "Raphael · 公有领域（Public domain）",
+        "src": "assets/media/ch4-apologia-1.webp",
+        "credit": "Raphael · Public domain",
         "url": "https://commons.wikimedia.org/wiki/File:V&A_-_Raphael,_St_Paul_Preaching_in_Athens_(1515).jpg"
       }
     ]
@@ -1843,5 +1529,687 @@
       }
     ],
     "media": []
+  },
+  {
+    "id": "ch5-embark",
+    "ch": "ch5",
+    "type": "arrival",
+    "from": 59,
+    "to": 59,
+    "title": "从凯撒利亚上船",
+    "en": "Embarking from Caesarea",
+    "place": "caesarea",
+    "brief": "交给百夫长犹推斯；乘亚大米田的船，沿海走",
+    "narrative": "非斯都定规了叫他们坐船往义大利去，便将保罗和别的囚犯交给御营里的一个百夫长，名叫犹推斯。有一只亚大米田的船，要沿着亚西亚一带地方的海边走，保罗他们就上了那船开行。第二日到了西顿，犹推斯宽待保罗，准他往朋友那里去受他们的照应；从那里又开船，因为风不顺，就贴着居比路背风岸行去，过了基利家、旁非利亚前面的海，就到了吕家的每拉。在那里，百夫长遇见一只亚力山大的船要往义大利去，便叫他们上了那船。",
+    "verses": [
+      {
+        "ref": "使徒行传 27:1-6",
+        "text": "非斯都既然定规了，叫我们坐船往义大利去，便将保罗和别的囚犯交给御营里的一个百夫长，名叫犹流。有一只亚大米田的船，要沿著亚西亚一带地方的海边走，我们就上了那船开行；有马其顿的帖撒罗尼迦人亚里达古和我们同去。第二天，到了西顿；犹流宽待保罗，准他往朋友那里去，受他们的照应。从那里又开船，因为风不顺，就贴著居比路背风岸行去。过了基利家、旁非利亚前面的海，就到了吕家的每拉。在那里，百夫长遇见一只亚力山大的船，要往义大利去，便叫我们上了那船。"
+      }
+    ],
+    "media": []
+  },
+  {
+    "id": "ch5-sidon",
+    "ch": "ch5",
+    "type": "arrival",
+    "from": 59,
+    "to": 59,
+    "title": "西顿探友",
+    "en": "Ashore at Sidon",
+    "place": "sidon",
+    "brief": "百夫长准他上岸与朋友相见",
+    "narrative": "腓尼基海岸的第一站。船因风不顺而贴岸缓行，百夫长犹推斯给了保罗一项别人没有的优待：准他往朋友那里去，受他们的照应。这不是押解途中的例行停靠，而是一次具体的友谊——保罗在腓尼基的旧交；推罗是腓尼基的港口大城，但保罗的根不在这里。他的根在耶路撒冷，在安提阿，在一个个刚建立起来的教会。",
+    "verses": [
+      {
+        "ref": "使徒行传 27:3-4",
+        "text": "第二天，到了西顿；犹流宽待保罗，准他往朋友那里去，受他们的照应。从那里又开船，因为风不顺，就贴著居比路背风岸行去。"
+      }
+    ],
+    "media": []
+  },
+  {
+    "id": "ch5-myra",
+    "ch": "ch5",
+    "type": "arrival",
+    "from": 59,
+    "to": 59,
+    "title": "每拉换船",
+    "en": "Changing Ships at Myra",
+    "place": "myra",
+    "brief": "呂基亚港口，换乘亚历山大来的船",
+    "narrative": "船沿着小亚细亚南岸缓慢西行，走了很久才到每拉——呂基亚的主要港口。百夫长在那里遇见一只亚历山大的船，正好要往义大利去，于是全船人改乘这一只。这次换船意味着旅程的方向与规模都变了：从沿海航行的小船，转入跑地中海贸易航线的大船。保罗在甲板上的最后一段旅程，就从这间港口开始。",
+    "verses": [
+      {
+        "ref": "使徒行传 27:5-6",
+        "text": "过了基利家、旁非利亚前面的海，就到了吕家的每拉。在那里，百夫长遇见一只亚力山大的船，要往义大利去，便叫我们上了那船。"
+      }
+    ],
+    "media": []
+  },
+  {
+    "id": "ch5-fair-haven",
+    "ch": "ch5",
+    "type": "arrival",
+    "from": 59,
+    "to": 59,
+    "title": "滞留佳澳",
+    "en": "Stranded at Fair Havens",
+    "place": "fair-haven",
+    "brief": "风阻难行，行船又危险；保罗劝改航，非尼基过冬被拒",
+    "narrative": "一连多日船行得慢，仅仅来到革尼土的对面；被风拦阻，就贴着克里特背风岸从撒摩尼对面行过，沿岸行到名叫佳澳的地方，离那里不远有拉西亚城。走的日子多了，已经过了禁食的节期，行船又危险，保罗就劝众人：众位，我看这次行船不但货物和船要受伤损、大遭破坏，连我们的性命也难保。但百夫长信从掌船的和船主，不信从保罗所说的；且因在这海口过冬不便，船上的人就多半说不如开船离开这地方，或者能到菲尼基过冬。保罗的警告被当作耳旁风——而这场风暴正是他警告的兑现。",
+    "verses": [
+      {
+        "ref": "使徒行传 27:7-12",
+        "text": "一连多日，船行得慢，仅仅来到革尼土的对面。因为被风拦阻，就贴著革哩底背风岸，从撒摩尼对面行过。我们沿岸行走，仅仅来到一个地方，名叫佳澳；离那里不远，有拉西亚城。走的日子多了，已经过了禁食的节期，行船又危险，保罗就劝众人说：众位，我看这次行船，不但货物和船要受伤损，大遭破坏，连我们的性命也难保。但百夫长信从掌船的和船主，不信从保罗所说的。且因在这海口过冬不便，船上的人就多半说：不如开船离开这地方，或者能到非尼基过冬。非尼基是革哩底的一个海口，一面朝东北，一面朝东南。"
+      }
+    ],
+    "media": []
+  },
+  {
+    "id": "ch5-storm",
+    "ch": "ch5",
+    "type": "persecution",
+    "from": 59,
+    "to": 59,
+    "title": "友拉革罗风",
+    "en": "The Euroclydon Storm",
+    "place": "fair-haven",
+    "brief": "狂风从岛上扑来，抛货抛具，得救的指望都绝了",
+    "narrative": "微微起了南风，他们以为得意就起了锚，贴近克里特行去。不多几时，狂风从岛上扑下来，那风名叫友拉革罗；船被风抓住，敌不住风，就任风刮去。贴着一个叫「高大」的小岛背风岸奔行，仅仅收住了小船；用缆索捆绑船底，又恐怕在赛耳底沙滩上搁浅，就落下篷来任船飘去。众人被风浪逼得甚急，第二天就把货物抛在海里，第三天又亲手把船上的器具抛弃了。太阳和星辰多日不显露，又有狂风大浪催逼，我们得救的指望就都绝了。",
+    "verses": [
+      {
+        "ref": "使徒行传 27:13-20",
+        "text": "这时，微微起了南风，他们以为得意，就起了锚，贴近革哩底行去。不多几时，狂风从岛上扑下来；那风名叫友拉革罗。船被风抓住，敌不住风，我们就任风刮去。贴著一个小岛的背风岸奔行，那岛名叫高大，在那里仅仅收住了小船。既然把小船拉上来，就用缆索捆绑船底，又恐怕在赛耳底沙滩上搁了浅，就落下篷来，任船飘去。我们被风浪逼得甚急，第二天众人就把货物抛在海里。到第三天，他们又亲手把船上的器具抛弃了。太阳和星辰多日不显露，又有狂风大浪催逼，我们得救的指望就都绝了。"
+      }
+    ],
+    "media": []
+  },
+  {
+    "id": "ch5-reassurance",
+    "ch": "ch5",
+    "type": "preach",
+    "from": 59,
+    "to": 59,
+    "title": "「你们可以放心」",
+    "en": "Take Heart, No One Will Be Lost",
+    "place": "fair-haven",
+    "brief": "保罗说：性命一个也不失丧，惟独失丧这船；必站该撒面前",
+    "narrative": "众人多日没有吃什么，保罗就出来站在他们中间说：众位，你们本该听我的话，不离开克里特，免得遭这样的伤损破坏。现在我还劝你们放心，你们的性命一个也不失丧，惟独失丧这船。因我所属所事奉的神，他的使者昨夜站在我旁边，说：保罗，不要害怕，你必定站在该撒面前，并且与你同船的人，神都赐给你了。保罗在风浪里所做的，不是求自己脱险，而是把众人的命放在「必站该撒面前」这个应许之下。",
+    "verses": [
+      {
+        "ref": "使徒行传 27:21-27",
+        "text": "众人多日没有吃甚么，保罗就出来站在他们中间，说：众位，你们本该听我的话，不离开革哩底，免得遭这样的伤损破坏。现在我还劝你们放心，你们的性命一个也不失丧，惟独失丧这船。因我所属所事奉的神，他的使者昨夜站在我旁边，说：保罗，不要害怕，你必定站在该撒面前，并且与你同船的人，神都赐给你了。所以众位可以放心，我信神他怎样对我说：事情也要怎样成就。只是我们必要撞在一个岛上。到了第十四天夜间，船在亚底亚海飘来飘去。约到半夜，水手以为渐近旱地，"
+      }
+    ],
+    "media": []
+  },
+  {
+    "id": "ch5-shipwreck",
+    "ch": "ch5",
+    "type": "persecution",
+    "from": 59,
+    "to": 59,
+    "title": "触礁搁浅",
+    "en": "Running Aground",
+    "place": "malta",
+    "brief": "船头胶住、船尾冲坏；百夫长不许杀囚犯，众人皆得救",
+    "narrative": "到了天亮，他们不认识那地方，但见一个海湾有岸可登。砍断缆索、弃锚在海，同时松开舵绳拉起头篷，顺着风向岸行去；但遇着两水夹流的地方，就把船搁了浅——船头胶住不动，船尾被浪的猛力冲坏。兵丁的意思是要杀了囚犯，恐怕有洑水脱逃的；百夫长要救保罗，不准他们任意而行，就吩咐会洑水的先跳水，其余的人可以用板子或船上的零碎东西上岸。这样，众人都得了救，上了岸。",
+    "verses": [
+      {
+        "ref": "使徒行传 27:39-44",
+        "text": "到了天亮，他们不认识那地方，但见一个海湾，有岸可登，就商议能把船拢进去不能。于是砍断缆索，弃锚在海里；同时也松开舵绳，拉起头篷，顺著风向岸行去。但遇著两水夹流的地方，就把船搁了浅；船头胶住不动，船尾被浪的猛力冲坏。兵丁的意思要把囚犯杀了，恐怕有洑水脱逃的。但百夫长要救保罗，不准他们任意而行，就吩咐会洑水的，跳下水去先上岸；其余的人可以用板子或船上的零碎东西上岸。这样，众人都得了救，上了岸。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "art",
+        "title": "詹姆斯·桑希尔的《马耳他沉难》（圣保罗座堂藏）",
+        "src": "assets/media/ch5-shipwreck-1.webp",
+        "credit": "James Thornhill · Public domain",
+        "url": "https://commons.wikimedia.org/wiki/File:James_Thornhill_(1675-1676-1734)_-_Shipwreck_at_Malta_-_8208_-_St_Paul's_Cathedral.jpg"
+      }
+    ]
+  },
+  {
+    "id": "ch5-barbarian",
+    "ch": "ch5",
+    "type": "miracle",
+    "from": 59,
+    "to": 59,
+    "title": "岛民的款待",
+    "en": "Kindness of the Islanders",
+    "place": "malta",
+    "brief": "下雨天冷，土人生火接待；毒蛇咬手却毫发无伤",
+    "narrative": "他们既已得救，才知道那岛名叫米利大。土人看待他们有非常的情分：因为当时下雨、天气又冷，就生火接待众人。那时保罗拾起一捆柴放在火上，有一条毒蛇因为热了出来，咬住他的手；土人看见那毒蛇悬在他手上，就彼此说：这人必是个凶手，虽然从海里救上来，天理还不容他活着。保罗竟把那毒蛇甩在火里，并没有受伤。土人想他必要肿起来或忽然仆倒死了，看了多时见他无害，就转念说：他是个神。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:1-6",
+        "text": "我们既已得救，才知道那岛名叫米利大。土人看待我们，有非常的情分；因为当时下雨，天气又冷，就生火接待我们众人。那时，保罗拾起一捆柴，放在火上，有一条毒蛇，因为热了出来，咬住他的手。土人看见那毒蛇悬在他手上，就彼此说：这人必是个凶手，虽然从海里救上来，天理还不容他活著。保罗竟把那毒蛇甩在火里，并没有受伤。土人想他必要肿起来，或是忽然仆倒死了；看了多时，见他无害，就转念，说：他是个神。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "site",
+        "title": "圣保罗湾（保罗遇难登陆处）",
+        "src": "assets/media/ch5-barbarian-1.webp",
+        "credit": "Unknown · Public domain",
+        "url": "https://commons.wikimedia.org/wiki/File:St_Paul's_Islands,_Malta.jpg"
+      }
+    ]
+  },
+  {
+    "id": "ch5-publius",
+    "ch": "ch5",
+    "type": "miracle",
+    "from": 59,
+    "to": 59,
+    "title": "医好部百流的父亲",
+    "en": "Healing the Father of the Chief Man",
+    "place": "malta",
+    "brief": "为岛长之父祷告按手，岛上其余病人也都得医治",
+    "narrative": "离那地方不远，有田产是岛长部百流的；他接纳他们，尽情款待三日。当时部百流的父亲患热病和痢疾躺着，保罗进去为他祷告，按手在他身上，治好了他。从此岛上其余的病人也来，得了医治；他们又多方地尊敬他们，到了开船的时候，也把所需用的送到船上。一段与传道无关的插曲，却是保罗在异乡落地生根的样例：先医治，再建立教会。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:7-10",
+        "text": "离那地方不远，有田产是岛长部百流的；他接纳我们，尽情款待三日。当时，部百流的父亲患热病和痢疾躺著。保罗进去，为他祷告，按手在他身上，治好了他。从此，岛上其余的病人也来，得了医治。他们又多方的尊敬我们；到了开船的时候，也把我们所需用的送到船上。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "site",
+        "title": "沉船湾的圣保罗船难教堂",
+        "src": "assets/media/ch5-publius-1.webp",
+        "credit": "Karelj · CC BY-SA 3.0",
+        "url": "https://commons.wikimedia.org/wiki/File:St_Paul_Bay_Shipwreck_Church_Malta_1.jpg"
+      }
+    ]
+  },
+  {
+    "id": "ch5-depart-malta",
+    "ch": "ch5",
+    "type": "arrival",
+    "from": 60,
+    "to": 60,
+    "title": "过了三个月启航",
+    "en": "Departing Malta after Three Months",
+    "place": "malta",
+    "brief": "乘亚历山大的船（以丢斯双子为记）离岛北上",
+    "narrative": "过了三个月，他们上了亚历山大的船往前行——这船以丢斯双子为记，是在那海岛过了冬的。三个月的停留是保罗在岛上留下的时间：他不只是被救上岸的囚犯，而是被岛民当作自家人送行的客人。岛上的病人得了医治，部百流的家成了教会，航线从这里重新接上通往帝国首都的水路。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:11",
+        "text": "过了三个月，我们上了亚力山大的船往前行；这船以丢斯双子为记，是在那海岛过了冬的。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "site",
+        "title": "瓦莱塔大港（Grand Harbour）——保罗一行在此换乘亚历山大的船",
+        "src": "assets/media/ch5-depart-malta-1.webp",
+        "credit": "MrPanyGoff · CC BY-SA 3.0",
+        "url": "https://commons.wikimedia.org/wiki/File:Grand_Harbour_-_Senglea.jpg"
+      }
+    ]
+  },
+  {
+    "id": "ch5-syracuse",
+    "ch": "ch5",
+    "type": "arrival",
+    "from": 60,
+    "to": 60,
+    "title": "停泊叙拉古",
+    "en": "Calling at Syracuse",
+    "place": "syracuse",
+    "brief": "在西西里东岸的希腊名城停泊三日",
+    "narrative": "到了叙拉古，他们停泊三日。这是整段航程里最后一次长期停靠，也是地理上的一个明确坐标——船从马耳他向北、沿西西里东岸而上。叙拉古是希腊化的名城，古代的数学家阿基米德之城。保罗在这里没有讲道、没有治病，只是路过；路加记下这三天，是因为它们标记了「从爱琴海进入西西里、离意大利越来越近」的位置。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:12",
+        "text": "到了叙拉古，我们停泊三日；"
+      }
+    ],
+    "media": [
+      {
+        "kind": "site",
+        "title": "叙拉古的希腊剧场",
+        "src": "assets/media/ch5-syracuse-1.webp",
+        "credit": "Nicolas Chadeville · CC BY-SA 4.0",
+        "url": "https://commons.wikimedia.org/wiki/File:The_Greek_theatre_of_Syracuse,_Sicily.jpg"
+      }
+    ]
+  },
+  {
+    "id": "ch5-rhegium",
+    "ch": "ch5",
+    "type": "arrival",
+    "from": 60,
+    "to": 60,
+    "title": "绕行利基翁",
+    "en": "Rounding Rhegium",
+    "place": "rhegium",
+    "brief": "从叙拉古绕行到利基翁，次日乘南风直抵部丢利",
+    "narrative": "又从那里绕行，来到利基翁。过了一天，起了南风，第二天就来到部丢利。利基翁就是雷吉姆，在意大利「靴尖」的最南端，与西西里隔海相望——从这里起，保罗踏上的是意大利本土的土地。绕行海峡、再借南风北上，正是古代商船最省力的一条航路。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:13",
+        "text": "又从那里绕行，来到利基翁。过了一天，起了南风，第二天就来到部丢利。"
+      }
+    ],
+    "media": []
+  },
+  {
+    "id": "ch5-puteoli",
+    "ch": "ch5",
+    "type": "arrival",
+    "from": 60,
+    "to": 60,
+    "title": "部丢利遇弟兄",
+    "en": "Welcomed at Puteoli",
+    "place": "puteoli",
+    "brief": "罗马的弟兄请他们同住七天",
+    "narrative": "在部丢利，他们遇见罗马的弟兄，请他们同住七天。这样，就来到罗马——一趟耗时半年以上、经历了一场沉船的航程，终于走完了。从凯撒利亚上船到踏入罗马，用了七个多月的海路；而保罗最后一段路，是靠罗马教会的弟兄在港口接上的。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:14",
+        "text": "在那里遇见弟兄们，请我们与他们同住了七天。这样，我们来到罗马。"
+      }
+    ],
+    "media": []
+  },
+  {
+    "id": "ch5-rome-arrival",
+    "ch": "ch5",
+    "type": "arrival",
+    "from": 60,
+    "to": 60,
+    "title": "进了罗马城",
+    "en": "Entering Rome",
+    "place": "rome",
+    "brief": "弟兄到亚比乌市与三馆迎接；蒙准与一名看守同住",
+    "narrative": "罗马的弟兄一听见他们的信息就出来，到亚比乌市和三馆地方迎接他们。保罗见了他们，就感谢神，放心壮胆——这是他自耶路撒冷下监以来第一次真正放松。进城后，他蒙准和一个看守他的兵另住在一处，而不是被关进监狱。第五幕在这里收束：一个被四重审讯判定「没有犯罪」的人，靠着公民身份与上诉权走完了两千公里的海路；接下来等待他的，是罗马的两年与《罗马书》的写成。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:15-16",
+        "text": "那里的弟兄们一听见我们的信息就出来，到亚比乌市和三馆地方迎接我们。保罗见了他们，就感谢神，放心壮胆。进了罗马城，（有古卷在此有：百夫长把众囚犯交给御营的统领，惟有）保罗蒙准和一个看守他的兵另住在一处。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "site",
+        "title": "罗马广场遗址",
+        "src": "assets/media/ch5-rome-arrival-1.webp",
+        "credit": "Atoorva · CC BY-SA 3.0",
+        "url": "https://commons.wikimedia.org/wiki/File:Ruins_of_Roman_Forum_Rome.JPG"
+      }
+    ]
+  },
+  {
+    "id": "ch6-leaders",
+    "ch": "ch6",
+    "type": "preach",
+    "from": 60,
+    "to": 60,
+    "title": "请犹太首领来",
+    "en": "Summoning the Roman Jewish Leaders",
+    "place": "rome",
+    "brief": "抵达三日后请犹太人首领来，陈明上告该撒的缘由",
+    "narrative": "抵达罗马三天后，保罗请犹太人的首领来，说明自己并没有干犯本国的百姓或祖宗的规条，却被锁链从耶路撒冷解来；他上告该撒，并不是要控告自己的百姓。首领们回答说：并没有收到犹太来的信，也没有弟兄来报信说他有甚么不好；他们愿意听听他的意见，因为这道在各处被毁谤。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:17",
+        "text": "过了三天，保罗请犹太人的首领来。他们来了，就对他们说：弟兄们，我虽没有做甚么事干犯本国的百姓和我们祖宗的规条，却被锁绑，从耶路撒冷解在罗马人的手里。"
+      },
+      {
+        "ref": "使徒行传 28:21-22",
+        "text": "他们说：我们并没有接著从犹太来论你的信，也没有弟兄到这里来报给我们说你有甚么不好处。但我们愿意听你的意见如何；因为这教门，我们晓得是到处被毁谤的。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "photo",
+        "title": "提多凯旋门上的圣殿战利品浮雕（罗马广场，AD 81）",
+        "src": "assets/media/ch6-leaders-1.webp",
+        "credit": "José Luiz · CC BY-SA 3.0",
+        "url": "https://commons.wikimedia.org/wiki/File:Spoils_from_Jerusalem_-_Arch_of_Titus_-_Rome_2008.jpg"
+      }
+    ],
+    "note": "徒 28:17 的「三天」紧接 28:16 的「蒙准与一名看守同住」：保罗在罗马是软禁而非下狱，可以接见访客、也可以向人讲论。"
+  },
+  {
+    "id": "ch6-testimony",
+    "ch": "ch6",
+    "type": "preach",
+    "from": 60,
+    "to": 60,
+    "title": "从早到晚讲论",
+    "en": "Reasoning from Morning Till Evening",
+    "place": "rome",
+    "brief": "引摩西的律法和先知的书，以耶稣的事劝勉众人；有信的，有不信的",
+    "narrative": "约定的日子，许多人到保罗的寓处来。他从早到晚讲论，证明神国的道，引摩西的律法和先知的书，以耶稣的事劝勉他们。行传只留下两句结果：「有信的，有不信的。」福音在帝国的中心同样引起分裂，一如在以哥念、在雅典、在以弗所。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:23-24",
+        "text": "他们和保罗约定了日子，就有许多人到他的寓处来。保罗从早到晚，对他们讲论这事，证明神国的道，引摩西的律法和先知的书，以耶稣的事劝勉他们。他所说的话，有信的，有不信的。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "photo",
+        "title": "奥斯蒂亚的多层公寓（insula）——罗马世界平民的典型居所",
+        "src": "assets/media/ch6-testimony-1.webp",
+        "credit": "Nashvilleneighbor · Public domain",
+        "url": "https://commons.wikimedia.org/wiki/File:OstianInsula.JPG"
+      }
+    ],
+    "note": "罗马的 insula 是平民租住的多层楼；保罗「自己所租的房子」当属此类出租房屋，但具体位置不可考。"
+  },
+  {
+    "id": "ch6-unbelief",
+    "ch": "ch6",
+    "type": "preach",
+    "from": 60,
+    "to": 60,
+    "title": "油蒙了心",
+    "en": "Hearts Grown Dull",
+    "place": "rome",
+    "brief": "引以赛亚书宣告这百姓油蒙了心；救恩转向外邦人",
+    "narrative": "谈不拢的时候，保罗引以赛亚的话作结：这百姓油蒙了心，耳朵发沉，眼睛闭着，恐怕他们眼睛看见、耳朵听见、心里明白、回转过来，就得医治。于是他宣告：神这救恩如今传给外邦人，他们也必听受。行传的叙事在这里给出一个判决式的收束——不是保罗被弃绝，而是拒绝的后果落在拒绝者身上。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:25-27",
+        "text": "他们彼此不合，就散了；未散以先，保罗说了一句话，说：圣灵藉先知以赛亚向你们祖宗所说的话是不错的。他说：你去告诉这百姓说：你们听是要听见，却不明白；看是要看见，却不晓得；因为这百姓油蒙了心，耳朵发沉，眼睛闭著；恐怕眼睛看见，耳朵听见，心里明白，回转过来，我就医治他们。"
+      },
+      {
+        "ref": "使徒行传 28:28",
+        "text": "所以你们当知道，神这救恩，如今传给外邦人，他们也必听受。（有古卷在此有："
+      }
+    ],
+    "media": [],
+    "note": "徒 28:26-27 引《以赛亚书》6:9-10，与太 13:14-15、可 4:11-12、约 12:40 引用同一段，是初代教会解释「为何以色列中有不信」的标准经文。"
+  },
+  {
+    "id": "ch6-two-years",
+    "ch": "ch6",
+    "type": "preach",
+    "from": 60,
+    "to": 62,
+    "title": "在自己所租的房子里",
+    "en": "Two Years in His Own Rented House",
+    "place": "rome",
+    "brief": "足足两年，凡来见他的人全都接待，放胆传讲神国的道",
+    "narrative": "保罗在自己所租的房子里住了足足两年。凡来见他的人，他全都接待，放胆传讲神国的道，将主耶稣基督的事教导人，并没有人禁止。行传就在这里结束——没有判决，没有殉道，也没有罗马教会的情景，只有一句「并没有人禁止」。",
+    "verses": [
+      {
+        "ref": "使徒行传 28:30-31",
+        "text": "保罗在自己所租的房子里住了足足两年。凡来见他的人，他全都接待，放胆传讲神国的道，将主耶稣基督的事教导人，并没有人禁止。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "art",
+        "title": "伦勃朗《狱中的保罗》（1627，斯图加特国立美术馆）",
+        "src": "assets/media/ch6-two-years-1.webp",
+        "credit": "Rembrandt · Public domain",
+        "url": "https://commons.wikimedia.org/wiki/File:Rembrandt_St._Paul_in_Prison.jpg"
+      }
+    ],
+    "note": "行传的结尾是开放式的：路加止于两年期满，未交代上诉结果。有学者据此推测审讯尚未结束，也有学者认为路加写作时案件已有分晓、无须再述。"
+  },
+  {
+    "id": "ch6-ephesians",
+    "ch": "ch6",
+    "type": "letter",
+    "from": 60,
+    "to": 62,
+    "title": "写《以弗所书》",
+    "en": "Letter to the Ephesians",
+    "place": "rome",
+    "brief": "自称「为你们外邦人作了基督耶稣被囚的」，请教会为他求口才",
+    "narrative": "被囚期间，保罗写信给亚细亚的众教会。他自称「为你们外邦人作了基督耶稣被囚的」，把捆锁重新解释为福音的奥秘向外邦人敞开的记号；信的末了，他请教会为他祈求口才，使他能放胆开口讲明福音的奥秘。",
+    "verses": [
+      {
+        "ref": "以弗所书 6:19-20",
+        "text": "也为我祈求，使我得著口才，能以放胆开口讲明福音的奥秘，我为这福音的奥秘作了带锁炼的使者，并使我照著当尽的本分放胆讲论。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "photo",
+        "title": "以弗所：塞尔苏斯图书馆（公元 2 世纪）——亚细亚行省省会的公共建筑",
+        "src": "assets/media/ch6-ephesians-1.webp",
+        "credit": "Bernard Gagnon · CC BY-SA 3.0",
+        "url": "https://commons.wikimedia.org/wiki/File:Ephesus_-_Celsus_Library.jpg"
+      }
+    ],
+    "note": "《以弗所书》部分早期抄本（P46、Vaticanus）在 1:1 没有「在以弗所」字样，故有学者主张它是写给亚细亚众教会的通函；本图沿用传统书名。监狱书信（弗、腓、西、门）的写作地点有罗马、以弗所、凯撒利亚三说，本项目取罗马说。"
+  },
+  {
+    "id": "ch6-colossians",
+    "ch": "ch6",
+    "type": "letter",
+    "from": 60,
+    "to": 62,
+    "title": "写《歌罗西书》",
+    "en": "Letter to the Colossians",
+    "place": "rome",
+    "brief": "求神开传道的门，讲基督的奥秘；信要念给老底嘉教会听",
+    "narrative": "歌罗西教会并非保罗亲手建立，他却是为它被捆锁的。他请信徒为他祷告，求神给他们开传道的门，能以讲基督的奥秘；信末特别嘱咐要念给老底嘉的教会听，也要读从老底嘉来的信。",
+    "verses": [
+      {
+        "ref": "歌罗西书 4:3",
+        "text": "也要为我们祷告，求神给我们开传道的门，能以讲基督的奥秘（我为此被捆锁），"
+      }
+    ],
+    "media": [
+      {
+        "kind": "art",
+        "title": "P46 双叶：罗马书末、腓立比书末与歌罗西书首（切斯特·比替图书馆，约 AD 200）",
+        "src": "assets/media/ch6-colossians-1.webp",
+        "credit": "Unknown artist · Public domain",
+        "url": "https://commons.wikimedia.org/wiki/File:Dublin,_Chester_Beatty_Ms_BP_II_fol._15%2690_Bifolio_from_Paul%27s_Letter_to_the_Romans,_the_end_of_Paul%27s_Letter_to_the_Philippians_and_the_beginning_of_Paul%27s_Letter_to_the_Colossians.jpg"
+      }
+    ],
+    "note": "歌罗西书与腓利门书由同一批人（推基古、阿尼西母）带往亚细亚（西 4:7-9），两封信因此常被视为同一时期写成。"
+  },
+  {
+    "id": "ch6-philemon",
+    "ch": "ch6",
+    "type": "letter",
+    "from": 60,
+    "to": 62,
+    "title": "写《腓利门书》",
+    "en": "Letter to Philemon",
+    "place": "rome",
+    "brief": "为逃奴阿尼西母求情：不再是奴仆，乃是亲爱的兄弟",
+    "narrative": "阿尼西母是歌罗西人腓利门的奴仆，逃到保罗那里，在捆锁中听了福音。保罗写信给腓利门，不命令、只央求：阿尼西母「暂时离开你，或者是叫你永远得著他」，不再是奴仆，乃是高过奴仆的亲爱的兄弟。这封只有一章的私信，是古代世界对奴隶制度最锋利的一次内部质疑。",
+    "verses": [
+      {
+        "ref": "腓利门书 1:15-16",
+        "text": "他暂时离开你，或者是叫你永远得著他，不再是奴仆，乃是高过奴仆，是亲爱的兄弟。在我实在是如此，何况在你呢！这也不拘是按肉体说，是按主说，"
+      }
+    ],
+    "media": [
+      {
+        "kind": "art",
+        "title": "瓦伦丁·德·布洛涅《保罗写信》（约 1620，休斯敦美术馆）",
+        "src": "assets/media/ch6-philemon-1.webp",
+        "credit": "Valentin de Boulogne · Public domain",
+        "url": "https://commons.wikimedia.org/wiki/File:Valentin_de_Boulogne_-_Saint_Paul_Writing_His_Epistles_-_BF.1991.4_-_Museum_of_Fine_Arts.jpg"
+      }
+    ],
+    "note": "保罗没有直接要求释放阿尼西母，而是把他作为「亲爱的兄弟」送回主人那里；这一处理在废奴史上被反复讨论。"
+  },
+  {
+    "id": "ch6-philippians",
+    "ch": "ch6",
+    "type": "letter",
+    "from": 61,
+    "to": 62,
+    "title": "写《腓立比书》",
+    "en": "Letter to the Philippians",
+    "place": "rome",
+    "brief": "我所遭遇的事更是叫福音兴旺；御营全军都知道我是为基督的缘故",
+    "narrative": "腓立比教会是保罗在欧洲建立的第一座教会，也是最早资助他的教会。被囚中他写信回去：我所遭遇的事更是叫福音兴旺，以致御营全军和其余的人都知道我是为基督的缘故受捆锁；并且那在主里的弟兄，多半因我受的捆锁，就笃信不疑，越发放胆传神的道。",
+    "verses": [
+      {
+        "ref": "腓立比书 1:12-14",
+        "text": "弟兄们，我愿意你们知道，我所遭遇的事更是叫福音兴旺，以致我受的捆锁在御营全军和其余的人中，已经显明是为基督的缘故。并且那在主里的弟兄多半因我受的捆锁就笃信不疑，越发放胆传神的道，无所惧怕。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "photo",
+        "title": "腓立比考古遗址：罗马殖民城的街道与公共建筑基址",
+        "src": "assets/media/ch6-philippians-1.webp",
+        "credit": "Berthold Werner · CC BY-SA 3.0",
+        "url": "https://commons.wikimedia.org/wiki/File:Archaeological_site_of_Philippi_BW_2017-10-05_12-54-40.jpg"
+      }
+    ],
+    "note": "「御营全军」（πραιτώριον）指罗马的禁卫军营；这封信因此常被定为罗马被囚期间所写，而非以弗所或凯撒利亚。"
+  },
+  {
+    "id": "ch6-released",
+    "ch": "ch6",
+    "type": "arrival",
+    "from": 62,
+    "to": 62,
+    "title": "获释",
+    "en": "Released from Custody",
+    "place": "rome",
+    "brief": "传统认为两年期满后获释，再往东方与克里特",
+    "narrative": "行传没有写审讯的结果。传统（优西比乌、《穆拉多利残卷》）认为保罗在两年期满后获释，随后往克里特、以弗所与马其顿，并留下提多与提摩太料理教会；他在腓利门书里也提到「我盼望藉着你们的祷告，必蒙恩到你们那里去」。这一段行程不见于行传，只能靠教牧书信与传统拼接。",
+    "verses": [
+      {
+        "ref": "腓利门书 1:22",
+        "text": "此外你还要给我预备住处；因为我盼望藉著你们的祷告，必蒙恩到你们那里去。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "photo",
+        "title": "尼禄像（卡比托利欧博物馆）——保罗被囚与获释时期的罗马皇帝",
+        "src": "assets/media/ch6-released-1.webp",
+        "credit": "Marie-Lan Nguyen ( User:Jastrow ) 2009 · CC BY 2.5",
+        "url": "https://commons.wikimedia.org/wiki/File:Nero_Musei_Capitolini_MC2825.jpg"
+      }
+    ],
+    "note": "「获释—第四次旅程」属传统重建，非行传记载；主张教牧书信为后保罗作品的学者，则认为保罗未曾获释、直接在罗马殉道。"
+  },
+  {
+    "id": "ch6-pastorals",
+    "ch": "ch6",
+    "type": "letter",
+    "from": 63,
+    "to": 65,
+    "title": "写《提摩太前书》《提多书》",
+    "en": "The Pastoral Letters",
+    "place": "rome",
+    "brief": "嘱托提摩太在以弗所、提多在克里特设立长老",
+    "narrative": "若按传统重建，保罗获释后在马其顿写信给留在以弗所的提摩太，又写信给留在克里特的提多，嘱托他们设立长老、抵挡虚浮的教训。信中留下一句常被引用的自述：「基督耶稣降世，为要拯救罪人。这话是可信的，是十分可佩服的。」",
+    "verses": [
+      {
+        "ref": "提摩太前书 1:15-16",
+        "text": "基督耶稣降世，为要拯救罪人。这话是可信的，是十分可佩服的。在罪人中我是个罪魁。然而，我蒙了怜悯，是因耶稣基督要在我这罪魁身上显明他一切的忍耐，给后来信他得永生的人作榜样。"
+      },
+      {
+        "ref": "提多书 1:5",
+        "text": "我从前留你在革哩底，是要你将那没有办完的事都办整齐了，又照我所吩咐你的，在各城设立长老。"
+      }
+    ],
+    "media": [],
+    "note": "教牧书信的作者与年代是学界最大分歧之一：传统归保罗（AD 62–64），多数现代学者主张出自保罗之后的门徒（AD 80–100）。本项目按传统年代排入叙事，并在此保留分歧。"
+  },
+  {
+    "id": "ch6-fire",
+    "ch": "ch6",
+    "type": "persecution",
+    "from": 64,
+    "to": 64,
+    "title": "罗马大火与尼禄的逼迫",
+    "en": "The Fire of Rome and Nero's Persecution",
+    "place": "rome",
+    "brief": "大火之后，基督徒被指为纵火者，成为尼禄的替罪羊",
+    "narrative": "公元 64 年夏，罗马大火焚城六日。尼禄为平息众怒，把纵火的罪名加在基督徒身上：他们被披上兽皮让狗撕裂，被钉在十字架上，被点上火当作夜间的灯。塔西佗记下这段文字时并不友善，却无意间为十字架之道留下了最早的异教旁证。传统认为保罗与彼得都在这一轮逼迫中殉道。",
+    "verses": [
+      {
+        "ref": "彼得前书 4:12-14",
+        "text": "亲爱的弟兄阿，有火炼的试验临到你们，不要以为奇怪（似乎是遭遇非常的事），倒要欢喜；因为你们是与基督一同受苦，使你们在他荣耀显现的时候，也可以欢喜快乐。你们若为基督的名受辱骂，便是有福的；因为神荣耀的灵常住在你们身上。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "art",
+        "title": "亨利克·西米拉兹基《尼禄的火炬》（1882，克拉科夫）",
+        "src": "assets/media/ch6-fire-1.webp",
+        "credit": "Henryk Siemiradzki · Public domain",
+        "url": "https://commons.wikimedia.org/wiki/File:Henryk_Siemiradzki_-_Pochodnie_Nerona.jpg"
+      }
+    ],
+    "note": "此事仅见于塔西佗《编年史》15.44 与苏埃托尼乌斯《尼禄传》，行传未载；此处引《彼得前书》4:12-14 作同一逼迫背景下的旁证，非保罗本人的文字。"
+  },
+  {
+    "id": "ch6-2tim",
+    "ch": "ch6",
+    "type": "letter",
+    "from": 66,
+    "to": 67,
+    "title": "写《提摩太后书》",
+    "en": "Second Letter to Timothy",
+    "place": "rome",
+    "brief": "「那美好的仗我已经打过了」——狱中的最后一封信",
+    "narrative": "保罗再次被囚，这一次不再是租屋软禁。他写信给提摩太，说自己被浇奠、离世的时候到了：「那美好的仗我已经打过了，当跑的路我已经跑尽了，所信的道我已经守住了。」他要提摩太赶紧来，把马可带来，把书卷和皮卷带来——一个在死囚牢里仍然要读书的人。",
+    "verses": [
+      {
+        "ref": "提摩太后书 1:8",
+        "text": "你不要以给我们的主作见证为耻，也不要以我这为主被囚的为耻；总要按神的能力，与我为福音同受苦难。"
+      },
+      {
+        "ref": "提摩太后书 2:9",
+        "text": "我为这福音受苦难，甚至被捆绑，像犯人一样。然而神的道却不被捆绑。"
+      },
+      {
+        "ref": "提摩太后书 4:6-8",
+        "text": "我现在被浇奠，我离世的时候到了。那美好的仗我已经打过了，当跑的路我已经跑尽了，所信的道我已经守住了。从此以后，有公义的冠冕为我存留，就是按著公义审判的主到了那日要赐给我的；不但赐给我，也赐给凡爱慕他显现的人。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "photo",
+        "title": "马梅尔定监狱（Mamertine）：卡比托利欧山脚的古罗马狱室",
+        "src": "assets/media/ch6-2tim-1.webp",
+        "credit": "Chris 73 · CC BY-SA 3.0",
+        "url": "https://commons.wikimedia.org/wiki/File:Mamertine_Prison.jpg"
+      }
+    ],
+    "note": "传统把保罗第二次被囚的地点定在马梅尔定监狱；此处仅为传统推定，行传与新约均未提及具体牢址。《提摩太后书》的作者问题与教牧书信同。"
+  },
+  {
+    "id": "ch6-martyrdom",
+    "ch": "ch6",
+    "type": "persecution",
+    "from": 67,
+    "to": 67,
+    "title": "殉道",
+    "en": "Martyrdom in Rome",
+    "place": "rome",
+    "brief": "传统记他在奥斯提亚大道被斩首，葬于城外",
+    "narrative": "传统说保罗以罗马公民的身份被斩首，而非钉十字架；行刑处在城外的奥斯提亚大道，一说在今日的三泉。革利免在公元 96 年前后写道：保罗「到过西边的极处」，在罗马「在官长面前作证」，然后「离开了世界」。他的墓上后来建起了城外圣保罗大殿。",
+    "verses": [
+      {
+        "ref": "提摩太后书 4:17-18",
+        "text": "惟有主站在我旁边，加给我力量，使福音被我尽都传明，叫外邦人都听见；我也从狮子口里被救出来。主必救我脱离诸般的凶恶，也必救我进他的天国。愿荣耀归给他，直到永永远远。阿们。"
+      }
+    ],
+    "media": [
+      {
+        "kind": "photo",
+        "title": "城外圣保罗大殿：传统上保罗葬于此处",
+        "src": "assets/media/ch6-martyrdom-1.webp",
+        "credit": "Alberto Fernandez Fernandez · CC BY 2.5",
+        "url": "https://commons.wikimedia.org/wiki/File:Front_of_the_Basilica_of_Saint_Paul_Outside_the_Walls_-_Roma_-_Italy.jpg"
+      }
+    ],
+    "note": "殉道年代有 AD 64（尼禄大火后）与 AD 67（传统年表）两说，本项目取 AD 67。革利免《致哥林多人书》5 章是最早的旁证，未记行刑方式；「斩首」出自后世传统（《保罗行传》、优西比乌）。"
   }
 ]

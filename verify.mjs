@@ -32,7 +32,7 @@ await send('Page.enable');
 await send('Runtime.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
 await send('Page.navigate', { url: PAGE });
-await sleep(4800);
+await sleep(6000);   /* 首帧就绪：97 事件 + 内联媒体在无 GPU 的 headless 下约 4.7s（GS_APP.boot≈2.5s，首次绘制更晚） */
 
 async function ev(x) {
   const r = await send('Runtime.evaluate', { expression: x, returnByValue: true });
@@ -84,7 +84,7 @@ await shot('f1_boot.png');
  *     引导卡在启动 1.9s 后入场，且sessionStorage 记忆，故须清存储后重导航再断言。 */
 await ev(`sessionStorage.removeItem('gs.guide.seen.v1')`);
 await send('Page.navigate', { url: PAGE });
-await sleep(4200);
+await sleep(6000);
 console.log('A8 guide:', await ev(`(function(){
   var g = document.getElementById('guide');
   var btn = document.getElementById('playBtn');
@@ -338,7 +338,7 @@ console.log('M2-8 filter off rows:', await ev(`document.querySelectorAll('#list 
  *   上面的 A11 跑完了整片播放，相机停在最后一个事件（罗马）附近，
  *   此时量「初始视野」必然假失败 —— 与 A4 的教训同源。 */
 await send('Page.navigate', { url: PAGE });
-await sleep(4200);
+await sleep(6000);
 
 console.log('M3-1 chapters:', await ev(`(function(){
   var per = {};
@@ -444,14 +444,18 @@ console.log('M3-5 field-completeness:', await ev(`(function(){
 console.log('M3-6 event-route-hit:', await ev(`(function(){
   var byCh = {};
   GS_APP.routes.forEach(function (r) { if (r.ch) byCh[r.ch] = r; });
-  var miss = [], perCh = {};
+  /* 尾声章（chapters.noRoute）本无旅程：事件只驱动相机与高亮，不算漏命中 */
+  var noRoute = {};
+  GS_APP.chapters.forEach(function (c) { if (c.noRoute) noRoute[c.id] = 1; });
+  var miss = [], perCh = {}, skipped = 0;
   GS_APP.events.forEach(function (e) {
-    var j = byCh[e.ch]; if (!j) { miss.push(e.id + '@no-route:' + e.ch); return; }
+    var j = byCh[e.ch];
+    if (!j) { if (noRoute[e.ch]) { skipped++; return; } miss.push(e.id + '@no-route:' + e.ch); return; }
     var hit = j.stops.some(function (s) { return s.p === e.place; });
     if (!hit) miss.push(e.id + '@' + j.id);
     perCh[e.ch] = (perCh[e.ch] || 0) + 1;
   });
-  return JSON.stringify({ miss: miss, perCh: perCh, ok: miss.length === 0 });
+  return JSON.stringify({ miss: miss, perCh: perCh, noRouteSkipped: skipped, ok: miss.length === 0 });
 })()`));
 
 /* M3-7. 时间轴承载力：82 个事件挤进 AD 46–60，圆点不得重叠、章节色带须落在轨道内 */
@@ -525,11 +529,222 @@ console.log('M3-10 initial-view:', await ev(`(function(){
     ok: all.length === 0 });
 })()`));
 
+/* ═══════════════════ M4：ch6 罗马被囚与尾声 + 富媒体本地化 ═══════════════════ */
+
+/* M4-1. 章节年代覆盖（通用不变量，自动覆盖 ch6）：每个章节声明区间必须包住其全部事件，
+ *   且 ch6 必须真的落在 60–67 —— 曾因 ch1 声明 46–48 却含 AD 49 事件而暴露。 */
+console.log('M4-1 chapters:', await ev(`(function(){
+  var bad = [];
+  GS_APP.chapters.forEach(function (c) {
+    var evs = GS_APP.events.filter(function (e) { return e.ch === c.id; });
+    if (!evs.length) return;
+    evs.forEach(function (e) {
+      if (e.from < c.from || e.to > c.to) bad.push(e.id + ' ' + e.from + '-' + e.to + ' ∉ ' + c.id + ' ' + c.from + '-' + c.to);
+    });
+  });
+  var c6 = GS_APP.chapters.filter(function (c) { return c.id === 'ch6'; })[0];
+  var e6 = GS_APP.events.filter(function (e) { return e.ch === 'ch6'; });
+  return JSON.stringify({ ch6: c6 ? c6.from + '-' + c6.to : 'MISSING', ch6Events: e6.length,
+    ch6Span: e6.length ? Math.min.apply(null, e6.map(function(e){return e.from;})) + '-' + Math.max.apply(null, e6.map(function(e){return e.to;})) : '-',
+    outOfRange: bad, ok: bad.length === 0 && !!c6 && e6.length > 0 });
+})()`));
+
+/* M4-2. ch6 字段完整性：每条事件都要有标题/英文名/摘要/叙事/经文；
+ *   殉道、获释、罗马大火等「行传之外」的事件必须有 note 交代出处与争议。 */
+console.log('M4-2 ch6-fields:', await ev(`(function(){
+  var e6 = GS_APP.events.filter(function (e) { return e.ch === 'ch6'; });
+  var miss = [], noNote = [];
+  var NEED_NOTE = ['ch6-released','ch6-fire','ch6-martyrdom','ch6-pastorals','ch6-ephesians'];
+  e6.forEach(function (e) {
+    ['title','en','brief','narrative','place','type'].forEach(function (k) { if (!e[k]) miss.push(e.id + '.' + k); });
+    if (!e.verses || !e.verses.length) miss.push(e.id + '.verses');
+    if (NEED_NOTE.indexOf(e.id) >= 0 && !e.note) noNote.push(e.id);
+  });
+  return JSON.stringify({ n: e6.length, missing: miss, noteMissing: noNote, ok: miss.length === 0 && noNote.length === 0 });
+})()`));
+
+/* M4-3. 媒体本地化与授权：src 必须是内联 data:image/webp（单文件离线可用）；
+ *   每条 media 必须有 credit（作者 · 授权）与 url（Commons 溯源页）。
+ *   体积预算：内联后总字节 ≤ 4.5MB —— 超了说明压缩档位失效，详情面板会被大图拖慢。 */
+console.log('M4-3 media-inline:', await ev(`(function(){
+  var all = [], inline = 0, remote = 0, noCredit = [], bytes = 0, badScheme = [];
+  GS_APP.events.forEach(function (e) {
+    (e.media || []).forEach(function (m) {
+      all.push(e.id);
+      if (!m.src) { remote++; if (!m.url) badScheme.push(e.id + ':no-url'); return; }
+      if (m.src.indexOf('data:image/webp;base64,') === 0) { inline++; bytes += m.src.length; }
+      else if (/^assets\\/media\\//.test(m.src)) { badScheme.push(e.id + ':not-inlined'); }
+      else remote++;
+      if (!m.credit) noCredit.push(e.id);
+      if (!m.url) badScheme.push(e.id + ':no-source');
+    });
+  });
+  return JSON.stringify({ total: all.length, inline: inline, remote: remote,
+    noCredit: noCredit, badScheme: badScheme, inlineMB: Math.round(bytes / 1048576 * 100) / 100,
+    ok: inline > 0 && noCredit.length === 0 && badScheme.length === 0 && bytes <= 4.5 * 1048576 });
+})()`));
+
+/* M4-4. 媒体渲染回归（2026-10-30 修的三个缺陷）：
+ *   ① openEvent 把 renderMedia 的返回值又包了一层「图 像」标题与 .d-media ——
+ *      标题重复、网格套网格，图组标题被挤成网格项（截图 g6 可见「图 像｜历 史 艺 术」并排）；
+ *   ② 图片必须真的解码成功（naturalWidth > 0），不能只断言 <img> 存在；
+ *   ③ 署名必须可点开溯源（学术纪律要求 credit + url 都可见可核对）。 */
+await ev(`GS_APP.open('ch6-two-years')`);
+await sleep(1400);
+console.log('M4-4 media-render:', await ev(`(function(){
+  var heads = [].slice.call(document.querySelectorAll('#detail .d-h')).filter(function(h){ return h.textContent.replace(/\\s/g,'') === '图像'; });
+  var imgs = [].slice.call(document.querySelectorAll('#detail .m-fig img'));
+  var figLinks = document.querySelectorAll('#detail .m-fig figcaption a').length;
+  var nested = document.querySelectorAll('#detail .d-media .d-media').length;
+  return JSON.stringify({
+    mediaHeads: heads.length, imgs: imgs.length,
+    decoded: imgs.filter(function(i){ return i.complete && i.naturalWidth > 0; }).length,
+    figLinks: figLinks, nestedMedia: nested,
+    groups: [].slice.call(document.querySelectorAll('#detail .d-mgroup h5')).map(function(h){return h.textContent;}),
+    ok: heads.length === 1 && imgs.length > 0 && imgs.every(function(i){ return i.complete && i.naturalWidth > 0; })
+        && figLinks === imgs.length && nested === 0 });
+})()`));
+/* 截图前把图像区块滚到可视区：详情面板默认停在顶部，直接截屏只会拍到标题与经文 */
+await ev(`(function(){var m=document.querySelector('#detail .d-media'); if(m) m.scrollIntoView({block:'center'});})()`);
+await sleep(400);
+await shot('g6_detail_media.png');
+
+/* M4-5. 无媒体事件的降级：ch6-unbelief / ch6-pastorals 无图，必须给出说明 + 检索入口，
+ *   而不是让整块静默消失（否则读者会读成「这里没有资料」）。 */
+await ev(`GS_APP.open('ch6-unbelief')`);
+await sleep(900);
+console.log('M4-5 media-fallback:', await ev(`JSON.stringify({
+  note: !!document.querySelector('#detail .d-mnote'),
+  link: !!document.querySelector('#detail .m-link'),
+  heads: [].slice.call(document.querySelectorAll('#detail .d-h')).filter(function(h){ return h.textContent.replace(/\\s/g,'') === '图像'; }).length,
+  ok: !!document.querySelector('#detail .d-mnote') && !!document.querySelector('#detail .m-link')
+})`));
+await ev(`GS_APP.close()`); await sleep(300);
+
+/* M4-6. 尾声章无旅程（chapters.ch6.noRoute）：ch6 事件不得推动任何旅程的描线。
+ *   —— 这是「章节闸门」的另一面：ch4 事件不能串到 j5，ch6 更不能凭空画线。 */
+console.log('M4-6 no-route-chapter:', await ev(`(function(){
+  var c6 = GS_APP.chapters.filter(function (c) { return c.id === 'ch6'; })[0];
+  var j6 = GS_APP.routes.filter(function (j) { return j.ch === 'ch6'; });
+  GS_APP.timeline.setYear(67);
+  var holds = GS_APP.routes.map(function (j) { return j.id + ':' + (GS.routeEngine.api.byId(j.id).hold == null ? 'null' : 'SET'); });
+  return JSON.stringify({ declared: !!(c6 && c6.noRoute), routesForCh6: j6.length, holds: holds,
+    ok: !!(c6 && c6.noRoute) && j6.length === 0 });
+})()`));
+
+/* M4-7. 章节筛选 ch6：列表行数须与数据一致（筛选是内容视角，不是产品进度） */
+await click('.ch-chip[data-ch="ch6"]');
+await sleep(500);
+console.log('M4-7 filter ch6:', await ev(`(function(){
+  var want = GS_APP.events.filter(function (e) { return e.ch === 'ch6'; }).length;
+  var rows = document.querySelectorAll('#list .ev').length;
+  var ids = [].slice.call(document.querySelectorAll('#list .ev')).map(function(r){ return r.getAttribute('data-ev'); });
+  var foreign = ids.filter(function (id) {
+    var e = GS_APP.events.filter(function (x) { return x.id === id; })[0];
+    return e && e.ch !== 'ch6';
+  });
+  return JSON.stringify({ want: want, rows: rows, foreign: foreign, ok: rows === want && foreign.length === 0 });
+})()`));
+await click('.ch-chip[data-ch="ch6"]');
+await sleep(400);
+
+/* M4-8. 时间轴承载力（97 事件 / AD 46–72）：圆点两两不重叠、章节色带必须落在轨道内。
+ *   AD 60 一簇 6 个事件、AD 64/66/67 各 1 个，若簇模型失效会出现叠点或色带溢出。 */
+console.log('M4-8 timeline-load:', await ev(`(function(){
+  var dots = [].slice.call(document.querySelectorAll('.tl-dot')).map(function (d) {
+    var r = d.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2, id: d.title };
+  });
+  var overlaps = 0, minGap = Infinity;
+  for (var i = 0; i < dots.length; i++) {
+    for (var j = i + 1; j < dots.length; j++) {
+      var dx = dots[i].x - dots[j].x, dy = dots[i].y - dots[j].y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < minGap) minGap = d;
+      if (d < dots[i].r + dots[j].r - 0.5) overlaps++;
+    }
+  }
+  var track = document.getElementById('tlTrack').getBoundingClientRect();
+  var bandOut = [].slice.call(document.querySelectorAll('.tl-band')).filter(function (b) {
+    var r = b.getBoundingClientRect();
+    return r.top < track.top - 1 || r.bottom > track.bottom + 1;
+  }).length;
+  return JSON.stringify({ dots: dots.length, overlaps: overlaps, minGap: Math.round(minGap * 10) / 10,
+    bandOut: bandOut, ok: overlaps === 0 && bandOut === 0 });
+})()`));
+
+/* ═══════════════════ M6：音效与增强动画 ═══════════════════ */
+
+/* M6-1. 音效开关：按钮存在、aria-pressed 与 GS.audio.enabled() 一致、点击后两者同步翻转、
+ *   且偏好写入 localStorage（下次打开仍是静音）。
+ *   点击一律走真实输入事件（README「写交互断言的硬性要求」）。 */
+var sndPos = await centerOf('#soundBtn');
+var sndBefore = await ev(`JSON.stringify({ pressed: document.getElementById('soundBtn').getAttribute('aria-pressed'),
+  enabled: GS_APP.audio.enabled() })`);
+if (sndPos) await realClick(sndPos.x, sndPos.y);
+await sleep(250);
+var sndAfter = await ev(`JSON.stringify({ pressed: document.getElementById('soundBtn').getAttribute('aria-pressed'),
+  enabled: GS_APP.audio.enabled(), pref: localStorage.getItem('gs.sound') })`);
+if (sndPos) await realClick(sndPos.x, sndPos.y);
+await sleep(250);
+var sndRestored = await ev(`JSON.stringify({ pressed: document.getElementById('soundBtn').getAttribute('aria-pressed'),
+  enabled: GS_APP.audio.enabled() })`);
+console.log('M6-1 sound-toggle:', (function () {
+  var s = { before: JSON.parse(sndBefore), after: JSON.parse(sndAfter), restored: JSON.parse(sndRestored) };
+  s.ok = s.before.pressed === String(s.before.enabled)
+      && s.after.pressed === String(s.after.enabled)
+      && s.before.enabled !== s.after.enabled
+      && s.after.pref === (s.after.enabled ? 'on' : 'off')
+      && s.restored.enabled === s.before.enabled;
+  return JSON.stringify(s);
+})());
+
+/* M6-2. 音色表与播放接口：合成音色齐全；关闭时 play() 必须直接返回 false（不建上下文）。 */
+console.log('M6-2 audio-api:', await ev(`(function(){
+  var a = GS_APP.audio;
+  var cues = a.cues.slice().sort().join(',');
+  var onPlay = a.play('arrive');
+  a.setEnabled(false);
+  var offPlay = a.play('arrive');
+  a.setEnabled(true);
+  return JSON.stringify({ cues: cues, onPlay: onPlay, offPlay: offPlay,
+    ok: cues.indexOf('arrive') >= 0 && cues.indexOf('letter') >= 0 && cues.indexOf('chapter') >= 0
+        && onPlay === true && offPlay === false });
+})()`));
+
+/* M6-3. AudioContext 只在用户手势后创建（自动播放策略）：
+ *   真实点击播放按钮 → 上下文应被创建；headless 无音频设备时 state 可能是 suspended，
+ *   故只断言「已创建」而不是「正在运行」。 */
+await ev(`sessionStorage.removeItem('gs.guide.seen.v1'); GS_APP.state.detail && GS_APP.close();`);
+var playPos = await centerOf('#playBtn');
+if (playPos) await realClick(playPos.x, playPos.y);
+await sleep(2200);
+console.log('M6-3 audio-ctx:', await ev(`JSON.stringify({ state: GS_APP.audio.state(), playing: GS_APP.state.playing,
+  ok: GS_APP.audio.state() !== 'none' })`));
+
+/* M6-4. 抵达增强动画：播放中当前事件点须挂上 .arrive，且动画名是 arriveRing
+ *   （不是复用了 dotpop —— 两者叠加时 transform 会被后者覆盖）。
+ *   轮询取样：动画只有 0.85s，固定时刻截图会漏。 */
+var ringSeen = null;
+for (var m6 = 0; m6 < 18; m6++) {
+  await sleep(200);
+  ringSeen = await ev(`(function(){
+    var d = document.querySelector('.ev-dot.arrive');
+    if (!d) return null;
+    return JSON.stringify({ cls: d.className, anim: getComputedStyle(d).animationName });
+  })()`);
+  if (ringSeen) break;
+}
+console.log('M6-4 arrive-ring:', ringSeen || 'NOT_SEEN');
+await ev(`GS_APP.pause()`);
+await sleep(300);
+console.log('M6-4 ring-verdict:', ringSeen ? JSON.stringify({ ok: JSON.parse(ringSeen).anim === 'arriveRing' }) : JSON.stringify({ ok: false }));
+
 /* A4. 初始视野聚焦地点密集区：全部事件地点应在视口内，且不覆盖整个地中海
  *   必须在【未播放】的初始状态下测：前面 A11 跑完整片播放后相机停在最后一个事件
  *   （耶路撒冷）附近，直接测会得到「6 处地点不在视口内」的假失败。故先重新导航。 */
 await send('Page.navigate', { url: PAGE });
-await sleep(4200);
+await sleep(6000);
 console.log('A4 initial-view:', await ev(`(function(){
   var b = GS_APP.map.getBounds(), z = GS_APP.map.getZoom();
   var outside = GS_APP.places.filter(function(p){ return !p.ctx && !b.contains(L.latLng(p.ll)); }).map(function(p){return p.cn;});
@@ -570,20 +785,23 @@ console.log('A3 position-accuracy:', await ev(`(function(){
  *    拖到中段却无新事件的「进度错觉」）
  *  - 圆点不得重叠（stagger 以「水平错位优先、行错位兜底」实现）
  *  - 章节色带须落在轨道内且可点击 */
+/* A5 测量前先等布局与 --dx 过渡落定（.tl-dot 的 transform 有 .25s 过渡，
+ * 在过渡中途取样会把「正在归位」读成重叠——M4 扩容后曾因此报 77 对假重叠）。 */
+await sleep(600);
 console.log('A5 timeline-scale:', await ev(`(function(){
   var s = [].slice.call(document.querySelectorAll('#tlScale span')).map(function(x){return x.textContent;});
   var dots = document.querySelectorAll('.tl-dot');
   var boxes = [].slice.call(dots).map(function(x){var b=x.getBoundingClientRect();return {l:b.left,r:b.right,t:b.top,b:b.bottom};});
-  var ov = 0;
+  var ov = 0, sample = [];
   for (var i=0;i<boxes.length;i++) for (var j=i+1;j<boxes.length;j++) {
     var a=boxes[i], c=boxes[j];
-    if (a.l<c.r && c.l<a.r && a.t<c.b && c.t<a.b) ov++;
+    if (a.l<c.r && c.l<a.r && a.t<c.b && c.t<a.b) { ov++; if (sample.length < 3) sample.push([Math.round(a.l),Math.round(a.t),Math.round(c.l),Math.round(c.t)]); }
   }
   var track = document.getElementById('tlTrack').getBoundingClientRect();
   var bands = [].slice.call(document.querySelectorAll('.tl-band')).map(function(b){var r=b.getBoundingClientRect();return {inTrack: r.bottom <= track.bottom + 1, clickable: getComputedStyle(b).pointerEvents !== 'none'};});
   var rows = {};
   [].slice.call(dots).forEach(function(x){ var r = x.dataset.row || '0'; rows[r] = (rows[r]||0)+1; });
-  return JSON.stringify({ scale: s, dots: dots.length, overlappingPairs: ov, rows: rows,
+  return JSON.stringify({ scale: s, dots: dots.length, overlappingPairs: ov, sample: sample, rows: rows,
     bandsInTrack: bands.every(function(b){return b.inTrack;}), bandsClickable: bands.every(function(b){return b.clickable;}) });
 })()`));
 
@@ -611,9 +829,11 @@ console.log('A7 media:', await ev(`(function(){
      正则 \u00b7 —— CDP 表达式传输时反斜杠转义会被二次处理，字面量方案不可靠。 */
   var DOT = String.fromCharCode(183);
   withM.forEach(function(e){
+    /* M4 起 credit 由 localize-media.mjs 依 Commons 元数据生成，格式为「作者 · 授权」
+       （不再追加 · Wikimedia Commons —— 溯源已由 url 承担），故按「取最后一段」解析。 */
     var segs = String(e.media[0].credit).split(DOT);
-    if (segs.length >= 3) {
-      var name = segs[1].replace(/^\s+|\s+$/g, '');
+    if (segs.length >= 2) {
+      var name = segs[segs.length - 1].replace(/^\s+|\s+$/g, '');
       if (licenses.indexOf(name) < 0) licenses.push(name);
     }
   });
@@ -824,7 +1044,7 @@ console.log('E2 route-after-step:', await ev(`(function(){
 
 /* F. hash 深链 #e/lystra-stoning */
 await send('Page.navigate', { url: PAGE + '#e/lystra-stoning' });
-await sleep(4200);
+await sleep(6000);
 console.log('F deep-link:', await ev(`(function(){var d=document.getElementById('detail');return d.classList.contains('hidden')?'HIDDEN':document.querySelector('.d-cn').textContent;})()`));
 await shot('f4_deeplink.png');
 
@@ -950,7 +1170,7 @@ console.log('K3 pie:', await ev(`(function(){
 await ev(`sessionStorage.removeItem('gs.guide.seen.v1')`);
 await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });
 await send('Page.navigate', { url: PAGE });
-await sleep(4400);
+await sleep(6200);
 console.log('J mobile mapH:', await ev(`Math.round(document.getElementById('map').getBoundingClientRect().height)`));
 console.log('J mobile guide:', await ev(`(function(){
   var gd = document.getElementById('guide');

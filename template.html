@@ -141,6 +141,10 @@ button{font-family:inherit;border:none;background:none}
 .m-fig img{width:100%;display:block;aspect-ratio:4/3;object-fit:cover}
 .m-fig figcaption{padding:8px 10px;font-size:11px;color:var(--ink-2);line-height:1.5}
 .m-fig figcaption span{display:block;color:var(--ink-3);font-size:10px;margin-top:2px}
+.m-fig figcaption a{color:inherit;text-decoration:none}
+.m-fig figcaption a:hover{color:var(--accent-deep);text-decoration:underline}
+/* 单张图占满整行：否则 1fr 1fr 网格里一张图只占半栏，右侧留白像是加载失败 */
+.d-mgroup > .m-fig:only-of-type{grid-column:1/-1}
 .m-link{grid-column:1/-1;display:flex;flex-direction:column;gap:2px;border:1px dashed var(--hair);border-radius:10px;padding:11px 13px;font-size:12.5px;color:var(--ink);text-decoration:none;transition:.2s}
 .m-link:hover{border-color:var(--accent);color:var(--accent-deep)}
 .m-link span{font-size:10.5px;color:var(--ink-3)}
@@ -179,6 +183,12 @@ button{font-family:inherit;border:none;background:none}
 .tl-step:hover{border-color:var(--ink-3);color:var(--ink)}
 .tl-speed{border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 10px;font-size:11px;color:var(--ink-2);cursor:pointer;transition:.2s;font-feature-settings:"tnum";flex:none}
 .tl-speed:hover{border-color:var(--ink-3);color:var(--ink)}
+/* 音效开关（M6）：与步进按钮同尺寸，用 aria-pressed 切换图标，不做位移动画 */
+.tl-sound{position:relative}
+.tl-sound .i-snd{display:block}
+.tl-sound[aria-pressed="false"]{color:var(--ink-3)}
+.tl-sound[aria-pressed="false"] .i-snd-on{display:none}
+.tl-sound[aria-pressed="true"] .i-snd-off{display:none}
 /* 轨道高度须容纳「圆点最大行数 × 13px + 起始 9px」+ 色带 3px + 间隙。
  * 12 事件挤在 AD 46–49（量程 46–54）时实测最多 3 行，故取 60px；
  * 行数由 timeline 的 stagger 按实际像素判定并写入 onPending(rows)。*/
@@ -334,6 +344,13 @@ body.playing .place .ring{animation:none;opacity:.18}
 .ev-dot.hl{box-shadow:0 0 0 5px var(--accent-soft)}
 .ev-dot.pop{animation:dotpop .62s cubic-bezier(.34,1.56,.64,1)}
 @keyframes dotpop{0%{transform:scale(.2)}55%{transform:scale(1.45)}100%{transform:scale(1.18)}}
+/* 抵达外扩（M6）：只动 box-shadow，不碰 transform —— 与 pop 的缩放互不覆盖。
+ * 用 --c（事件类型色）做一圈 18px 的淡环，0.85s 淡出。 */
+.ev-dot.arrive{animation:arriveRing .85s ease-out}
+@keyframes arriveRing{
+  0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 50%,transparent),0 1px 4px rgba(20,20,18,.18)}
+  100%{box-shadow:0 0 0 18px color-mix(in srgb,var(--c) 0%,transparent),0 1px 4px rgba(20,20,18,.18)}
+}
 /* 播放结束后事件图标整体隐去，回到干净底图；任何交互即恢复 */
 body.story-end .ev-dot{opacity:0;pointer-events:none}
 .ev-label{position:absolute;left:50%;bottom:26px;transform:translate(-50%,6px);background:rgba(255,255,255,.97);border:1px solid var(--hair);border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s cubic-bezier(.2,.7,.3,1);z-index:6}
@@ -375,7 +392,9 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
      M2 后事件数 12 → 53，时间轴圆点由 3 行增到 4 行（轨道 60px → 73px），
      列表区随之被压到只剩 2 行事件。故再让出三处：地图 37→34dvh、
      隐藏键盘提示行（触屏无键盘）、引导横幅内边距收紧。 */
-  #map{height:34dvh;flex:none}
+  /* M4 再让一档：事件 84 → 97，时间轴轨道 114 → 169px（窄屏一年只有 15px），
+     地图 34 → 32dvh，把列表区稳定在 3 行以上（J2 断言）。 */
+  #map{height:32dvh;flex:none}
   .sidebar{width:100%;height:auto;flex:1;min-height:0;border-right:none;border-top:1px solid var(--hair)}
   .legend{display:none}
   .hd{padding:13px 20px 10px}
@@ -399,6 +418,11 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
   .ch-chip em{display:none}
   .list{padding:4px 12px 12px}
   .tl{padding:10px 20px 12px}
+  /* 窄屏时间轴让位（M4）：97 个事件把轨道撑到 185px，加上两行控件共 302px，
+     列表区只剩 2 行。此处两处收紧——① 隐藏「时间轴 · 事件发生之时」标题行
+     （控件本来就自成一行，标题只是装饰）；② 收窄上下内边距。 */
+  .tl-cap{display:none}
+  .tl-top{margin-bottom:2px}
   /* 触屏没有物理键盘，「空格播放 / ← → 步进」一行纯占位：窄屏下把这 32px 让给事件列表 */
   .tl-keys{display:none}
   .chips{top:10px;left:10px;gap:6px}
@@ -445,7 +469,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
       <div class="filterbar hidden" id="filterbar"></div>
       <div class="list" id="list"></div>
       <div class="detail hidden" id="detail"></div>
-      <p class="note" id="note">注：年代与地点采用学界主流推定，争议处在事件详情中标注；经文引自和合本（经两个独立版本逐字校对）。目前上线<span id="noteLive"></span>，后续章节将随里程碑补充。地图数据 © Natural Earth。</p>
+      <p class="note" id="note">注：年代与地点采用学界主流推定，争议处在事件详情中标注；经文引自和合本（经两个独立版本逐字校对）；图像只用公有领域或 CC 授权作品，署名可点开溯源。目前上线<span id="noteLive"></span>。地图数据 © Natural Earth。</p>
       <button class="audit-link" id="auditBtn" aria-label="数据判断规则与排除项">数据如何判定？判断规则与排除项 →</button>
     </div>
   </aside>
@@ -489,6 +513,16 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
             <span id="playLb">播放</span>
           </button>
           <button class="tl-step" id="nextBtn" title="下一事件" aria-label="下一事件">▶</button>
+          <button class="tl-step tl-sound" id="soundBtn" aria-pressed="true" title="音效开关" aria-label="音效开关">
+            <svg class="i-snd i-snd-on" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+              <path d="M3 6.2h2.2L8.4 3.6v8.8L5.2 9.8H3z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+              <path d="M10.6 6a2.9 2.9 0 0 1 0 4M12.4 4.3a5.2 5.2 0 0 1 0 7.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <svg class="i-snd i-snd-off" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+              <path d="M3 6.2h2.2L8.4 3.6v8.8L5.2 9.8H3z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+              <path d="M10.8 6.2l3.2 3.2M14 6.2l-3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </button>
           <button class="tl-speed" id="speedBtn" title="播放速度">1×</button>
           <span class="tl-year" id="tlYear">AD 46</span>
         </div>
@@ -510,6 +544,9 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 </script>
 <script>
 @@GS_FX@@
+</script>
+<script>
+@@GS_AUDIO@@
 </script>
 <script>
 @@GS_MAPCORE@@
@@ -832,8 +869,12 @@ function renderMedia(media) {
             groups[groups.length - 1];
     if (!m.src && !m.url) return;
     if (m.src) {
-      g.items.push('<figure class="m-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '" loading="lazy">' +
-        '<figcaption>' + esc(m.title) + (m.credit ? '<span>' + esc(m.credit) + '</span>' : '') + '</figcaption></figure>');
+      /* 署名可点开溯源（学术纪律：credit 与 url 必填，且必须真的能点开核对） */
+      var cap = '<figcaption>' + esc(m.title) +
+        (m.credit ? (m.url
+          ? '<span><a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(m.credit) + ' ↗</a></span>'
+          : '<span>' + esc(m.credit) + '</span>') : '') + '</figcaption>';
+      g.items.push('<figure class="m-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '" loading="lazy">' + cap + '</figure>');
     } else {
       g.items.push('<a class="m-link" href="' + esc(m.url) + '" target="_blank" rel="noopener"><b>' + esc(m.title) + '</b>' +
         '<span>' + (m.credit ? esc(m.credit) + ' · ' : '') + '在线查看 ↗</span></a>');
@@ -876,7 +917,9 @@ function openEvent(id) {
     '<div class="d-h">缘 起</div><p class="d-bg">' + esc(ev.narrative) + '</p>' +
     (ev.note ? '<div class="d-note">※ ' + esc(ev.note) + '</div>' : '') +
     (verses ? '<div class="d-h">经 文 · 和合本</div>' + verses : '') +
-    (media ? '<div class="d-h">图 像</div><div class="d-media">' + media + '</div>' : '') +
+    /* renderMedia 已自带「图 像」标题与 .d-media 容器：此处直接拼接，
+       否则会出现重复标题 + 网格套网格（图组标题被挤成网格项）。 */
+    media +
     '<button class="locate" id="locateBtn">放大查看该地点' +
     '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M7 2.2v9.6M2.2 7h9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
   $('list').classList.add('hidden');
@@ -1154,7 +1197,12 @@ function arriveEvent(ev) {
   showCard(ev);
   mapCore.lit(ev.ll, ev.typeMeta.color, true);     /* 持续点亮至 onLeave 清除 */
   var d = dotEls[ev.id];
-  if (d) { d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop'); }
+  if (d) {
+    d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
+    /* 增强动画（M6）：抵达时一圈极淡的外扩，与 pop 的缩放错开相位——
+     * 缩放负责「点出现」，外扩负责「这里刚刚发生了一件事」。 */
+    d.classList.remove('arrive'); void d.offsetWidth; d.classList.add('arrive');
+  }
   applyReveal(state.year);
   GS.fx.emit('event:arrive', ev);
 }
@@ -1329,7 +1377,8 @@ document.addEventListener('keydown', function (e) {
 });
 
 /* ================= 时间轴 ================= */
-/* 刻度：按动态量程均分（AD 46 / 50 / 54 …），末段留白即「后续章节待补充」 */
+/* 刻度：按动态量程均分（AD 46 / 59 / 72）；末段留白是量程余量（最晚事件 +5 年），
+ * 不再是「后续章节待补充」——六章已全部上线。 */
 (function renderScale() {
   var h = '';
   for (var i = 0; i < SCALE_STEPS; i++) {
@@ -1377,6 +1426,23 @@ $('speedBtn').addEventListener('click', function () {
 $('playBtn').addEventListener('click', togglePlay);
 $('prevBtn').addEventListener('click', function () { stepEvent(-1); });
 $('nextBtn').addEventListener('click', function () { stepEvent(1); });
+
+/* ================= 音效（M6：兑现 GS.fx 预留的订阅点） =================
+ * 音效完全由 fx 总线驱动（event:arrive / chapter:enter / play:* / event:open），
+ * 业务代码里没有任何 audio 调用 —— 关掉音效不会影响任何播放逻辑。
+ * AudioContext 在首次「用户手势」里才创建（浏览器自动播放策略）。 */
+GS.audio.init();
+GS.audio.bind(GS.fx);
+function syncSoundBtn() {
+  var b = $('soundBtn');
+  /* 没有 WebAudio 的环境（极老的 WebView）：藏掉开关，而不是留一个点了没反应的按钮 */
+  if (!GS.audio.available()) { b.hidden = true; return; }
+  var on = GS.audio.enabled();
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.title = on ? '音效开 · 点击静音' : '音效关 · 点击开启';
+}
+syncSoundBtn();
+$('soundBtn').addEventListener('click', function () { GS.audio.toggle(); syncSoundBtn(); });
 
 /* ================= 深链 ================= */
 function handleHash() {
@@ -1460,6 +1526,8 @@ handleHash();
  * 供 CDP 自动化验收与后续自动化测试使用；不影响正常交互。 */
 window.GS_APP = {
   events: EVENTS, seq: SEQ, places: PLACES, routes: ROUTES, chapters: CHAPTERS, audit: AUDIT,
+  boot: Math.round(performance.now()),   /* 初始化完成时刻（ms，自 navigationStart）：性能回归基线 */
+  audio: GS.audio,                       /* 音效总线（M6）：供验收断言开关与音色表 */
   state: state,
   open: openEvent, openPlace: openPlace, openAudit: openAudit, close: closeEvent, play: startPlay, pause: pause,
   step: stepEvent, jumpChapter: jumpChapter, setFilter: setFilter,

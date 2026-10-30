@@ -13,10 +13,10 @@
 | M0 | 重构与引擎分层 | 目录归档；`shared/` 引擎分层（fx / map-core / route-engine / timeline）；新构建管线；本计划文档 | 归档项目可原样构建；新项目可构建空页面 | ✅ 完成 |
 | M1 | 第一次传道旅程端到端 | ch1 全部 12 个事件（含塞浦路斯士求保罗）；事件驱动播放 + 点击详情 + 章节导航 | CDP 脚本断言 + 截图核对 | ✅ 完成（CDP 验收 A–J 十项全绿，零控制台错误） |
 | M2 | 第二、三次旅程 | ch2 / ch3 事件 + 书信事件（帖前后 / 林前后 / 罗马书） | 同上 | ✅ 完成（53 事件 / 3 章 / 17 地点，CDP 验收 A–J + M2-1…M2-8 全绿，零控制台错误） |
-| M3 | 被捕受审 + 赴罗马 | ch4 / ch5：圣殿骚乱、四重审讯、马耳他船难 | 同上 | 待开始 |
-| M4 | 富媒体与尾声 | ch6；照片 / 画作本地 webp + Wikimedia 署名回退 | 媒体加载与回退断言 | 待开始 |
+| M3 | 被捕受审 + 赴罗马 | ch4 / ch5：圣殿骚乱、四重审讯、马耳他船难 | 同上 | ✅ 完成（84 事件 / 5 章 / 30 地点，CDP 验收 A–J + M3-1…M3-10 全绿） |
+| M4 | 富媒体与尾声 | ch6 罗马被囚与尾声 13 事件；39 张图本地 webp + 内联 + 署名溯源 | 媒体加载 / 回退 / 授权断言 | ✅ 完成（97 事件 / 6 章，M4-1…M4-8 全绿，零控制台错误） |
 | M5 | 共享回灌（可选） | `paul-epistles-map` 改用 `shared/` 引擎 | 归档 `verify.mjs` 全绿 | 暂缓（归档优先，避免无收益改动） |
-| M6 | 音效与增强动画 | GS.fx 总线订阅点落地：WebAudio 合成音效 / 事件弹出增强动画 | 不破坏现有 A–J 断言 | 待开始（用户已提出需求） |
+| M6 | 音效与增强动画 | GS.fx 总线订阅点落地：WebAudio 合成音效（零素材）/ 抵达外扩动画 | 不破坏现有 A–J 断言 | ✅ 完成（`shared/audio.js` + 开关持久化，M6-1…M6-4 全绿） |
 
 > **为什么引擎随 M1 抽取**：`shared/` 的抽象边界（哪些参数化、哪些回调）只有出现真实消费方后才能定形；M0 先冻结目录与构建管线，M1 边写消费方边上抽，避免无消费者的预先抽象。
 >
@@ -56,6 +56,20 @@
 > 9. **`.ev-dot` 不在 `.place` 里**：事件点挂在 Leaflet 图标容器上（与 `.place` 同级），用 `.place .ev-dot` 查询永远返回 0——M2-4 断言因此一次假失败。断言应按 `data-ev` 逐事件反查。
 > 10. **路线站点顺序要按路加记述校正**：j3 原先在「以弗所 → 腓立比」之间插了一个「特罗亚」，与徒 20 的实际航路（以弗所 → 马其顿诸城 → 腓立比 → 哥林多 → 腓立比 → 特罗亚 → 米利都）不符。已按徒 20:1-6、20:13-16 重排，并补入帖撒罗尼迦与庇哩亚两站。
 
+> **M4 踩坑记录（2026-10-30，ch6 + 富媒体本地化）**：
+> 1. **事件数组的章节顺序会悄悄改变同年排序**：`gen-m3.mjs` 原先「先插 ch5 再插 ch4」（倒序插入以避开下标推移），结果 ch5 整块排在 ch4 之前；而 `SEQ` 的同年 tie-break 用的是数组下标，于是 AD 59 的「无可定罪」（ch4 末）被排到同年的「从凯撒利亚上船」之后，播放顺序与叙事顺序相反。**修法：生成器统一按 `CH_ORDER` 稳定重排，章内手工叙事顺序原样保留。**
+> 2. **详情面板重复「图 像」标题 + 网格套网格**：`renderMedia()` 已返回带标题与 `.d-media` 容器的整块，`openEvent()` 又包了一层 —— 于是出现两个标题，且内层 `.d-media` 变成外层网格的一个格子（截图 g6 可见「图 像｜历 史 艺 术」并排）。**纪律：渲染函数返回整块时，调用方只拼接、不再包壳。**
+> 3. **媒体断言不能只查 `<img>` 存在**：必须 `complete && naturalWidth > 0` —— 内联 data URI 也可能因编码错误解码失败，而 DOM 里照样有一个 `<img>`。
+> 4. **内联后首帧约 4.7s，固定等待窗口会读到中间态**：97 事件 + 39 张内联图的单文件在无 GPU 的 headless 下 `DOMContentLoaded ≈ 4.4s`，时间轴轨道要到首帧才定型。原 4200ms 等待让 A3 读到「标记偏移 7px」、A5 读到「77 对假重叠」——**都是采样过早，不是产品缺陷**。修法：等待放宽到 6000ms，并把时间轴的等宽重试从 `setTimeout` 改成 `requestAnimationFrame`（rAF 先于绘制，轨道高度在第一帧就定型，用户看不到 60px → 114px 的跳动）。
+> 5. **Leaflet `_size` 陈旧会让全部标记整体偏移**：时间轴轨道高度由簇模型异步写入，地图列高度随之变化；`invalidateSize()` 原先被放在 `locked` 判断之后，而 `locked` 会被首次 `settle()` 自己的 `fitBounds` 置真 ⇒ 此后尺寸永不修正（实测偏移 7px）。**修法：尺寸修正无条件执行，只把「视野重适配」交给 `locked`。**
+> 6. **Commons 元数据的 `Artist` 有四种噪声**：重复（`Unknown author Unknown author`）、免责声明（`No machine-readable author provided...`）、工具尾巴（`Details on Google Art Project`）、角色后缀（`– artist (Flemish)`）。**署名必须由脚本清洗后回填，不手写、不直出。**
+
+> **M6 踩坑记录（2026-10-30，音效与增强动画）**：
+> 1. **`AudioContext` 必须在用户手势的调用栈里创建/恢复**：页面加载时直接 `new AudioContext()` 会被自动播放策略置为 `suspended`，后续 `play()` 静默无声却毫无报错。修法：`GS.audio.init()` 懒建（首次开关或首次播放点击时），`play()` 内先 `resume()` 再出声；M6-3 直接断言 `ctx.state === 'running'` 且确有振荡器在跑。
+> 2. **抵达外扩动画不能碰 `transform`**：`.ev-dot` 上已有 `dotpop` 用 `transform: scale()` 做弹出，两个 animation 同时写 `transform` 会互相覆盖（表现为「有时弹、有时不弹」）。修法：`arriveRing` 只动 `box-shadow` 扩散，与 `dotpop` 正交。
+> 3. **动画断言要读 `animationName`，不要看类名**：类名在动画被 `prefers-reduced-motion` 压成 `.01ms` 时依然存在，读类名等于无条件通过。M6-4 轮询 `.ev-dot.arrive` 并取 `getComputedStyle(...).animationName === 'arriveRing'` 才算数（配合 `Emulation.setEmulatedMedia` 解除 reduced-motion）。
+> 4. **音效开关必须真实点击**：初版 M6-1 用 DOM `.click()` 一次就绿，但那样测不到「按钮被 `.tl-cap` 遮挡」这类真实缺陷 —— 与 §9 的教训同源。已改 `realClick()`；同时把断言判定搬到 Node 侧（页面只回传 `aria-pressed` / `localStorage` / `GS.audio.state` 快照），避免在模板字符串里再套 `${}`。
+
 ## 1. 架构
 
 ### 1.1 目录结构
@@ -65,6 +79,7 @@ geo-story/
 ├── template.html        # 页面结构 + CSS + UI 编排（侧栏 / 详情 / 播放控件）
 ├── shared/              # 与 paul-epistles-map 共用的引擎（构建期内联，产物仍是单文件）
 │   ├── fx.js            #   事件总线（音效 / 增强动画订阅点，M6 消费）
+│   ├── audio.js         #   WebAudio 合成音效（零素材）：音色表 / 懒初始化 / 开关持久化
 │   ├── map-core.js      #   地图基底：GeoJSON 底图 / 经纬网 / flyTo / 点亮 / 涟漪 / 标签避位
 │   ├── route-engine.js  #   平滑路径 / 累计里程 / 按年代截取点亮 / 路线光点 / 旅程重播
 │   └── timeline.js      #   时间轴控件（拖拽 / 键盘 / 圆点 / 色带）+ 播放调度 + 事件序列播放
@@ -72,19 +87,25 @@ geo-story/
 │   ├── chapters.json    #   六章元数据
 │   ├── places.json      #   地点库：坐标 / 古今名 / 现代归属 / 备注
 │   ├── routes.json      #   四段旅程路径点（命名途经点）
-│   └── events.json      #   事件库（核心资产，见 §1.4）
+│   ├── events.json      #   事件库（核心资产，见 §1.4）
+│   └── media-audit.json #   逐图授权留档（文件 / 授权 / 作者 / 体积 / 溯源页）
 ├── assets/
 │   ├── leaflet.js / .css / med.json / countries-110m.json / topojson-client.min.js
-│   └── media/           #   本地图片（webp 优先）；缺失时回退外链
-├── build.mjs            # 构建：template + shared + data + assets → geo-story.html
+│   └── media/           #   本地图片（webp，≤110KB）；构建期内联为 data URI
+├── build.mjs            # 构建：template + shared + data + assets → geo-story.html（媒体内联）
 ├── prep-data.mjs        # 地图数据裁剪（仅在需要调整可视范围时运行）
 ├── cdp-shot.mjs         # CDP 截图 / 求值工具（从归档项目原样搬入）
-├── verify.mjs           # CDP 验收脚本（M1 起编写，A–J 十项 + M2-1…M2-8）
+├── verify.mjs           # CDP 验收脚本（A–J + M2-1…M2-8 + M3-1…M3-10 + M4-1…M4-8 + M6-1…M6-4）
 ├── scripts/             # 数据管线（见下）
 │   ├── verses.mjs       #   双源经文提取与校对（OpenCC 繁→简 + 逐字比对）
+│   ├── gen-ch6.mjs      #   ch6 事件生成器（经文程序化注入，双源不一致即中止）
 │   ├── check-events.mjs #   events.json 经文回验（用字逐字一致 + 双源一致）
 │   ├── check-routes.mjs #   事件↔路线映射与描线单调性校验
 │   ├── commons.mjs      #   Wikimedia Commons 检索与授权核验（429 退避）
+│   ├── localize-media.mjs # 媒体本地化：授权核验 → 下载 → webp → 回填 src/credit
+│   ├── diag-boot.mjs    #   启动时序探针（boot 时刻 / 轨道定型 / 首帧耗时）
+│   ├── diag-offset.mjs  #   标记/事件点偏移探针（对照 _size 陈旧缺陷）
+│   ├── diag-tl.mjs      #   时间轴轨道几何探针（圆点尺寸 / 行数 / 簇排布）
 │   └── run-cdp.ps1      #   验收 runner：只关闭自己启动的 headless Chrome
 ├── docs/plan.md         # 本文件
 ├── paul-epistles-map/   # 归档：保罗书信地图（冻结，不再改动）
@@ -104,11 +125,17 @@ geo-story/
 | `@@GS_ROUTES@@` | `shared/route-engine.js` | 共享引擎 |
 | `@@GS_TIMELINE@@` | `shared/timeline.js` | 共享引擎 |
 | `@@GS_FX@@` | `shared/fx.js` | 共享引擎（事件总线） |
-| `@@DATA_CHAPTERS@@` / `@@DATA_PLACES@@` / `@@DATA_ROUTES@@` / `@@DATA_EVENTS@@` | `data/*.json` | 数据 |
+| `@@GS_AUDIO@@` | `shared/audio.js` | 共享引擎（合成音效，订阅 fx 总线） |
+| `@@DATA_CHAPTERS@@` / `@@DATA_PLACES@@` / `@@DATA_ROUTES@@` / `@@DATA_EVENTS@@` | `data/*.json` | 数据；**`events.json` 在构建期把 `media[].src`（`assets/media/*.webp`）内联为 data URI**，文件缺失时置空 → 前端回退 Commons 溯源链接 |
 
 ```bash
-node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离线可用）
+node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎 + 图片全内联，离线可用）
 ```
+
+> **为什么图片也内联**：项目的硬约束是「单文件、双击即用」。图片若留在 `assets/media/`，
+> 交付时漏拷目录就整片空白。39 张 720px webp 内联后 HTML 约 2.9MB（图片 1.86MB → base64 2.4MB），
+> 代价是首帧变慢（无 GPU 的 headless 约 4.4s，普通桌面浏览器约 1s），换来的是真正可离线单发。
+> 压图档位见 `scripts/localize-media.mjs` 的 `--recompress`（720px / ≤110KB）。
 
 ### 1.3 模块职责
 
@@ -118,6 +145,7 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 | `shared/route-engine.js` | `smoothPath` 平滑、累计里程、`applyTime` 按年代逐段点亮、路线光点、旅程重播动画 | 自 `template.html` 平移抽取 |
 | `shared/timeline.js` | 时间轴渲染 / 拖拽 / 键盘 / 播放循环；**新增**：事件序列调度（光标逐事件推进 + 到达回调 + dwell 停留） | 自 `template.html` 平移 + 扩展 |
 | `shared/fx.js` | 事件总线 `GS.fx.on/off/emit`；M6 音效与增强动画的订阅点 | 新写 |
+| `shared/audio.js` | WebAudio 合成音效：音色表 `CUES`、`bind(fx)` 订阅 `event:arrive` / `chapter:enter` / `play:*` / `event:open`；`init()` 懒建 `AudioContext`（遵守自动播放策略）、`toggle()` 写 localStorage | 新写 |
 | `data/places.json` | 地点：`{ id, cn, en, modern, ll, note, ctx }` | 新写（整合归档 `CITIES` + `CTX` + 新增） |
 | `data/routes.json` | 旅程：`{ id, ch, name, from, to, color, stops:[{cn,ll,p?}...], desc }`；`ch` 为章节锚点（事件只驱动本章旅程），`stops[].p` 指向 places.json 的地点 id（缺 `p` = 不可被事件命中的途经点） | 自归档 `JOURNEYS` 扩展 |
 | `data/events.json` | 事件（§1.4） | 新写，核心资产 |
@@ -193,7 +221,8 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 3. **媒体版权**：仅使用 CC 许可或公有领域作品；`credit` 与 `url` 必填；本地文件用 webp，单张 ≤ 300KB
 4. **新增事件流程**：只改 `data/events.json`（+ `places.json` / `routes.json`）→ `node build.mjs` → 静态回验（`node scripts/check-events.mjs` + `node scripts/check-routes.mjs`）→ CDP 验收（`scripts/run-cdp.ps1 verify.mjs`）
 5. **经文必须脚本回验，不靠人眼**：落库经文重新从双源提取、去标点逐字比对（`scripts/check-events.mjs`）；标点差异（给直接引语加「」、句末改句号）允许，用字差异一律阻断
-6. **待定（源自 [reference-projects.md §5](reference-projects.md#5-专题深拆iosiflazaridis--battles-of-the-romans2026-10-27)）**：本节纪律目前只写在文档里、读者不可见。拟补两项——① `places.json` 增 `precision`（`known` / `approximate` / `region`，米利大岛之争等）；② `note` 散文拆为结构化 `doubt` + `precision`。同时页面增「我们如何取舍」「未纳入的内容」两章。**方案已评估，待 M3 落地时决定是否采纳。**
+6. **已落地（源自 [reference-projects.md §5](reference-projects.md#5-专题深拆iosiflazaridis--battles-of-the-romans2026-10-27)）**：① `places.json` 增 `precision`（`known` / `approximate`，6 处近似 + `precisionNote` 争议溯源）；② 页面增「判断规则 / 排除项」页（`data/audit.json`），把「我们如何取舍」「未纳入的内容」做成读者可见的两栏。`note` 仍未拆成结构化 `doubt`，保持散文（当前粒度够用）。
+7. **媒体本地化（M4）**：媒体只走 `scripts/localize-media.mjs`——Commons API 核验授权（白名单 PD / CC0 / CC BY / CC BY-SA）→ 下载 → 压成 webp（≤110KB）→ 用 `extmetadata` 回填 `credit`。产物 `data/media-audit.json` 逐图留档，可审计。**禁止手写 credit 或凭记忆拼文件名。**
 
 ## 5. M1 事件清单（第一次传道旅程 · 徒 13–14 + 徒 15）
 
@@ -270,6 +299,32 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 | 40 | ch3-weeping | AD 57 | 众人痛哭 | 凯撒利亚 | trial | 使徒行传 21:13-14 |
 | 41 | ch3-jerusalem | AD 57 | 上耶路撒冷 | 耶路撒冷 | arrival | 使徒行传 21:15-17 |
 
+## 5.2 M4 事件清单（罗马被囚与尾声 · 徒 28:17-31 + 监狱书信 + 传统）
+
+> 共 13 条事件，经文 18 条全部由 `scripts/gen-ch6.mjs` 程序化注入（双源一致才落库）。
+> 行传止于「两年 / 并没有人禁止」，此后的事件只能靠书信与传统重建，故凡行传之外的
+> 内容（获释、罗马大火、殉道）一律在 `note` 中标明出处与争议，不写成定论。
+
+| # | id | 年代 | 事件 | 地点 | 类型 | 关键经文 |
+|---|---|---|---|---|---|---|
+| 01 | ch6-leaders | AD 60 | 请犹太首领来 | 罗马 | preach | 徒 28:17、28:21-22 |
+| 02 | ch6-testimony | AD 60 | 从早到晚讲论 | 罗马 | preach | 徒 28:23-24 |
+| 03 | ch6-unbelief | AD 60 | 油蒙了心 | 罗马 | preach | 徒 28:25-27、28:28 |
+| 04 | ch6-two-years | AD 60–62 | 在自己所租的房子里 | 罗马 | preach | 徒 28:30-31 |
+| 05 | ch6-ephesians | AD 60–62 | 写《以弗所书》 | 罗马 | letter | 弗 6:19-20 |
+| 06 | ch6-colossians | AD 60–62 | 写《歌罗西书》 | 罗马 | letter | 西 4:3 |
+| 07 | ch6-philemon | AD 60–62 | 写《腓利门书》 | 罗马 | letter | 门 1:15-16 |
+| 08 | ch6-philippians | AD 61–62 | 写《腓立比书》 | 罗马 | letter | 腓 1:12-14 |
+| 09 | ch6-released | AD 62 | 获释（传统） | 罗马 | arrival | 门 1:22 |
+| 10 | ch6-pastorals | AD 63–65 | 写《提摩太前书》《提多书》（传统） | 罗马 | letter | 提前 1:15-16、多 1:5 |
+| 11 | ch6-fire | AD 64 | 罗马大火与尼禄的逼迫 | 罗马 | persecution | 彼前 4:12-14（旁证） |
+| 12 | ch6-2tim | AD 66–67 | 写《提摩太后书》 | 罗马 | letter | 提后 1:8、2:9、4:6-8 |
+| 13 | ch6-martyrdom | AD 67 | 殉道（传统） | 罗马 | persecution | 提后 4:17-18 |
+
+> **ch6 不设旅程**：`chapters.json` 的 `ch6` 声明 `noRoute: true`——尾声没有地理位移，
+> 事件只驱动相机与高亮。`check-routes.mjs` 据此把「描线不动」记为说明而非警告，
+> `verify.mjs` 的 M3-6 / M4-6 也据此跳过该章。
+
 ## 6. 章节规划（后续里程碑的事件源）
 
 | 章节 | 名称 | 年代 | 经文范围 | 里程碑 |
@@ -293,6 +348,8 @@ node build.mjs   # → geo-story.html（Leaflet + 数据 + 引擎全内联，离
 1. **地图精度**：110m Natural Earth 数据在 zoom ≥ 9 时海岸线偏粗；城市级细节作为已知限制，必要时升级 50m 数据（体积换精度）
 2. **媒体外链**：Wikimedia 外链需联网；本地优先 + 回退链接兜底
 3. **换行符形态**：仓库 blob 为 LF，Windows 工作区因 `core.autocrlf=true` 检出为 CRLF；构建产物继承 CRLF（与归档项目既有形态一致），非 bug
+4. **单文件体积与首帧（M4 引入）**：39 张 webp 内联后 HTML 约 2.9MB，`DOMContentLoaded` 在无 GPU 的 headless 下约 4.4s（普通桌面约 1s）。这是「单文件离线」的代价：若要更快的首屏，只能改回外链图片（`assets/media/` 随包分发），但那就不再是单文件。当前取单文件优先。
+5. **音效默认开启，但受自动播放策略约束（M6 引入）**：首次出声一定发生在某次真实点击之后（点播放/点事件），页面加载时不会有任何声音；无 WebAudio 的环境里开关按钮自动隐藏。偏好存 localStorage，隐私模式下写入失败按「开」处理，不影响功能。
 
 ## 9. 播放体验轮踩坑（2026-10-17，需求：同步/慢放/过点/呼吸/地点介绍）
 

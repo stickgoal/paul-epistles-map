@@ -43,7 +43,14 @@ routes.forEach(j => {
   CH_ROUTE[j.ch] = j.id;
 });
 const liveChapters = new Set(events.map(e => e.ch));
-liveChapters.forEach(c => { if (!CH_ROUTE[c]) warns.push('章节 ' + c + ' 已有事件，但没有对应旅程（描线不会动）'); });
+/* 尾声章（ch6）不设旅程：章节可声明 noRoute:true，表示「本章无地理位移」，
+ * 描线不动是设计而非缺陷——故不计警告，改列说明。 */
+const noRoute = new Set(chapters.filter(c => c.noRoute).map(c => c.id));
+liveChapters.forEach(c => {
+  if (CH_ROUTE[c]) return;
+  if (noRoute.has(c)) { notes.push('章节 ' + c + ' 声明 noRoute：尾声无旅程，事件只驱动相机与高亮'); return; }
+  warns.push('章节 ' + c + ' 已有事件，但没有对应旅程（描线不会动）');
+});
 
 /* --- 4) waypoint 清单（仅供参考） --- */
 routes.forEach(j => {
