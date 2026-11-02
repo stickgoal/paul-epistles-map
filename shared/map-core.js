@@ -9,16 +9,25 @@ GS.mapCore = (function () {
   /* 障碍集与核心盒都排除被路线筛选隐去的地点（.route-off）：
    * 隐去的地点在几何上仍然占着 96×96 的盒子，若继续参与避让，可见标签会被
    * 「看不见的东西」推得四处乱跑。 */
-  var lastItems = [], lastObstacleSel = '.place-icon:not(.route-off) .ev-dot, .ctx-icon:not(.route-off) .ctx';
+  /* 标签要避让的静态障碍。.mapctl（缩放按钮组）也算：窄屏实测「耶路撒冷 / 凯撒利亚」
+   * 各被 + 按钮压掉 350~410px²（430×932），读起来像标签少了一截。 */
+  var lastItems = [], lastObstacleSel = '.place-icon:not(.route-off) .ev-dot, .ctx-icon:not(.route-off) .ctx, .mapctl';
   var labelTimer = null, lastLabelZoom = 0;
   var lastFit = null, storyFit = null;
   /* 标签分级（M8）：baseZoom 是首次 fit 落定的首屏 zoom，L2/L3 的显示阈值以它为基准。
    * 只记一次 —— 若每次 fit 都更新，用户手动缩放后再触发 fit（resize/打开面板）会让
    * 阈值跟着漂，同一缩放下标签数量时多时少。 */
   var baseZoom = 0;
-  /* 强制显示集合：hover / 选中地点 / 播放到达时，把分级不到或被挤掉的标签临时提上来。
-   * 由模板层调用 forceLabel(id, true/false) 维护，placeLabels 读它决定是否允许隐藏。 */
+  /* 强制显示分两级（2026-11-02 加软强制）：
+   *   · 硬 forceSet —— hover / 打开地点详情：**任何情况下都显示**（读者明确指向了它，
+   *     消失等于「点了没反应」）。
+   *   · 软 softSet —— 当前章节 / 当前旅程的整批地点：分级豁免（不受 tier 阈值限制），
+   *     但**放不下时允许隐藏**。一段旅程有 9–13 个站点，430px 竖屏上它们必然挤在
+   *     一小片区域（帖撒罗尼迦与庇哩亚只差 0.07°，屏距 3px），硬显示就是几行字叠在
+   *     一起。软强制让引擎按「谁先占到位置」决定：大站先放，小站放不下就退场，
+   *     桌面（空间够）13 个仍然全出 —— 同一套代码在两种视口下都合理。 */
   var forceSet = {};
+  var softSet = {};
   /* 安全区（px）：浮在地图上的面板/时间轴遮住的区域。fitBounds 只把故事范围塞进
    * 「没被遮住」的那块，否则全屏地图下罗马与马耳他会躲在左侧面板背后。 */
   var insets = { t: 26, r: 26, b: 26, l: 26 };
@@ -322,7 +331,7 @@ GS.mapCore = (function () {
       /* 强制显示（hover / 选中 / 播放到达）必须优先于分级：分级过滤发生在这里，
        * 若不在同一处放行，被 tier 挡掉的标签根本进不了候选集，后面 items2 里的
        * force 标记永远读不到 —— 实测「悬停米利都标签不出现」就是这个顺序错误。 */
-      if (cm.placeId && forceSet[cm.placeId]) return true;
+      if (cm.placeId && (forceSet[cm.placeId] || softSet[cm.placeId])) return true;
       return tierOK(cm.tier, cm.placeId);
     }).map(function (cm) {
       /* 该标签锚定在哪个地点上（用于豁免自身核心） */
@@ -400,9 +409,10 @@ GS.mapCore = (function () {
         else {
           /* 所有形态 × 所有方位都有冲突 —— 旧实现到这里只能取「重叠面积最小者」，
            * 也就是任何标签【必须显示】。新增第三条路：
-           *   · L2/L3 且非强制 → 隐藏（placed 记 null 占位，保持与 items2 索引对齐，
-           *     否则后续 labelConflict 的 selfIdx 会全部错位）；
-           *   · L1 或强制显示 → 仍取重叠最小者（宁可轻微重叠，也不能让主干城市没名字，
+           *   · L2/L3 且非硬强制 → 隐藏（placed 记 null 占位，保持与 items2 索引对齐，
+           *     否则后续 labelConflict 的 selfIdx 会全部错位）。软强制（章节 / 旅程的
+           *     整批地名）也走这条：放不下就退场，别叠成一团。
+           *   · L1 或硬强制 → 仍取重叠最小者（宁可轻微重叠，也不能让主干城市没名字，
            *     更不能让用户 hover/选中的那个地点消失）。 */
           if (it.tier > 1 && !it.force) {
             it.tipEl.style.display = 'none';
@@ -421,7 +431,7 @@ GS.mapCore = (function () {
       it.tipEl.innerHTML = best.html;
       applyTipDirection(it.tipEl, best.dir, best.off);
       dirUsed[best.dir] = (dirUsed[best.dir] || 0) + 1;
-      placed.push({ rect: best.rect, anchorId: it.anchorId, html: best.html, dir: best.dir, off: best.off });
+      placed.push({ rect: best.rect, anchorId: it.anchorId, html: best.html, dir: best.dir, off: best.off, el: it.tipEl });
     });
 
     /* 二次消解（退让式局部搜索）：贪心初放后仍冲突的标签允许换位/降级。
@@ -451,7 +461,7 @@ GS.mapCore = (function () {
             var s2 = labelConflict(r2, obstacles, cores, cur.anchorId, placed, pi);
             if (s2 < bestScore || (s2 === bestScore && (bestVi < 0 || vi2 < bestVi))) {
               bestScore = s2; bestVi = vi2;
-              bestAlt = { rect: r2, anchorId: cur.anchorId, html: items2[pi].variants[vi2].html, dir: opt2[0], off: opt2[1] };
+              bestAlt = { rect: r2, anchorId: cur.anchorId, html: items2[pi].variants[vi2].html, dir: opt2[0], off: opt2[1], el: items2[pi].tipEl };
             }
           }
         }
@@ -469,22 +479,48 @@ GS.mapCore = (function () {
       }
       if (!moved) break;
     }
+
+    /* 兜底夹取：避让分再准，密集区也可能「所有方位都越界」，最后只能挑越界最少的
+     * 那个 —— 手机上实测「耶路撒冷」被右边缘切掉 8.5px（左侧被 11 颗事件点围着，
+     * 压点的代价反而更高）。落定后把越界的标签水平推回视口内：只动水平，不动垂直
+     * —— 纵向偏移会改变与锚点的相对关系，容易压住自己的圆点。
+     * 边界与 labelConflict 用同一套安全区（insets），越界判定与打分口径一致。 */
+    var lo = insets.l + 4, hi = sz.x - insets.r - 4;
+    placed.forEach(function (p) {
+      if (!p || !p.el) return;
+      var r = p.el.getBoundingClientRect();
+      if (!r.width) return;                       /* 未上屏 / 被分级隐藏 */
+      var d = 0;
+      if (r.right > hi) d = hi - r.right;         /* 优先收右边：文字从左边读起 */
+      if (r.left + d < lo) d = lo - r.left;       /* 比视口还宽的极端情况，保左边 */
+      if (!d) return;
+      var ml = parseFloat(getComputedStyle(p.el).marginLeft) || 0;
+      p.el.style.marginLeft = (ml + d) + 'px';
+    });
   }
 
   /* 直接改 tooltip 元素的方位与偏移（Leaflet 的 direction/offset 由内联样式控制）。
    * 不重新绑定 —— 反复 unbind/bindTooltip 会残留旧 tooltip DOM。
-   * 注意：Leaflet 的 .leaflet-tooltip-right 等 class 自带 margin（6px/12px），
-   * 直接覆盖 margin 会破坏基础定位，故偏移改走 CSS 变量 --tx/--ty，
-   * 由模板的 .city-tip 规则叠加。 */
+   *
+   * 偏移写【内联 margin】而不是 CSS 变量 --tx + calc()：避让算法是「改一个候选 →
+   * 立刻量 rect → 打分」的紧循环，要求改完立刻能量到。变量方案多一层自定义属性
+   * 解析，一旦页面上存在 `*{transition-duration:...}` 这类「给所有属性挂过渡」的
+   * 规则（reduced-motion 分支就踩过，见 template.html），同任务内读到的就是过渡
+   * 起点值，候选之间的差异全部消失。内联 margin 是普通属性，语义最直接。
+   *
+   * Leaflet 各类 direction 自带 margin（right/left 走 margin-left ±6，
+   * top/bottom 走 margin-top ∓6），这里把基础值与候选偏移相加后写死。 */
+  var TIP_BASE = { right: [6, 0], left: [-6, 0], top: [0, -6], bottom: [0, 6] };
   function applyTipDirection(el, dir, off) {
     if (!el) return;
     el.classList.remove('leaflet-tooltip-right', 'leaflet-tooltip-left',
                         'leaflet-tooltip-top', 'leaflet-tooltip-bottom');
     el.classList.add('leaflet-tooltip-' + dir);
+    var b = TIP_BASE[dir] || [0, 0];
     var x = off && off[0] ? off[0] : 0;
     var y = off && off[1] ? off[1] : 0;
-    el.style.setProperty('--tx', x + 'px');
-    el.style.setProperty('--ty', y + 'px');
+    el.style.marginLeft = (b[0] + x) + 'px';
+    el.style.marginTop = (b[1] + y) + 'px';
   }
 
   /* 标签在某矩形位置上的冲突分：与静态障碍（事件点/上下文标记）、非自身地点核心
@@ -499,10 +535,13 @@ GS.mapCore = (function () {
     var score = 0, i, ox, oy;
     var sz = map ? map.getSize() : { x: 1024, y: 768 };
     var box = { l: insets.l + 4, t: insets.t + 4, r: sz.x - insets.r - 4, b: sz.y - insets.b - 4 };
-    if (r.left < box.l) score += (box.l - r.left) * r.height * 2;
-    if (r.right > box.r) score += (r.right - box.r) * r.height * 2;
-    if (r.top < box.t) score += (box.t - r.top) * r.width * 2;
-    if (r.bottom > box.b) score += (r.bottom - box.b) * r.width * 2;
+    /* 越界代价 ×3（2026-11-02）：×2 时「贴右边缘被裁掉半个字」与「压住两三颗事件点」
+     * 的分数接近，密集区（耶路撒冷有 11 颗点围在左侧）会选前者 —— 手机上实测
+     * 「耶路撒冷」被右边缘切掉 8.5px。抬高越界权重后宁可压在点上也把字完整露出来。 */
+    if (r.left < box.l) score += (box.l - r.left) * r.height * 3;
+    if (r.right > box.r) score += (r.right - box.r) * r.height * 3;
+    if (r.top < box.t) score += (box.t - r.top) * r.width * 3;
+    if (r.bottom > box.b) score += (r.bottom - box.b) * r.width * 3;
     for (i = 0; i < obstacles.length; i++) {
       ox = Math.min(r.right, obstacles[i].right) - Math.max(r.left, obstacles[i].left);
       oy = Math.min(r.bottom, obstacles[i].bottom) - Math.max(r.top, obstacles[i].top);
@@ -554,6 +593,11 @@ GS.mapCore = (function () {
       if (on) forceSet[placeId] = 1; else delete forceSet[placeId];
     },
     clearForced: function () { forceSet = {}; },
+    /* 软强制（整批）：当前章节 / 当前旅程涉及的地点。传 null/{} 清空。
+     * 与 forceLabel 的区别见 forceSet / softSet 的注释 —— 这里的分级豁免照给，
+     * 但「放不下就隐藏」的兜底仍然生效。 */
+    setSoftLabels: function (obj) { softSet = obj || {}; },
+    softLabels: function () { return softSet; },
     /* 诊断 / 验收用：当前可见与隐藏的标签数、首屏基准 zoom。
      * 分级是否真的生效必须能读出来，不能靠截图数（截图数不出被裁在视口外的）。 */
     labelStats: function () {

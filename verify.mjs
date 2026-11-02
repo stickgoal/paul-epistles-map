@@ -751,10 +751,13 @@ console.log('M6-1 sound-toggle:', (function () {
   return JSON.stringify(s);
 })());
 
-/* M6-2. 音色表与播放接口：合成音色齐全；关闭时 play() 必须直接返回 false（不建上下文）。 */
+/* M6-2. 音色表与播放接口：合成音色齐全；关闭时 play() 必须直接返回 false（不建上下文）。
+ *   2026-11-02 起音效默认静音，所以先显式 setEnabled(true) 再测「开着能响」——
+ *   断言不能依赖默认值，否则改默认值会把接口测试一起拖下水。 */
 console.log('M6-2 audio-api:', await ev(`(function(){
   var a = GS_APP.audio;
   var cues = a.cues.slice().sort().join(',');
+  a.setEnabled(true);
   var onPlay = a.play('arrive');
   a.setEnabled(false);
   var offPlay = a.play('arrive');
@@ -1698,6 +1701,146 @@ if (w4.id) {
     shown: document.getElementById('geoCard').classList.contains('show'),
     detail: GS_APP.state.detail,
     ok: document.getElementById('geoCard').hidden && GS_APP.state.detail === null })`));
+}
+
+/* ================= S：底部旅程切换器 + 旅程地名（2026-11-02） =================
+ * 用户需求：①「播放某次旅程时，显示旅程中涉及的地名」②「底部可以切换选择哪个行程并播放」。
+ * 两条都必须在真实交互下测：
+ *   · chip 藏在贴底的时间轴里（收起时整排都在视口外），必须先把时间轴展开，
+ *     再用 Input.dispatchMouseEvent 真点 —— 合成 .click() 绕过命中测试，
+ *     测不出「这排 chip 到底能不能点到」。
+ *   · 「显示地名」不能只看 state：要证明那些 tooltip 真的 display≠none、
+ *     整块落在视口内、两两不重叠（否则等于把地名糊在一起）。 */
+await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+await send('Page.navigate', { url: PAGE });
+await sleep(7000);
+await ev(`(function(){ GS_APP.tl.open(); return 1; })()`);
+await sleep(500);
+
+console.log('S-1 switcher-chips:', await ev(`(function(){
+  var chips = GS_APP.journey.chips();
+  var wrap = document.getElementById('tlJourneys');
+  return JSON.stringify({
+    n: chips.length,
+    labels: chips.map(function(c){return c.label;}),
+    allPressed: chips.filter(function(c){return c.on;}).map(function(c){return c.j;}),
+    allInViewport: chips.every(function(c){return c.inViewport;}),
+    scrolls: wrap.scrollWidth > wrap.clientWidth,
+    ok: chips.length === 6 && chips.every(function(c){return c.inViewport;}) && chips.filter(function(c){return c.on;}).length === 1
+  });
+})()`));
+
+/* S-2. 真实点击「第二次旅程」chip → 选中 + 立刻重播 + 该旅程全部地名显示 */
+var s2 = await centerOf('#tlJourneys .tj[data-j="j2"]');
+console.log('S-2 chip-found:', s2 ? 'yes' : 'MISSING');
+if (s2) {
+  await realClick(s2.x, s2.y);
+  await sleep(1400);
+  console.log('S-2 route-focus:', await ev(`(function(){
+    var chips = GS_APP.journey.chips();
+    return JSON.stringify({
+      route: GS_APP.journey.current(),
+      chipOn: chips.filter(function(c){return c.on;}).map(function(c){return c.j;}),
+      legendSel: [].map.call(document.querySelectorAll('.lg-j.sel'), function(e){return e.getAttribute('data-j');}),
+      routeFocus: document.body.classList.contains('route-focus'),
+      placesOff: document.querySelectorAll('.place-icon.route-off').length,
+      travel: document.querySelectorAll('.travel-ic').length,
+      ok: GS_APP.journey.current() === 'j2' &&
+          chips.filter(function(c){return c.on;}).length === 1 &&
+          document.body.classList.contains('route-focus') &&
+          document.querySelectorAll('.place-icon.route-off').length > 0
+    });
+  })()`));
+
+  /* S-3. 旅程地名：本旅程（站点 ∪ 本章事件地点）的每一个地名都要真的显示出来 */
+  console.log('S-3 route-labels:', await ev(`(function(){
+    var j = GS_APP.routes.filter(function(x){return x.id==='j2';})[0];
+    var want = {};
+    j.stops.forEach(function(s){ if (s.p) want[s.p] = 1; });
+    GS_APP.events.forEach(function(e){ if (e.ch === j.ch) want[e.place] = 1; });
+    var seen = {}, overflow = [], boxes = [], missing = [];
+    document.querySelectorAll('.leaflet-tooltip.city-tip, .leaflet-tooltip.ctx-tip').forEach(function(el){
+      if (el.style.display === 'none') return;
+      var r = el.getBoundingClientRect();
+      if (!r.width) return;
+      var pid = el.getAttribute('data-place');
+      if (pid) seen[pid] = 1;
+      if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight) overflow.push(pid);
+      if (el.classList.contains('city-tip')) boxes.push({p: pid, r: r});
+    });
+    Object.keys(want).forEach(function(pid){ if (!seen[pid]) missing.push(pid); });
+    var pairs = [];
+    for (var i = 0; i < boxes.length; i++) for (var k = i+1; k < boxes.length; k++) {
+      var a = boxes[i].r, b = boxes[k].r;
+      var w = Math.min(a.right,b.right) - Math.max(a.left,b.left);
+      var h = Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top);
+      if (w > 0 && h > 0) pairs.push(boxes[i].p + '×' + boxes[k].p);
+    }
+    return JSON.stringify({ want: Object.keys(want).length, shown: Object.keys(seen).length,
+      missing: missing, overflow: overflow, overlaps: pairs,
+      ok: missing.length === 0 && overflow.length === 0 && pairs.length === 0 });
+  })()`));
+
+  /* S-4. 再点同一个 chip → 原地重播（不取消聚焦） */
+  var s4 = await centerOf('#tlJourneys .tj[data-j="j2"]');
+  await realClick(s4.x, s4.y);
+  await sleep(500);
+  console.log('S-4 chip-replay:', await ev(`JSON.stringify({
+    route: GS_APP.journey.current(),
+    travel: document.querySelectorAll('.travel-ic').length,
+    ok: GS_APP.journey.current() === 'j2' && document.querySelectorAll('.travel-ic').length === 1 })`));
+
+  /* S-5. 切到「赴罗马航程」→ 地名换成另一组（证明是跟着旅程走的，不是一直全显示） */
+  var s5 = await centerOf('#tlJourneys .tj[data-j="j5"]');
+  await realClick(s5.x, s5.y);
+  await sleep(1500);
+  console.log('S-5 switch-j5:', await ev(`(function(){
+    var j = GS_APP.routes.filter(function(x){return x.id==='j5';})[0];
+    var want = {}; j.stops.forEach(function(s){ if (s.p) want[s.p] = 1; });
+    GS_APP.events.forEach(function(e){ if (e.ch === j.ch) want[e.place] = 1; });
+    var seen = {};
+    document.querySelectorAll('.leaflet-tooltip.city-tip, .leaflet-tooltip.ctx-tip').forEach(function(el){
+      if (el.style.display === 'none' || !el.getBoundingClientRect().width) return;
+      var pid = el.getAttribute('data-place'); if (pid) seen[pid] = 1;
+    });
+    var missing = Object.keys(want).filter(function(p){ return !seen[p]; });
+    return JSON.stringify({ route: GS_APP.journey.current(), want: Object.keys(want).length,
+      shown: Object.keys(seen).length, missing: missing,
+      ok: GS_APP.journey.current() === 'j5' && missing.length === 0 });
+  })()`));
+
+  /* S-6. 「全部」→ 取消聚焦，地名回到分级常态（6 个 L1） */
+  var s6 = await centerOf('#tlJourneys .tj[data-j=""]');
+  await realClick(s6.x, s6.y);
+  await sleep(1400);
+  console.log('S-6 all-reset:', await ev(`JSON.stringify({
+    route: GS_APP.journey.current(),
+    chipOn: GS_APP.journey.chips().filter(function(c){return c.on;}).map(function(c){return c.j;}),
+    routeFocus: document.body.classList.contains('route-focus'),
+    placesOff: document.querySelectorAll('.place-icon.route-off').length,
+    labels: GS_APP.labelStats().visible,
+    ok: GS_APP.journey.current() === null && !document.body.classList.contains('route-focus') &&
+        document.querySelectorAll('.place-icon.route-off').length === 0 })`));
+}
+
+/* S-7. 窄屏：chip 排要能横向滚动且首尾都点得到（430px 放不下 6 个 chip） */
+await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 1, mobile: true });
+await send('Page.navigate', { url: PAGE });
+await sleep(7000);
+await ev(`(function(){ GS_APP.tl.open(); return 1; })()`);
+await sleep(500);
+console.log('S-7 mobile-chips:', await ev(`(function(){
+  var wrap = document.getElementById('tlJourneys');
+  var chips = GS_APP.journey.chips();
+  return JSON.stringify({ n: chips.length, scrollW: wrap.scrollWidth, clientW: wrap.clientWidth,
+    firstIn: chips[0].inViewport, rowH: Math.round(wrap.getBoundingClientRect().height),
+    ok: chips.length === 6 && wrap.scrollWidth > wrap.clientWidth && chips[0].inViewport });
+})()`));
+var s7 = await centerOf('#tlJourneys .tj[data-j="j1"]');
+if (s7) {
+  await realClick(s7.x, s7.y);
+  await sleep(1200);
+  console.log('S-7 mobile-pick:', await ev(`JSON.stringify({ route: GS_APP.journey.current(), ok: GS_APP.journey.current() === 'j1' })`));
 }
 
 console.log('JS ERRORS:', errors.length ? errors.join(' | ') : 'NONE');

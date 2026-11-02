@@ -263,6 +263,27 @@ body.tl-open .tl-hot{pointer-events:none}
 .tl-track:active .tl-knob{transform:scale(1.12)}
 .tl-knob::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ink)}
 .tl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-feature-settings:"tnum";margin-top:0}
+/* 旅程切换（2026-11-02 用户需求「底部可以切换选择哪个行程并播放」）：
+ * 时间轴里直接选一段旅程 → 地图收到该旅程范围、只留它的地点与事件、光点沿线重播。
+ * 为什么不复用右上图例：图例默认收起（M9 让位），而「换一段旅程重播」是高频动作，
+ * 藏在二级浮层里等于没有。五个 chip 单行横向滚动 —— 换行会把轨道整体往下推。
+ * 「全部」用虚线描边，与实心的具体旅程区分：它是「取消聚焦」而不是第六段旅程。 */
+.tl-j{display:flex;align-items:center;gap:6px;margin:3px 0 7px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tl-j::-webkit-scrollbar{display:none}
+.tj{flex:none;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--hair);background:#fff;
+  border-radius:999px;padding:4px 11px;font-size:11.5px;color:var(--ink-2);cursor:pointer;font-family:inherit;
+  transition:background .18s,border-color .18s,color .18s;white-space:nowrap;line-height:1.5}
+.tj i{width:12px;height:3px;border-radius:2px;flex:none}
+.tj em{font-style:normal;color:var(--ink-3);font-size:10px;font-feature-settings:"tnum";padding-left:2px}
+.tj:hover{border-color:var(--ink-3);color:var(--ink)}
+.tj:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tj[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.tj[aria-pressed="true"] em{color:rgba(255,255,255,.7)}
+.tj-all{border-style:dashed}
+/* 旅程聚焦时地名只留中文名：一段旅程有 9–13 个站点，带英文名与事件计数会互相压。
+ * 用 CSS 收窄而不是改数据 —— 形态降级由 map-core 的 variants 负责，这里只是让
+ * 「同一屏上的十几个名字」在观感上等宽，不会有的两行有的半行。 */
+body.route-focus .city-tip .en,body.route-focus .city-tip .cnt{display:none}
 .tl-keys{font-size:10.5px;color:var(--ink-2);letter-spacing:.02em}
 
 /* ============ 首屏引导卡（H-2：让「可播放」可发现） ============ */
@@ -421,9 +442,10 @@ body.tl-open .now{bottom:calc(var(--tlh) + 14px)}
   /* 呼吸环移除后，静止态的地点身份只剩「饼图核心 + 地名」——标签直接压在底图与
    * 路线上，必须自带一层浅色晕圈才读得清（不换成胶囊底：28 个胶囊会重新变吵）。 */
   text-shadow:0 0 3px #fdfdfb,0 0 3px #fdfdfb,0 0 6px rgba(253,253,251,.92),0 1px 1px rgba(253,253,251,.95)}
-/* 标签避让的附加偏移：map-core 用 --tx/--ty 指定（不重绑 tooltip，避免 DOM 泄漏）。
-   Leaflet 各类 direction 自带 margin-left/margin-top（6px / -6px），
-   故这里用 calc 把两者叠加，而不是直接覆盖 margin。 */
+/* 标签避让的偏移：由 map-core 的 applyTipDirection 写成【内联 margin】直接覆盖。
+   这里的 calc 只是「JS 还没跑」时的兜底（--tx/--ty 未定义 → 退回 Leaflet 自带的
+   ±6px）。不要改回用 --tx 变量承载偏移：Chrome 对 var() 依赖属性的重算是延迟的，
+   避让算法「改候选 → 立刻量 rect」会一直量到上一个候选的位置（M9.3 踩坑）。 */
 .leaflet-tooltip.city-tip.leaflet-tooltip-right{margin-left:calc(6px + var(--tx,0px));margin-top:var(--ty,0px)}
 .leaflet-tooltip.city-tip.leaflet-tooltip-left{margin-left:calc(-6px + var(--tx,0px));margin-top:var(--ty,0px)}
 .leaflet-tooltip.city-tip.leaflet-tooltip-bottom{margin-left:var(--tx,0px);margin-top:calc(6px + var(--ty,0px))}
@@ -574,7 +596,14 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
   .mapctl{right:10px;bottom:calc(var(--tlh) + 12px)}
 }
 @media (prefers-reduced-motion: reduce){
-  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  /* 关动效要写 transition:none，不能只把 duration 改小 —— transition-property 的
+   * 初始值就是 all，只给 duration 等于给【每个属性】都挂了一段 0.01ms 过渡，于是
+   * 改完样式在同一任务里读 computedStyle / getBoundingClientRect 拿到的全是
+   * 【过渡起点值】，要等任务结束、过渡跑完才变。
+   * 实测代价：headless 默认就是 reduce，于是标签避让算法「换候选 → 立刻量 rect」
+   * 一直量到上一个候选的位置（73 次读取全返回同一个值），密集区标签因此叠字、
+   * 贴边越界。真机上开了「减少动态效果」的用户也会撞到同一个问题。 */
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important;scroll-behavior:auto!important}
 }
 </style>
 </head>
@@ -665,7 +694,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
             <span id="playLb">播放</span>
           </button>
           <button class="tl-step" id="nextBtn" title="下一事件" aria-label="下一事件">▶</button>
-          <button class="tl-step tl-sound" id="soundBtn" aria-pressed="true" title="音效开关" aria-label="音效开关">
+          <button class="tl-step tl-sound" id="soundBtn" aria-pressed="false" title="音效关 · 点击开启" aria-label="音效开关">
             <svg class="i-snd i-snd-on" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
               <path d="M3 6.2h2.2L8.4 3.6v8.8L5.2 9.8H3z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
               <path d="M10.6 6a2.9 2.9 0 0 1 0 4M12.4 4.3a5.2 5.2 0 0 1 0 7.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -679,6 +708,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
           <span class="tl-year" id="tlYear">AD 46</span>
         </div>
       </div>
+      <div class="tl-j" id="tlJourneys" role="group" aria-label="选择一段旅程并播放"></div>
       <div class="tl-track" id="tlTrack">
         <div class="tl-rail"></div>
         <div class="tl-prog" id="tlProg"></div>
@@ -824,6 +854,16 @@ var LABEL_BY = {};  /* 地点 id -> labelItems 里的条目（hover/选中时查
 var dotEls = {};    /* 事件 id -> 地图上的事件点 DOM */
 var placeEls = {};  /* 地点 id -> .place DOM */
 var mkEls = {};     /* 地点 id -> Leaflet 图标容器 DOM（.place-icon / .ctx-icon，路线筛选用） */
+var ctxMarkers = {};/* 背景地名（ctx）的 marker —— 它的 tooltip 要等图层上屏才存在，故存 marker 现取 */
+var ctxTips = {};   /* 背景地名的 tooltip DOM 缓存（见 ctxTipOf） */
+function ctxTipOf(pid) {
+  var t = ctxTips[pid];
+  if (t && t.parentNode) return t;
+  var m = ctxMarkers[pid];
+  var el = m && m.getTooltip && m.getTooltip() ? m.getTooltip().getElement() : null;
+  if (el) { ctxTips[pid] = el; el.setAttribute('data-place', pid); }   /* 验收按 id 反查 */
+  return el || null;
+}
 
 /* ================= 浮层安全区 =================
  * M9（2026-11-02）：地图是唯一主角。侧栏默认收起、时间轴贴底隐藏，
@@ -954,6 +994,23 @@ function buildPie(typeCounts, total) {
  * 用引用计数而非布尔 —— 同一地点可能同时被「悬停」和「当前事件地点」占用，
  * 任一来源释放都不该把标签撤掉（否则鼠标一移开，播放中的地名就闪没了）。 */
 var labelPin = {};
+/* 旅程地名（2026-11-02 用户需求「播放某次旅程时，显示旅程中涉及的地名」）：
+ * 选中某段旅程时，把它的站点与本旅程事件所在地点全部提到最高优先级。
+ * 不做这一步的话，一段旅程 9–13 个站点里首屏只有 1–2 个是 L1，其余被分级消隐，
+ * 光点在走、名字不亮 —— 读者只能盲跟。
+ * 用独立集合而不是复用 chapterPins：旅程聚焦与「本章收敛」是两套生命周期
+ * （前者由 state.route 控制，后者由播放进度控制），混用会在暂停时互相清掉。 */
+var routePins = {};
+/* 标签显示有两个来源，必须分开维护：
+ *   硬（labelPin）—— hover / 地点详情：读者明确指向了它，永远显示；
+ *   软（chapterPins ∪ routePins）—— 当前章节 / 当前旅程的整批地名：分级豁免，
+ *   但放不下时可以隐藏（引擎的 softSet）。合成一个集合交给 map-core。 */
+function syncSoftLabels() {
+  var m = {};
+  Object.keys(chapterPins || {}).forEach(function (k) { m[k] = 1; });
+  Object.keys(routePins || {}).forEach(function (k) { m[k] = 1; });
+  mapCore.setSoftLabels(m);
+}
 function tipElOf(pid) {
   var cm = LABEL_BY[pid];
   var t = cm && cm.marker.getTooltip ? cm.marker.getTooltip() : null;
@@ -963,8 +1020,8 @@ function pinLabel(pid, on) {
   if (!pid) return;
   if (on) labelPin[pid] = (labelPin[pid] || 0) + 1;
   else labelPin[pid] = Math.max(0, (labelPin[pid] || 0) - 1);
-  /* 本章的强制显示优先于 hover 释放：鼠标移开不该把播放中的地名撤掉 */
-  mapCore.forceLabel(pid, labelPin[pid] > 0 || !!chapterPins[pid]);
+  /* 硬强制只看 hover / 详情这一路 —— 章节与旅程走软强制，见 syncSoftLabels */
+  mapCore.forceLabel(pid, labelPin[pid] > 0);
   /* .pinned 让播放期的「非本章压暗」规则放过它（CSS 见 .city-tip 附近） */
   var el = tipElOf(pid);
   if (el) el.classList.toggle('pinned', labelPin[pid] > 0);
@@ -989,6 +1046,12 @@ PLACES.forEach(function (p) {
     var m = L.marker(p.ll, { icon: ic, interactive: false, keyboard: false }).addTo(placeLayer);
     m.bindTooltip(p.cn, { permanent: true, direction: 'right', offset: [9, 0], className: 'ctx-tip' });
     mkEls[p.id] = m.getElement();
+    /* 背景地名的 tooltip 挂在 Leaflet 的 tooltip pane 里，不是 .ctx-icon 的子元素 ——
+     * 给图标加 .route-off（opacity:0）只能藏点、藏不掉字。路线聚焦时要单独收它。
+     * 这里【不能】当场取 getElement()：此处的 marker 只加进了 placeLayer，而 placeLayer
+     * 还没 addTo(map)，permanent tooltip 的容器要等图层上屏才创建 —— 当场取永远是 null
+     * （实测「大马士革」的灰字在路线聚焦后照样留在图上）。改为存 marker、用时再取。 */
+    ctxMarkers[p.id] = m;
     return;
   }
   var evs = EVENTS.filter(function (e) { return e.place === p.id; });
@@ -1557,9 +1620,10 @@ function syncChapterLabels(ch) {
     if (!el) return;
     var on = !ch || !!keep[cm.placeId];
     el.classList.toggle('cur-ch', on);
-    /* ch 为 null（暂停/播毕）时不强制任何地点，回到分级消隐的常态 */
-    mapCore.forceLabel(cm.placeId, (ch && !!keep[cm.placeId]) || labelPin[cm.placeId] > 0);
   });
+  /* ch 为 null（暂停/播毕）时不强制任何地点，回到分级消隐的常态；
+   * 旅程聚焦是另一路来源，由 syncSoftLabels 合并（两者可同时成立）。 */
+  syncSoftLabels();
   mapCore.placeLabels(labelItems);
 }
 function revealEvent(ev) {
@@ -1734,11 +1798,14 @@ function renderLegend() {
     row.setAttribute('role', 'button');
     row.setAttribute('tabindex', '0');
     row.setAttribute('aria-pressed', 'false');
+    /* 图例是「筛选器」：选中态再点一次＝取消（× 提示），保持 M8-5 的语义；
+     * 底部 chip 是「播放器」：再点＝重播。两者用同一份 state.route，只是动作不同。 */
     row.addEventListener('click', function () { selectRoute(j.id); });
     row.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectRoute(j.id); }
     });
   });
+  renderJourneySwitcher();   /* 底部时间轴的旅程切换（同一份 ROUTES，同一份 state.route） */
   /* L-1：折叠摘要只统计「已含事件」的旅程，避免把待补充章节算进来 */
   var evMaxFrom = Math.max.apply(null, EVENTS.map(function (e) { return e.from; }));
   var liveRoute = ROUTES.filter(function (j) { return j.from <= evMaxFrom; }).length;
@@ -1781,11 +1848,26 @@ function routePlaceKeep(rid) {
   EVENTS.forEach(function (e) { if (e.ch === j.ch) keep[e.place] = 1; });
   return keep;
 }
+/* 旅程地名（2026-11-02）：把本旅程涉及的地点全部提上来显示，并切换「紧凑标签」形态。
+ * 为什么必须在 applyRouteFilter 里做、而不是等 replay 的回调：
+ * 读者点完 chip 的下一帧就要看到「这段旅程会经过哪些地方」，光点 15s 才走完，
+ * 等地名一个个冒出来反而像卡顿。 */
+function syncRouteLabels(rid) {
+  var keep = rid ? routePlaceKeep(rid) : {};
+  routePins = keep;
+  document.body.classList.toggle('route-focus', !!rid);
+  syncSoftLabels();
+  mapCore.placeLabels(labelItems);
+}
 function applyRouteFilter() {
   var rid = state.route, keep = rid ? routePlaceKeep(rid) : null;
   PLACES.forEach(function (p) {
     var el = mkEls[p.id];
     if (el) el.classList.toggle('route-off', !!rid && !keep[p.id]);
+    /* 背景地名（大马士革 / 大数 这类灰色小字）不参与分级避让，路线聚焦时必须单独藏：
+     * 它们的 tooltip 不在图标子树里，光给图标加 .route-off 会留下「无主的灰字」，
+     * 还会压住本旅程的站点名（实测 西顿 × 大马士革 在 j5 里叠在一起）。 */
+    if (p.ctx) { var ct = ctxTipOf(p.id); if (ct) ct.style.display = (rid && !keep[p.id]) ? 'none' : ''; }
   });
   EVENTS.forEach(function (ev) {
     var d = dotEls[ev.id];
@@ -1798,25 +1880,80 @@ function applyRouteFilter() {
   );
   renderList();
   renderFilter();
-  applyReveal(state.year);            /* 计数与 .on/.dim 按新范围重算 */
-  mapCore.placeLabels(labelItems);    /* 可见标签重排（隐去的地点已从障碍集剔除） */
+  applyReveal(state.year);   /* 计数与 .on/.dim 按新范围重算 */
+  syncRouteLabels(rid);      /* 旅程地名 + 可见标签重排（隐去的地点已从障碍集剔除） */
+}
+/* ================= 旅程切换器（底部时间轴，2026-11-02） =================
+ * 用户需求：「底部可以切换选择哪个行程并播放」。
+ * 之前换旅程只有一个入口 —— 右上图例里那一行小字，而图例默认是收起的（M9 让位）。
+ * 这里把「选哪段旅程」搬到时间轴上，与播放键同一条视线：
+ *   点某段 → 选中（地图收到该段范围、只留它的地点与事件）+ 立即重播 15s 描线；
+ *   点当前已选中的那段 → 再播一遍；
+ *   点「全部」→ 取消聚焦，恢复全量。
+ * 与图例共用 state.route，所以两边高亮必须一起动（syncJourneyUI）。 */
+function renderJourneySwitcher() {
+  var wrap = $('tlJourneys');
+  if (!wrap) return;
+  var html = '<button class="tj tj-all" data-j="" aria-pressed="true" title="取消旅程聚焦，恢复全部地点与事件">全部</button>';
+  ROUTES.forEach(function (j) {
+    /* 「第一次传道旅程」在 chip 里缩成「第一次旅程」：五段并排要的是可扫读，
+     * 完整名在图例与提示里都有（title）。 */
+    var short = j.name.replace('传道旅程', '旅程');
+    html += '<button class="tj" data-j="' + j.id + '" aria-pressed="false"' +
+      ' title="' + esc(j.name) + ' · ' + esc(j.years) + ' · 点击播放">' +
+      '<i style="background:' + j.color + '"></i>' + esc(short) +
+      '<em>' + esc(j.years) + '</em></button>';
+  });
+  wrap.innerHTML = html;
+  wrap.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('.tj') : null;
+    if (!b || !wrap.contains(b)) return;
+    var rid = b.getAttribute('data-j');
+    if (!rid) { clearRoute(); return; }
+    playJourney(rid);
+  });
+}
+/* 选中态同步：图例行（.lg-j.sel）与底部 chip（aria-pressed）都从 state.route 派生。
+ * 之前 selectRoute / clearRoute 各写一遍图例循环，加第二处 UI 后必须收敛到一处，
+ * 否则任何一条新路径（键盘、深链、重置）都会漏掉一半。 */
+function syncJourneyUI() {
+  var rid = state.route;
+  document.querySelectorAll('.lg-j').forEach(function (r) {
+    var on = !!rid && r.getAttribute('data-j') === rid;
+    r.classList.toggle('sel', on);
+    r.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('#tlJourneys .tj').forEach(function (b) {
+    var j = b.getAttribute('data-j');
+    b.setAttribute('aria-pressed', (rid ? j === rid : !j) ? 'true' : 'false');
+  });
+}
+/* 「选中即播放」：已选中则原地重播（不重复 setFit / 过滤，避免视野二次跳动）。 */
+function playJourney(rid) {
+  var j = R_BY[rid];
+  if (!j) return;
+  if (state.route !== rid) { selectRoute(rid); return; }
+  pause();
+  routes.replay(j);
+  toast(j.years, '<b>' + j.name + '</b> · ' + routeEventCount(rid) + ' 个事件（重播）');
 }
 function selectRoute(rid) {
   if (!rid || !R_BY[rid] || state.route === rid) { clearRoute(); return; }
   pause();
   state.route = rid;
   var j = R_BY[rid];
-  $('journeyLegend').querySelectorAll('.lg-j').forEach(function (r) {
-    var on = r.getAttribute('data-j') === rid;
-    r.classList.toggle('sel', on);
-    r.setAttribute('aria-pressed', on ? 'true' : 'false');
-  });
+  syncJourneyUI();
   applyRouteFilter();
-  /* 视野收到这段旅程（站点范围 + 0.5° 留白），fitStory 仍按浮层安全区居中 */
+  /* 视野收到这段旅程：站点包围盒 + 0.5° 留白，但**至少 6° 见方**。
+   * 纯 bbox 在「被捕与受审」（只有耶路撒冷与凯撒利亚两站，相距 0.7°）会把视野推到 z9，
+   * 屏幕上只剩两块色块、认不出这是叙利亚—巴勒斯坦；6° 见方刚好带出海岸线与邻域。 */
   var la = j.stops.map(function (s) { return s.ll[0]; });
   var ln = j.stops.map(function (s) { return s.ll[1]; });
-  mapCore.setFit([[Math.min.apply(null, la) - .5, Math.min.apply(null, ln) - .5],
-                  [Math.max.apply(null, la) + .5, Math.max.apply(null, ln) + .5]], true, 900);
+  var ca = (Math.min.apply(null, la) + Math.max.apply(null, la)) / 2;
+  var cn = (Math.min.apply(null, ln) + Math.max.apply(null, ln)) / 2;
+  var ha = Math.max((Math.max.apply(null, la) - Math.min.apply(null, la)) / 2 + .5, 3);
+  var hn = Math.max((Math.max.apply(null, ln) - Math.min.apply(null, ln)) / 2 + .5, 3);
+  mapCore.setFit([[ca - ha, cn - hn], [ca + ha, cn + hn]], true, 900);
   routes.replay(j);
   toast(j.years, '<b>' + j.name + '</b> · ' + routeEventCount(rid) + ' 个事件（只看本旅程）');
   GS.fx.emit('chapter:enter', CH_BY[ROUTE_CH[rid]]);
@@ -1824,10 +1961,7 @@ function selectRoute(rid) {
 function clearRoute(silent) {
   if (!state.route) return;
   state.route = null;
-  $('journeyLegend').querySelectorAll('.lg-j').forEach(function (r) {
-    r.classList.remove('sel');
-    r.setAttribute('aria-pressed', 'false');
-  });
+  syncJourneyUI();
   routes.cancelTravel();
   applyRouteFilter();
   mapCore.resetView(900);
@@ -2010,6 +2144,32 @@ window.GS_APP = {
              })(g.getBoundingClientRect()) };
   },
   togglePanel: function () { $('panelToggle').click(); },
+  /* 旅程切换（2026-11-02）：验收要点「底部 chip 真的能换旅程并播放」。
+   * chips() 读的是 DOM 选中态，不是 state —— 断言必须证明 UI 与状态一致。 */
+  journey: {
+    list: function () { return ROUTES.map(function (j) { return { id: j.id, name: j.name, years: j.years, events: routeEventCount(j.id) }; }); },
+    select: selectRoute, play: playJourney, clear: clearRoute,
+    current: function () { return state.route; },
+    chips: function () {
+      var out = [];
+      document.querySelectorAll('#tlJourneys .tj').forEach(function (b) {
+        out.push({ j: b.getAttribute('data-j') || null, on: b.getAttribute('aria-pressed') === 'true',
+                   label: (b.textContent || '').replace(/\s+/g, ' ').trim(),
+                   inViewport: (function (r) { return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth; })(b.getBoundingClientRect()) });
+      });
+      return out;
+    },
+    /* 当前可见的地名（display 不为 none 的 tooltip），用于断言「旅程地名都亮出来了」 */
+    labels: function () {
+      var out = [];
+      document.querySelectorAll('.leaflet-tooltip.city-tip').forEach(function (el) {
+        if (el.style.display === 'none') return;
+        var pid = el.getAttribute('data-place');
+        if (pid) out.push({ p: pid, text: (el.textContent || '').replace(/\s+/g, ' ').trim() });
+      });
+      return out;
+    }
+  },
   timing: { TRAVEL: TRAVEL, SEEK_LEAD: SEEK_LEAD, CRUISE_MS: CRUISE_MS, ARRIVE_MS: ARRIVE_MS, DWELL: DWELL, CAM: CAM }
 };
 

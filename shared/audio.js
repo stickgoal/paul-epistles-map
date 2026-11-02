@@ -12,6 +12,10 @@
  *      宁可听不清，也不要盖过用户的环境。
  *   3) 关闭状态持久化在 localStorage；关闭时连 AudioContext 都不创建（省电、省内存）。
  *   4) 只订阅 GS.fx 的事件，不反向依赖任何业务模块 —— 与 M1 定下的 fx 总线契约一致。
+ *   5) **默认静音**（2026-11-02 用户「关闭声音」）：打开页面不主动发声，
+ *      读者点了时间轴上的喇叭才开。理由不只是「用户说了算」——网页在没有明确
+ *      意图的情况下自动出声，在任何浏览器/会议/深夜场景里都是减分项；
+ *      而开关就在播放键旁边，想听的人一次点击即可，偏好还会记住。
  */
 window.GS = window.GS || {};
 GS.audio = (function () {
@@ -20,10 +24,11 @@ GS.audio = (function () {
   var KEY = 'gs.sound';
   /* 能力探测放在加载期：没有 WebAudio 的环境里，开关按钮干脆不出现（见 template 的 syncSoundBtn） */
   var available = !!(window.AudioContext || window.webkitAudioContext);
-  var ctx = null, master = null, enabled = true, volume = 0.16;
+  var ctx = null, master = null, enabled = false, volume = 0.16;
 
+  /* 默认静音：只有显式存过 'on' 才发声（旧值 'off' 与「从未设置」等价，都按关处理）。 */
   function loadPref() {
-    try { enabled = localStorage.getItem(KEY) !== 'off'; } catch (e) { enabled = true; }
+    try { enabled = localStorage.getItem(KEY) === 'on'; } catch (e) { enabled = false; }
   }
   function savePref() {
     try { localStorage.setItem(KEY, enabled ? 'on' : 'off'); } catch (e) { /* 隐私模式忽略 */ }
