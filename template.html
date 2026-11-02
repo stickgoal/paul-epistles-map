@@ -62,7 +62,9 @@ button{font-family:inherit;border:none;background:none}
   box-shadow:0 18px 50px rgba(20,20,18,.15),0 2px 6px rgba(20,20,18,.05);
   transition:transform .34s cubic-bezier(.3,.8,.3,1),opacity .34s;
 }
-/* 折叠：整块滑出屏幕，把地图完整让出来（时间轴同步左移，见 .tl） */
+/* 折叠：整块滑出屏幕，把地图完整让出来。
+ * M9（2026-11-02）：默认即折叠 —— 地图是主角，面板只在读者点「事件」时召回。
+ * 召回态是【覆盖层】而非占位层，不挤压地图、不触发 refit。 */
 body.panel-off .sidebar{transform:translateX(calc(-100% - 24px));opacity:.001;pointer-events:none}
 /* 折叠/展开开关：跟着面板右边缘走，折叠后停在地图左上角 */
 #panelToggle{position:absolute;z-index:1500;left:calc(14px + var(--sb) - 40px);top:24px;height:28px;min-width:28px;
@@ -189,14 +191,31 @@ body.panel-off #panelToggle svg{transform:rotate(180deg)}
  * 15.8° × Mercator 1.25 ≈ 20°，比宽度更容易顶满），时间轴每多 1px，地图就少 1px，
  * 一旦跨过缩放档位（z5.5 → z5）地图内容直接腰斩。压缩手段：内边距 12/11 → 8、
  * 顶部行 4 → 2、按钮 7 → 5、轨道下沿留白 15 → 11。点径同时 12 → 10（见 timeline.js）。 */
-.tl{position:absolute;left:calc(var(--sb) + 28px);right:14px;bottom:14px;z-index:1400;
-  padding:8px 20px 8px;border-radius:16px;
+/* 时间轴（M9）：贴底隐藏，只露一条 10px 的「进度细边」。
+ * 鼠标移近底部热区 / 播放中自动展开；移开 1.2s 后收回。
+ * 为什么保留一条边而不是彻底 display:none：这条边本身就是进度指示
+ * （.tl-prog 的填充比例透出来），不展开也能看出「走到哪儿了」。 */
+.tl{position:absolute;left:14px;right:14px;bottom:0;z-index:1400;
+  padding:8px 20px 10px;border-radius:16px 16px 0 0;
   background:var(--glass);
   -webkit-backdrop-filter:blur(20px) saturate(1.08);backdrop-filter:blur(20px) saturate(1.08);
-  border:1px solid rgba(231,231,225,.9);
-  box-shadow:0 18px 50px rgba(20,20,18,.15),0 2px 6px rgba(20,20,18,.05);
-  transition:left .34s cubic-bezier(.3,.8,.3,1)}
-body.panel-off .tl{left:14px}
+  border:1px solid rgba(231,231,225,.9);border-bottom:none;
+  box-shadow:0 -6px 30px rgba(20,20,18,.10);
+  transform:translateY(calc(100% - 16px));
+  transition:transform .32s cubic-bezier(.3,.8,.3,1),box-shadow .32s}
+body.tl-open .tl{transform:translateY(0);box-shadow:0 -18px 50px rgba(20,20,18,.16)}
+/* 把手（M9）：收起时露出的 16px 上沿。它不是装饰 —— 没有它读者根本不知道
+ * 底部藏着时间轴与播放按钮（首屏截图的实测问题：整个界面找不到「开始播放」）。
+ * 内容由 JS 写入「▲ AD 46 · 3/97 事件」，既是入口也是进度读数。 */
+.tl-handle{position:absolute;left:0;right:0;top:0;height:16px;display:flex;align-items:center;
+  justify-content:center;gap:5px;font-size:10px;letter-spacing:.06em;font-weight:600;
+  color:var(--ink-3);font-feature-settings:"tnum";pointer-events:none;
+  transition:opacity .18s}
+body.tl-open .tl-handle{opacity:0}
+/* 底部热区：高 40px，横向铺满。pointer-events 只在隐藏态生效，
+ * 展开后由 .tl 自身接管（否则热区会盖住时间轴下沿的圆点）。 */
+.tl-hot{position:absolute;left:0;right:0;bottom:0;height:40px;z-index:1399}
+body.tl-open .tl-hot{pointer-events:none}
 .tl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;gap:10px}
 .tl-cap{font-size:11px;letter-spacing:.1em;color:var(--ink-3);font-weight:600;white-space:nowrap}
 .tl-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -205,11 +224,12 @@ body.panel-off .tl{left:14px}
 .play{display:flex;align-items:center;gap:6px;border:1px solid var(--hair);background:#fff;border-radius:999px;padding:4px 12px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s}
 .play:hover{border-color:var(--ink-3);color:var(--ink)}
 .play.playing{background:var(--ink);border-color:var(--ink);color:#fff}
-/* 未播放时的主行动号召：深色实心（静态强调，不再做无限光晕扩散）。
+/* 未播放时即主行动号召：深色实心（静态强调，不做无限光晕扩散）。
  * 2026-10-30「直接不闪烁」：playHint 的 2.8s 阴影脉冲与地点呼吸环同属
- * 「常驻循环动画」，去掉后用深色底 + 字重建立同等的主次层级。 */
-.play.hint{background:var(--ink);border-color:var(--ink);color:#fff;padding:4px 14px;font-size:12px;font-weight:600;box-shadow:0 2px 10px rgba(20,20,18,.18)}
-.play.hint:hover{background:#000;border-color:#000}
+ * 「常驻循环动画」，去掉后用深色底 + 字重建立同等的主次层级。
+ * M9：引导横幅退役后不再有 .hint 这个临时态 —— 未播放的播放键恒为深色。 */
+.play:not(.playing){background:var(--ink);border-color:var(--ink);color:#fff;padding:4px 14px;font-size:12px;font-weight:600;box-shadow:0 2px 10px rgba(20,20,18,.18)}
+.play:not(.playing):hover{background:#000;border-color:#000}
 .play .i-pause{display:none}
 .play.playing .i-play{display:none}
 .play.playing .i-pause{display:block}
@@ -246,20 +266,10 @@ body.panel-off .tl{left:14px}
 .tl-keys{font-size:10.5px;color:var(--ink-2);letter-spacing:.02em}
 
 /* ============ 首屏引导卡（H-2：让「可播放」可发现） ============ */
-/* 首屏引导横幅：核心交互「时间轴故事播放」的可发现性（H-2）。
-   用流内元素而非 fixed 浮层 —— 旧版是居中浮层，正好盖住地图上事件标记最密集的
-   区域；改fixed 后挪到侧栏又压住事件列表行与播放按钮。流内横幅不覆盖任何东西：
-   占自己的布局高度，列表自然下移，地图完全不受影响。 */
-.guide{display:flex;align-items:center;gap:12px;margin:14px 18px 0;padding:11px 13px;background:linear-gradient(180deg,#fff,#fbfbf9);border:1px solid var(--hair);border-radius:12px;box-shadow:0 1px 2px rgba(20,20,18,.04);animation:guidein .45s cubic-bezier(.2,.9,.3,1)}
-.guide.out{display:none}
-@keyframes guidein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-.guide .g-ic{flex:none;width:26px;height:26px;border-radius:8px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center}
-.guide .g-txt{flex:1;min-width:0}
-.guide .g-txt b{display:block;font-size:12.5px;font-weight:650;letter-spacing:-.005em;color:var(--ink)}
-.guide .g-txt span{display:block;font-size:11px;color:var(--ink-3);margin-top:1px;font-feature-settings:"tnum"}
-.guide .g-act{flex:none;display:inline-flex;align-items:center;gap:5px;background:var(--ink);color:#fff;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
-.guide .g-act:hover{background:#000}
-@media (max-width:960px){.guide{margin:12px 16px 0}}
+/* 首屏引导横幅（H-2）已于 M9 退役：它挂在侧栏里，而侧栏现在默认收起，
+ * 横幅永远滑在屏幕外 —— 一个「存在但看不见」的引导等于没有，且它每次都要
+ * 占一行布局高度。可发现性改由时间轴把手承担：底部露出 16px 的
+ * 「▲ AD 46 · 3/97」+ 首屏自动展开 2.6s，既指出播放在哪，也演示它会自己让位。 */
 
 /* ============ 地图（铺满视口，其余全部浮在它上面） ============ */
 .mapcol{position:absolute;inset:0}
@@ -269,9 +279,13 @@ body.panel-off .tl{left:14px}
 .chips{position:absolute;right:14px;top:14px;display:flex;gap:8px;z-index:1200;flex-wrap:wrap;max-width:calc(100% - 32px);justify-content:flex-end}
 
 /* 缩放按钮：自带浮层（不用 Leaflet 角容器，见下方注释），位置随 --tlh 让开时间轴 */
-.mapctl{position:absolute;right:14px;bottom:calc(var(--tlh) + 16px);z-index:1200;display:flex;flex-direction:column;
+/* 缩放浮层（M9）：时间轴隐藏后贴底 14px；时间轴展开时上移让位。
+ * 用 --tlh（实测高度）而不是硬编码，窄屏时间轴更高。 */
+.mapctl{position:absolute;right:14px;bottom:14px;z-index:1200;display:flex;flex-direction:column;
   background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-  border:1px solid var(--hair);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+  border:1px solid var(--hair);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;
+  transition:bottom .32s cubic-bezier(.3,.8,.3,1)}
+body.tl-open .mapctl{bottom:calc(var(--tlh) + 14px)}
 .mapctl button{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--ink-2);cursor:pointer;transition:background .2s,color .2s;padding:0}
 .mapctl button + button{border-top:1px solid var(--hair-2)}
 .mapctl button:hover{background:#fff;color:var(--ink)}
@@ -320,9 +334,64 @@ body.panel-off .tl{left:14px}
 .lg-hint{margin-top:9px;padding-top:9px;border-top:1px solid var(--hair-2);font-size:10.5px;color:var(--ink-3)}
 
 /* 播放中的事件卡：浮在时间轴上方，居中于「没被面板遮住」的那块地图 */
-.now{position:absolute;left:calc(var(--sb) + 28px);right:14px;bottom:calc(var(--tlh) + 14px);margin:0 auto;width:max-content;max-width:min(480px,calc(100vw - var(--sb) - 62px));transform:translateY(14px);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:12px 16px 11px;box-shadow:var(--shadow);opacity:0;transition:opacity .35s,transform .35s cubic-bezier(.2,.7,.3,1);pointer-events:none;z-index:1250}
+/* 事件卡（M9）：时间轴隐藏后贴底居中；时间轴展开时上移让位。
+ * 侧栏不再常驻，故不再依赖 --sb。 */
+.now{position:absolute;left:14px;right:14px;bottom:14px;margin:0 auto;width:max-content;max-width:min(480px,calc(100vw - 44px));transform:translateY(14px);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:14px;padding:12px 16px 11px;box-shadow:var(--shadow);opacity:0;transition:opacity .35s,transform .35s cubic-bezier(.2,.7,.3,1),bottom .32s;pointer-events:none;z-index:1250}
 .now.show{opacity:1;transform:translateY(0);pointer-events:none}
-body.panel-off .now{left:14px;max-width:min(480px,calc(100vw - 30px))}
+body.tl-open .now{bottom:calc(var(--tlh) + 14px)}
+
+/* ============ 地点 / 事件浮窗（M9） ============
+ * 点选地点或事件后，信息贴着地图上那个点出现，并跟随平移/缩放。
+ * 取代原先的左侧详情面板 —— 信息该出现在「它讲的那个地方」旁边，
+ * 而不是屏幕另一头。定位与边界翻转见 JS 的 placeGeo()。 */
+.geo-card{position:absolute;left:0;top:0;z-index:1700;width:326px;max-width:calc(100vw - 28px);
+  background:rgba(255,255,255,.975);
+  -webkit-backdrop-filter:blur(18px) saturate(1.1);backdrop-filter:blur(18px) saturate(1.1);
+  border:1px solid rgba(231,231,225,.95);border-radius:14px;
+  box-shadow:0 22px 54px rgba(20,20,18,.20),0 2px 8px rgba(20,20,18,.06);
+  opacity:0;transform:translateY(6px) scale(.975);transform-origin:50% 100%;
+  transition:opacity .2s,transform .2s cubic-bezier(.2,.7,.3,1);
+  pointer-events:none;will-change:transform,left,top}
+.geo-card.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.geo-card[hidden]{display:none}
+/* 指向锚点的小三角：--ax 由 JS 写入（相对卡片左边的 px），翻转时切到 ::before */
+.geo-card::after{content:'';position:absolute;bottom:-7px;left:var(--ax,50%);width:13px;height:13px;
+  margin-left:-6.5px;background:rgba(255,255,255,.975);border-right:1px solid rgba(231,231,225,.95);
+  border-bottom:1px solid rgba(231,231,225,.95);transform:rotate(45deg);border-radius:0 0 3px 0}
+.geo-card.below::after{bottom:auto;top:-7px;transform:rotate(225deg);border-radius:0 0 3px 0}
+.geo-card.side::after{display:none}
+.gc-x{position:absolute;right:9px;top:9px;width:24px;height:24px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;color:var(--ink-3);cursor:pointer;z-index:2;
+  background:rgba(255,255,255,.9);transition:background .18s,color .18s}
+.gc-x:hover{background:#f1f1ed;color:var(--ink)}
+.gc-body{max-height:min(58vh,430px);overflow-y:auto;overscroll-behavior:contain;padding:16px 18px 16px}
+.gc-body::-webkit-scrollbar{width:7px}
+.gc-body::-webkit-scrollbar-thumb{background:#dcdcd4;border-radius:4px;border:2px solid #fff}
+/* 浮窗内的排版沿用详情面板的 .d-* 类，只把标题降一档、间距收紧 */
+.geo-card .d-cn{font-size:17.5px;line-height:1.3;padding-right:22px}
+.geo-card .d-en{font-size:12px;margin-top:2px}
+.geo-card .d-type{margin-bottom:9px;font-size:10.5px;padding:3px 9px}
+.geo-card .d-meta{margin:12px 0 4px}
+.geo-card .d-h{margin:14px 0 6px}
+.geo-card .d-bg{font-size:12.5px;line-height:1.75}
+.geo-card .d-verse{padding:11px 13px;margin-top:8px;font-size:12.5px}
+.geo-card .d-verse p{font-size:12.5px;line-height:1.75}
+.geo-card .d-note{font-size:11.5px;padding:7px 10px;margin-top:9px}
+.geo-card .mrow{font-size:12px}
+/* 浮窗里的事件行：紧凑列表，点击跳到该事件浮窗 */
+.gc-evs{display:flex;flex-direction:column;gap:1px}
+.gc-ev{display:flex;align-items:baseline;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;
+  font-size:12.5px;transition:background .15s}
+.gc-ev:hover{background:#f4f4f0}
+.gc-ev i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c);transform:translateY(-1px)}
+.gc-ev .yr{font-size:10.5px;color:var(--ink-3);font-feature-settings:"tnum";flex:none;min-width:44px}
+.gc-ev .tt{color:var(--ink);line-height:1.35}
+.gc-ev.on{background:var(--accent-soft);color:var(--accent-deep)}
+/* 浮窗底部动作条 */
+.gc-act{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--hair-2)}
+.gc-btn{flex:1;border:1px solid var(--hair);background:#fff;border-radius:9px;padding:7px 8px;
+  font-size:11.5px;color:var(--ink-2);cursor:pointer;transition:.18s;text-align:center;white-space:nowrap}
+.gc-btn:hover{border-color:var(--ink-3);color:var(--ink);background:#fafaf7}
 .card-more{pointer-events:auto}
 .card-bar{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--ink-3)}
 .card-bar i{width:8px;height:8px;border-radius:50%;flex:none}
@@ -497,11 +566,6 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
   .tl-foot{margin-top:6px}
   .chips{top:10px;left:10px;right:10px;gap:6px;justify-content:flex-start}
   .chip{padding:6px 11px;font-size:11.5px}
-  .guide{margin:8px 16px 0;padding:7px 11px}
-  .guide .g-txt b{font-size:12px}
-  .guide .g-txt span{font-size:10.5px}
-  .guide .g-ic{width:23px;height:23px}
-  .guide .g-act{padding:5px 11px;font-size:11.5px}
   /* L-3：事件卡改顶部通栏，避开底部抽屉与时间轴；chips 同步让位 */
   .now{top:52px;left:10px;right:10px;bottom:auto;width:auto;max-width:none;transform:translateY(-14px);border-radius:12px;padding:11px 14px 10px}
   .now.show{transform:translateY(0)}
@@ -530,18 +594,6 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
     </header>
 
     <div class="scroll" id="scroll">
-      <!-- 首屏引导横幅：核心交互「时间轴故事播放」的可发现性（H-2）。
-           sessionStorage 记忆，不重复打扰。流内元素，不覆盖地图或列表。 -->
-      <div class="guide hidden" id="guide">
-        <span class="g-ic">
-          <svg viewBox="0 0 12 12" width="11" height="11"><path d="M2.5 1.2 10 6l-7.5 4.8z" fill="currentColor"/></svg>
-        </span>
-        <span class="g-txt">
-          <b>按时间轴播放这段旅程</b>
-          <span>共 <i id="guideN">0</i> 个事件 · <i id="guideSpan">AD 46–49</i></span>
-        </span>
-        <span class="g-act" id="guideAct">开始播放</span>
-      </div>
       <div class="chapterbar" id="chapterbar"></div>
       <div class="filterbar hidden" id="filterbar"></div>
       <div class="list" id="list"></div>
@@ -589,7 +641,19 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
     </div>
     <div class="now" id="now"></div>
 
+    <!-- 地点 / 事件浮窗（M9）：内容与位置由 JS 写入，贴着地图锚点 -->
+    <div class="geo-card" id="geoCard" hidden role="dialog" aria-label="地点或事件介绍">
+      <button class="gc-x" id="gcClose" aria-label="关闭">
+        <svg viewBox="0 0 12 12" width="10" height="10"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+      <div class="gc-body" id="gcBody"></div>
+    </div>
+
+    <!-- 时间轴热区（M9）：贴底 36px，鼠标进入即展开时间轴 -->
+    <div class="tl-hot" id="tlHot" aria-hidden="true"></div>
+
     <footer class="tl">
+      <div class="tl-handle" id="tlHandle"><span>▲</span> 时间轴 · 播放</div>
       <div class="tl-top">
         <span class="tl-cap">时间轴 · 事件发生之时</span>
         <div class="tl-right">
@@ -753,43 +817,31 @@ var placeEls = {};  /* 地点 id -> .place DOM */
 var mkEls = {};     /* 地点 id -> Leaflet 图标容器 DOM（.place-icon / .ctx-icon，路线筛选用） */
 
 /* ================= 浮层安全区 =================
- * 全屏地图下，面板与时间轴都盖在图上。把「被盖住」的尺寸交给 mapCore，
- * fitBounds 只把故事范围塞进剩下的可视区 —— 否则罗马与马耳他会躲在面板背后。
- * refit 只在「视口尺寸真的变了 / 首次 / 用户折叠面板」时做：
- * 其余情况（如时间轴轨道高度微调）只更新 padding，不动读者当前的视野。 */
+ * M9（2026-11-02）：地图是唯一主角。侧栏默认收起、时间轴贴底隐藏，
+ * 两者都不再常驻占位 —— 安全区只留「顶部胶囊 + 四边呼吸位」，
+ * 故事范围铺满整个视口（此前要为 384px 侧栏和 ~190px 时间轴让路）。
+ * refit 仍只在视口尺寸真变时做：时间轴 hover 展开是临时覆盖，不该触发 refit，
+ * 否则鼠标每次划过底部，地图就重新缩放一次（观感是「一碰就跳」）。 */
 var lastFitW = 0, lastFitH = 0, lastMobile = null, lastInsB = -1, lastInsL = -1;
 var mobileMQ = window.matchMedia('(max-width:960px)');
-/* 面板默认态：窄屏收起抽屉（整屏给地图），桌面展开 */
+/* 面板默认态（M9）：任何尺寸都收起。面板只在读者点「事件」时召回，
+ * 且召回态是覆盖层 —— 不挤压地图、不触发 refit。 */
 function applyPanelDefault() {
-  var off = mobileMQ.matches;
-  document.body.classList.toggle('panel-off', off);
-  $('panelToggle').setAttribute('aria-expanded', off ? 'false' : 'true');
+  document.body.classList.add('panel-off');
+  $('panelToggle').setAttribute('aria-expanded', 'false');
 }
 function syncInsets(force) {
   var tl = document.querySelector('.tl');
-  var sb = document.querySelector('.sidebar');
   var mobile = mobileMQ.matches;
   if (lastMobile !== null && mobile !== lastMobile) applyPanelDefault();   /* 跨断点：恢复默认态 */
   lastMobile = mobile;
   var tlh = tl ? Math.round(tl.getBoundingClientRect().height) : 0;
-  var sbw = sb ? Math.round(sb.getBoundingClientRect().width) : 0;
-  var off = document.body.classList.contains('panel-off');
   document.documentElement.style.setProperty('--tlh', tlh + 'px');
-  document.documentElement.style.setProperty('--panelw', sbw + 'px');
-  var ins;
-  if (mobile) {
-    /* 抽屉收起时不占位（transform 已把它移出视口，但 rect 高度仍是 44dvh） */
-    var panelH = (off || !sb) ? 0 : Math.round(sb.getBoundingClientRect().height) + 10;
-    ins = { t: 52, r: 10, b: tlh + 8 + panelH, l: 10 };
-  } else {
-    /* 底部只让出「时间轴卡片 + 它自身的 14px 底距 + 4px 呼吸缝」：
-     * 旧的 +28 是拍脑袋的余量，在高度敏感的场景里等于白送 10px 给留白。 */
-    ins = { t: 52, r: 16, b: tlh + 18, l: off ? 46 : sbw + 22 };
-  }
+  /* 顶部 54 = 左上「事件」胶囊（14 + 32 + 8 呼吸）；左右 18、底部 22 只留呼吸位。
+   * 底部不再加 tlh —— 时间轴展开时盖住的那块本来就不是「常驻遮挡」。 */
+  var ins = { t: 54, r: 18, b: 22, l: 18 };
   var needFit = !!force || window.innerWidth !== lastFitW ||
     Math.abs(window.innerHeight - lastFitH) > 60 ||
-    /* 浮层尺寸实质变化（时间轴轨道在首帧后才定型，桌面 162→255px）也要重适配，
-     * 否则首次 fit 用的是「轨道还没长高」时的安全区，故事会整体偏下压在时间轴上。 */
     Math.abs(ins.b - lastInsB) > 16 || Math.abs(ins.l - lastInsL) > 16;
   lastFitW = window.innerWidth; lastFitH = window.innerHeight;
   lastInsB = ins.b; lastInsL = ins.l;
@@ -799,21 +851,51 @@ function showPanel() {
   if (!document.body.classList.contains('panel-off')) return;
   document.body.classList.remove('panel-off');
   $('panelToggle').setAttribute('aria-expanded', 'true');
-  setTimeout(function () { syncInsets(true); }, 380);
+  /* 不 refit：面板是覆盖层，打开一个列表不该让地图重新缩放 */
 }
 $('panelToggle').addEventListener('click', function () {
   var off = document.body.classList.toggle('panel-off');
   this.setAttribute('aria-expanded', off ? 'false' : 'true');
-  setTimeout(function () { syncInsets(true); }, 380);
 });
 window.addEventListener('resize', function () { syncInsets(false); });
 if (window.ResizeObserver) {
-  var ro = new ResizeObserver(function () { syncInsets(false); });
-  ro.observe(document.querySelector('.tl'));
-  ro.observe(document.querySelector('.sidebar'));
+  /* 只观察时间轴：它决定 --tlh（展开时 .mapctl / .now 要上移让位）。
+   * 侧栏不再参与布局，观察它只会带来无意义的 refit 判定。 */
+  new ResizeObserver(function () { syncInsets(false); }).observe(document.querySelector('.tl'));
 }
 applyPanelDefault();
 syncInsets(true);
+
+/* ================= 时间轴自动展开（M9） =================
+ * 贴底隐藏，只露 16px 把手（里面写着「▲ AD 46 · 3/97」）。
+ * 触发：底部热区 hover / 点击热区（触屏）/ 键盘聚焦 / 播放中。
+ * 收回：鼠标移开 1.2s；播放中不自动收 —— 这一刻进度就是主信息，
+ * 收起来反而要用户去猜「播到哪了」。 */
+var tlTimer = 0;
+function openTl() {
+  clearTimeout(tlTimer);
+  document.body.classList.add('tl-open');
+}
+function closeTl(delay) {
+  clearTimeout(tlTimer);
+  tlTimer = setTimeout(function () {
+    if (state.playing) return;                                  /* 播放中保持展开 */
+    var el = document.querySelector('.tl');
+    if (el && el.matches(':hover')) return;                     /* 指针还在轴上 */
+    document.body.classList.remove('tl-open');
+  }, delay == null ? 1200 : delay);
+}
+(function bindTlAutoHide() {
+  var hot = $('tlHot'), tlEl = document.querySelector('.tl');
+  if (!hot || !tlEl) return;
+  hot.addEventListener('mouseenter', openTl);
+  hot.addEventListener('click', openTl);
+  tlEl.addEventListener('mouseenter', openTl);
+  tlEl.addEventListener('mouseleave', function () { closeTl(); });
+  /* 键盘 Tab 进到轴内控件时也展开（否则焦点落在看不见的按钮上） */
+  tlEl.addEventListener('focusin', openTl);
+  tlEl.addEventListener('focusout', function () { closeTl(500); });
+})();
 
 /* ================= 路线引擎 ================= */
 var routes = GS.routeEngine.init({
@@ -1105,11 +1187,78 @@ function renderMedia(media) {
   });
   return html + '</div>';
 }
+/* ================= 地图浮窗（M9） =================
+ * 地点 / 事件的信息贴着地图上那个点出现，跟随平移与缩放。
+ * 取代左侧详情面板：信息该出现在「它讲的那个地方」旁边。
+ *
+ * 定位规则（placeGeo）：
+ *   1) 优先放在锚点【上方】（地图点多半偏下，上方空间更富余）；
+ *   2) 上方放不下就翻到下方，并把小三角切到顶部（.below）；
+ *   3) 左右夹在视口内，同时把 --ax 写成「锚点相对卡片左边」的距离，
+ *      三角始终指着那个点 —— 卡片被夹到边上时，三角会自己挪过去。
+ * 尺寸缓存（GEO.w/h）：拖拽时 map 的 move 事件每帧触发，placeGeo 若每帧读
+ * offsetWidth 会强制同步 layout，长距离拖拽会掉帧。内容变化时才重量一次。 */
+var GEO = { ll: null, kind: null, id: null, w: 0, h: 0 };
+function geoEl() { return $('geoCard'); }
+function measureGeo() {
+  var el = geoEl();
+  if (!el || el.hidden) return;
+  GEO.w = el.offsetWidth; GEO.h = el.offsetHeight;
+}
+function placeGeo() {
+  var el = geoEl();
+  if (!el || el.hidden || !GEO.ll) return;
+  var pt = map.latLngToContainerPoint(GEO.ll);
+  var W = GEO.w || 326, H = GEO.h || 220;
+  var vw = map.getSize().x, vh = map.getSize().y;
+  var PAD = 10, GAP = 18;
+  var below = (pt.y - H - GAP) < PAD;
+  var top = below ? pt.y + GAP : pt.y - H - GAP;
+  /* 上下都放不下时（锚点在视口正中、卡片很高）贴着视口夹住，宁可盖住一点也不跑出屏幕 */
+  top = Math.max(PAD, Math.min(vh - H - PAD, top));
+  var left = Math.max(PAD, Math.min(vw - W - PAD, pt.x - W / 2));
+  el.style.setProperty('--ax', Math.round(pt.x - left) + 'px');
+  el.style.left = Math.round(left) + 'px';
+  el.style.top = Math.round(top) + 'px';
+  el.classList.toggle('below', below);
+}
+function showGeo(html, ll, opts) {
+  opts = opts || {};
+  var el = geoEl();
+  $('gcBody').innerHTML = html;
+  $('gcBody').scrollTop = 0;
+  GEO.ll = ll || null; GEO.kind = opts.kind || null; GEO.id = opts.id || null;
+  el.hidden = false;
+  el.classList.remove('show');
+  measureGeo();          /* 量一次：此后拖拽/缩放只用缓存尺寸 */
+  placeGeo();
+  requestAnimationFrame(function () { el.classList.add('show'); });
+}
+function hideGeo() {
+  var el = geoEl();
+  if (!el || el.hidden) return;
+  el.classList.remove('show');
+  GEO.ll = null; GEO.kind = null; GEO.id = null;
+  setTimeout(function () { if (!el.classList.contains('show')) el.hidden = true; }, 200);
+}
+/* 跟随地图：move 在拖拽中每帧触发，这里只写 left/top（不读布局，用缓存尺寸） */
+map.on('move zoom viewreset', function () { if (GEO.ll) placeGeo(); });
+$('gcClose').addEventListener('click', function () { closeEvent(); });
+/* 内容高度变化（图片加载完成 / 切换地点）后重量一次并重新定位 */
+if (window.ResizeObserver) {
+  new ResizeObserver(function () {
+    if (GEO.ll) { measureGeo(); placeGeo(); }
+  }).observe($('gcBody'));
+}
+
+/* 点地图空白处关闭浮窗：marker 的点击已被 Leaflet 在自身元素上拦住，
+ * 不会冒泡成 map.click，所以这里只会响应真正的「空白」点击。 */
+map.on('click', function () { if (state.detail) closeEvent(); });
+
 function openEvent(id) {
   var ev = EV_BY[id];
   if (!ev) return;
-  showPanel();   /* 面板被收起时先展开：详情是要读的，不能只换个地图状态 */
-  /* 从地点介绍窗进入：记住来源，返回时回介绍窗（placeBack 仅一层） */
+  /* 从地点浮窗进入：记住来源，浮窗底部给「← 返回地点」（placeBack 仅一层） */
   placeBack = (state.detail && state.detail.indexOf('place:') === 0) ? state.detail.slice(6) : null;
   state.detail = id;
   setStoryEnd(false);
@@ -1120,8 +1269,7 @@ function openEvent(id) {
     return '<blockquote class="d-verse"><p>“' + esc(v.text) + '”</p><cite>' + esc(v.ref) + '</cite></blockquote>';
   }).join('');
   var media = renderMedia(ev.media);
-  $('detail').innerHTML =
-    '<button class="back" id="backBtn">← 返回列表</button>' +
+  var html =
     '<div class="d-type" style="--c:' + ev.typeMeta.color + '">' + typeIcon(ev.type, 12) + esc(ev.typeMeta.cn) + ' · ' + esc(c.name) + '</div>' +
     '<div class="d-cn">' + esc(ev.title) + '</div>' +
     '<div class="d-en">' + esc(ev.en) + '</div>' +
@@ -1139,27 +1287,23 @@ function openEvent(id) {
     /* renderMedia 已自带「图 像」标题与 .d-media 容器：此处直接拼接，
        否则会出现重复标题 + 网格套网格（图组标题被挤成网格项）。 */
     media +
-    '<button class="locate" id="locateBtn">放大查看该地点' +
-    '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M7 2.2v9.6M2.2 7h9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
-  $('list').classList.add('hidden');
-  $('filterbar').classList.add('hidden');
-  var detail = $('detail');
-  detail.classList.remove('hidden');
-  detail.classList.remove('in'); void detail.offsetWidth; detail.classList.add('in');
-  $('scroll').scrollTop = 0;
-  /* 地图侧：事件点亮为当前 + 飞行定位（标记状态交由 applyReveal 统一收口） */
+    '<div class="gc-act">' +
+      (placeBack ? '<button class="gc-btn" id="gcBack">← 返回地点</button>' : '') +
+      '<button class="gc-btn" id="gcLocate">放大查看</button>' +
+    '</div>';
+  showGeo(html, ev.ll, { kind: 'event', id: id });
+  /* 地图侧：事件点亮为当前 + 标记状态交由 applyReveal 统一收口。
+   * 不再 flyTo —— 浮窗已经贴着这个点出现，镜头再推近会把它挤出视野；
+   * 需要定位时读者自己点「放大查看」。 */
   state.focus = id;
   state.arrivedId = id;       /* 直接打开即「已到达」：高亮与名称立即可见 */
   applyReveal(state.year);
   mapCore.lit(ev.ll, ev.typeMeta.color, true);
-  mapCore.flyTo(ev.ll, CAM.zEvent, ARRIVE_MS);   /* 2026-10-17：0.7s → 1.15s，缩放节奏放慢求优雅 */
-  $('backBtn').addEventListener('click', function () {
-    /* 从地点介绍窗点进来的事件：返回时回到地点介绍（placeBack 栈，仅一层） */
-    if (placeBack) { openPlace(placeBack); return; }
-    closeEvent();
+  if (placeBack) $('gcBack').addEventListener('click', function () { openPlace(placeBack); });
+  $('gcLocate').addEventListener('click', function () {
+    mapCore.lit(ev.ll, ev.typeMeta.color, true);
+    mapCore.flyTo(ev.ll, CAM.zEvent + .4, ARRIVE_MS);
   });
-  $('locateBtn').addEventListener('click', function () { mapCore.lit(ev.ll, ev.typeMeta.color, true); mapCore.flyTo(ev.ll, CAM.zEvent + .4, ARRIVE_MS); });
-  renderList();
   try { history.replaceState(null, '', '#e/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
   GS.fx.emit('event:open', ev);
 }
@@ -1169,13 +1313,15 @@ function closeEvent() {
   placeBack = null;
   /* 释放 openPlace 对标签的临时提升（M8） */
   if (state.placePin) { pinLabel(state.placePin, false); state.placePin = null; mapCore.placeLabels(labelItems); }
+  hideGeo();
+  /* 审计页仍走左侧面板（长文本不适合浮窗）：关闭时把它一并复位，
+   * 否则 #detail 会一直盖在列表上（M9 实测 K2 的 listRestored 因此为 false）。 */
   $('detail').classList.add('hidden');
   $('detail').classList.remove('place');
   $('list').classList.remove('hidden');
   if (state.filter) $('filterbar').classList.remove('hidden');
   EVENTS.forEach(function (e) { var d = dotEls[e.id]; if (d) d.classList.remove('cur'); });
   mapCore.clearLit();
-  renderList();
   GS.fx.emit('event:close');
 }
 
@@ -1187,7 +1333,6 @@ var placeBack = null;
 function openPlace(id) {
   var p = PLACE_BY[id];
   if (!p || p.ctx) return;
-  showPanel();
   placeBack = null;
   state.detail = 'place:' + id;
   setStoryEnd(false);
@@ -1199,51 +1344,44 @@ function openPlace(id) {
   pinLabel(id, true);
   mapCore.placeLabels(labelItems);
   var evs = EVENTS.filter(function (e) { return e.place === id; });
+  /* 浮窗里的事件行用紧凑版式（.gc-ev）：一行「年代 · 标题」，点击进事件浮窗。
+   * 原来的侧栏行带英文名与地点名，在 326px 宽的卡片里会挤成两行。 */
   var rows = evs.map(function (ev) {
-    return '<div class="ev" data-ev="' + ev.id + '">' +
-      '<i class="ev-tdot" style="color:' + ev.typeMeta.color + '">' + typeIcon(ev.type) + '</i>' +
-      '<div class="ev-yr">AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '') + '</div>' +
-      '<div class="ev-mid"><div class="ev-cn">' + esc(ev.title) + '</div><div class="ev-en">' + esc(ev.en) + '</div></div>' +
-      '<div class="ev-place">' + esc(p.cn) + '</div></div>';
+    return '<div class="gc-ev" data-ev="' + ev.id + '"><i style="--c:' + ev.typeMeta.color + '"></i>' +
+      '<span class="yr">AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '') + '</span>' +
+      '<span class="tt">' + esc(ev.title) + '</span></div>';
   }).join('');
-  $('detail').innerHTML =
-    '<button class="back" id="backBtn">← 返回列表</button>' +
+  var html =
     '<div class="d-type">地点 · ' + evs.length + ' 个事件</div>' +
     '<div class="d-cn">' + esc(p.cn) + '</div>' +
     '<div class="d-en">' + esc(p.en) + '</div>' +
     '<div class="d-meta">' +
       mrow('今天所在', p.modern) +
-      mrow('定位精度', precisionLabel(p)) +
+      /* 浮窗只有 326px 宽，完整精度说明会占 4 行把卡片撑到半屏；
+       * 这里只给结论词，完整说明放 title（悬停可读）。 */
+      mrow('定位精度', precisionShort(p)) +
       (p.gloss ? mrow('场所说明', p.gloss) : '') +
     '</div>' +
-    '<div class="d-h">缘 起</div><p class="d-bg">' + esc(p.note) + '</p>' +
+    '<p class="d-bg">' + esc(p.note) + '</p>' +
     (evs.length
-      ? '<div class="d-h">该 地 事 件</div><div class="list place-evs">' + rows + '</div>'
+      ? '<div class="d-h">该 地 事 件</div><div class="gc-evs">' + rows + '</div>'
       : '<div class="d-mnote">该地点暂无已上线事件</div>') +
-    '<button class="locate" id="locateBtn">放大查看该地点' +
-    '<svg viewBox="0 0 14 14" width="12" height="12"><path d="M7 2.2v9.6M2.2 7h9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>' +
-    (evs.length ? '<button class="locate ghost" id="placeFilterBtn">仅看此地事件</button>' : '');
-  $('list').classList.add('hidden');
-  $('filterbar').classList.add('hidden');
-  var detail = $('detail');
-  detail.classList.remove('hidden');
-  detail.classList.add('place');
-  detail.classList.remove('in'); void detail.offsetWidth; detail.classList.add('in');
-  $('scroll').scrollTop = 0;
+    '<div class="gc-act">' +
+      '<button class="gc-btn" id="gcLocate">放大查看</button>' +
+      (evs.length ? '<button class="gc-btn" id="gcFilter">仅看此地</button>' : '') +
+    '</div>';
+  showGeo(html, p.ll, { kind: 'place', id: id });
   applyReveal(state.year);
   mapCore.lit(p.ll, '#c2593f', true);
-  mapCore.flyTo(p.ll, CAM.zEvent, ARRIVE_MS);
-  $('backBtn').addEventListener('click', closeEvent);
-  $('locateBtn').addEventListener('click', function () { mapCore.lit(p.ll, '#c2593f', true); mapCore.flyTo(p.ll, CAM.zEvent + .4, ARRIVE_MS); });
-  if (evs.length) {
-    $('detail').querySelectorAll('.place-evs .ev').forEach(function (r) {
-      var eid = r.getAttribute('data-ev');
-      r.addEventListener('click', function () { openEvent(eid); });
-      r.addEventListener('mouseenter', function () { hlRow(eid, true); });
-      r.addEventListener('mouseleave', function () { hlRow(eid, false); });
-    });
-    $('placeFilterBtn').addEventListener('click', function () { closeEvent(); setFilter(id); });
-  }
+  /* 不 flyTo：浮窗贴在该点上方，推近镜头会把它挤出视野 */
+  $('gcBody').querySelectorAll('.gc-ev').forEach(function (r) {
+    var eid = r.getAttribute('data-ev');
+    r.addEventListener('click', function () { openEvent(eid); });
+    r.addEventListener('mouseenter', function () { hlRow(eid, true); });
+    r.addEventListener('mouseleave', function () { hlRow(eid, false); });
+  });
+  $('gcLocate').addEventListener('click', function () { mapCore.lit(p.ll, '#c2593f', true); mapCore.flyTo(p.ll, CAM.zEvent + .4, ARRIVE_MS); });
+  if (evs.length) $('gcFilter').addEventListener('click', function () { closeEvent(); setFilter(id); });
   try { history.replaceState(null, '', '#p/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
   GS.fx.emit('place:open', p);
 }
@@ -1255,6 +1393,14 @@ function precisionLabel(p) {
   if (pr === 'approximate') return '<span class="prec-app">近似 · ' + esc(p.precisionNote || '识别有争议或具体位置为推定') + '</span>';
   if (pr === 'region-only') return '<span class="prec-app">区域级 · ' + esc(p.precisionNote || '仅能定位到区域') + '</span>';
   return '精确 · 遗址位置明确';
+}
+/* 浮窗版：只给结论词 + title 悬挂完整说明（326px 宽的卡片放不下整段） */
+function precisionShort(p) {
+  var pr = p.precision || 'known';
+  var note = esc(p.precisionNote || '');
+  if (pr === 'approximate') return '<span class="prec-app" title="' + note + '">近似</span>';
+  if (pr === 'region-only') return '<span class="prec-app" title="' + note + '">区域级</span>';
+  return '精确';
 }
 
 /* ================= 数据审计视图（可审计三件套） =================
@@ -1322,6 +1468,13 @@ function applyReveal(y) {
   /* 计数分母随路线筛选收缩（「12 / 97」在只看一段旅程时是误导） */
   var cnt = n + ' / ' + total + ' 事件';
   if ($('tlCount').textContent !== cnt) $('tlCount').textContent = cnt;
+  /* 把手读数（M9）：时间轴收起时它是唯一可见的进度信息 */
+  var hd = $('tlHandle');
+  if (hd) {
+    var hy = 'AD ' + Math.round(y);
+    var txt = '▲ ' + hy + ' · ' + n + '/' + total;
+    if (hd.textContent !== txt) hd.textContent = txt;
+  }
   routes.applyTime(y);
 }
 
@@ -1441,6 +1594,7 @@ function startPlay() {
   if (state.detail) closeEvent();
   hideCard();
   setStoryEnd(false);
+  openTl();          /* M9：播放时展开时间轴 —— 这一刻进度就是主信息 */
   playToken++;
   routes.release();   /* 从年份驱动切换到事件驱动描线 */
   /* 播放范围 = 当前筛选范围（M8：选中某段旅程时只播这段旅程的事件）。
@@ -1481,6 +1635,7 @@ function startPlay() {
         state.playing = false; state.auto = false;
         document.body.classList.remove('playing');
         syncChapterLabels(null);   /* 播毕恢复全部地名实色（M8） */
+        closeTl(2400);             /* M9：播毕收起时间轴（留 2.4s 让读者看完末态进度） */
         syncPlayBtn();
         setStoryEnd(true);   /* 播完隐藏事件图标，回到干净底图 */
         toast('AD ' + EV_LO + '–' + EV_HI, '故事播放完毕 · 点击地图任意处或拖动时间轴可回看');
@@ -1499,6 +1654,7 @@ function pause() {
   state.playing = false; state.auto = false;
   document.body.classList.remove('playing');
   syncChapterLabels(null);   /* 暂停即恢复全部地名实色（M8） */
+  closeTl(1600);             /* M9：暂停后收时间轴（延迟给读者一点回味时间） */
   routes.release();   /* 暂停后描线交还年份驱动 */
   syncPlayBtn();
   hideCard();
@@ -1790,45 +1946,10 @@ function handleHash() {
 }
 window.addEventListener('hashchange', handleHash);
 
-/* ================= 首屏引导（H-2） ================= */
-var GUIDE_KEY = 'gs.guide.seen.v1';
-var GUIDE_EL = $('guide');
-var GUIDE_AUTO_MS = 14000;      /* 多久后自动让位（用户可能一直在看列表） */
-var guideTimer = null;
-function dismissGuide(silent) {
-  var g = GUIDE_EL;
-  if (!g || g.classList.contains('hidden')) return;
-  clearTimeout(guideTimer);
-  g.classList.add('out');
-  /* 流内元素：out 即 display:none，列表立刻回弹，不需要等过渡 */
-  $('playBtn').classList.remove('hint');
-  if (!silent) { try { sessionStorage.setItem(GUIDE_KEY, '1'); } catch (e) { /* 隐私模式忽略 */ } }
-}
-function maybeShowGuide() {
-  var seen = false;
-  try { seen = sessionStorage.getItem(GUIDE_KEY) === '1'; } catch (e) { seen = false; }
-  if (seen || (location.hash || '').length > 1) return;   /* 深链进入不给引导 */
-  var g = GUIDE_EL;
-  $('guideN').textContent = EVENTS.length;
-  $('guideSpan').textContent = 'AD ' + D0 + '–' + Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); }));
-  g.classList.remove('hidden', 'out');
-  $('playBtn').classList.add('hint');
-  $('guideAct').addEventListener('click', function () { dismissGuide(); startPlay(); });
-  guideTimer = setTimeout(function () { dismissGuide(true); }, GUIDE_AUTO_MS);
-}
-$('playBtn').addEventListener('click', function () { dismissGuide(); });
-window.addEventListener('keydown', function (e) {
-  if (e.key === ' ' || e.key === 'Enter') dismissGuide(true);
-}, true);
-/* 用户开始探索地图/列表即让位。卡片自身是流内元素，不会挡住下方的点击，
-   但若在卡内按下就立即置 pointer-events:none，mouseup 会落到下层元素，
-   click 的 target 退化为共同祖先 →「开始播放」按钮收不到 click。 */
-['pointerdown', 'wheel'].forEach(function (t) {
-  window.addEventListener(t, function (e) {
-    if (GUIDE_EL && GUIDE_EL.contains(e.target)) return;
-    dismissGuide(true);
-  }, { passive: true });
-});
+/* ================= 首屏引导（M9：已并入时间轴把手） =================
+ * H-2 的横幅挂在侧栏里，而侧栏现在默认收起，横幅永远滑在屏幕外。
+ * 可发现性改由「底部 16px 把手 + 首屏自动展开 2.6s」承担（见文件末尾）。
+ * 这里只保留一条：读者一动手（按下 / 滚轮 / 键盘），就不再自动展开去打扰他。 */
 
 /* ============ 播完后事件图标的恢复入口 ============
  * body.story-end 让 .ev-dot 同时 opacity:0 与 pointer-events:none（干净底图）。
@@ -1852,7 +1973,6 @@ setTimeout(function () {
   toast('AD ' + D0 + '–' + Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); })),
     '按 <b>空格</b> 播放故事 · 点击事件标记查看详情');
 }, 1300);
-setTimeout(maybeShowGuide, 1900);   /* 让首帧与toast 先落定，引导卡后置入场 */
 GS.fx.emit('app:ready');
 handleHash();
 
@@ -1869,9 +1989,43 @@ window.GS_APP = {
   insets: function () { return mapCore.insets(); },
   fits: function () { return mapCore.fits(); },
   labelStats: function () { return mapCore.labelStats(); },   /* M8 分级消隐诊断 */
+  tlOpen: function () { return document.body.classList.contains('tl-open'); },   /* M9 时间轴展开态 */
+  tl: { open: openTl, close: closeTl },   /* M9：验收里先把时间轴展开，再真实点击它的按钮 */
+  geo: function () {
+    var g = $('geoCard');
+    return { hidden: g.hidden, shown: g.classList.contains('show'),
+             kind: GEO.kind, id: GEO.id,
+             rect: g.hidden ? null : (function (r) {
+               return { l: Math.round(r.left), t: Math.round(r.top),
+                        w: Math.round(r.width), h: Math.round(r.height) };
+             })(g.getBoundingClientRect()) };
+  },
   togglePanel: function () { $('panelToggle').click(); },
   timing: { TRAVEL: TRAVEL, SEEK_LEAD: SEEK_LEAD, CRUISE_MS: CRUISE_MS, ARRIVE_MS: ARRIVE_MS, DWELL: DWELL, CAM: CAM }
 };
+
+/* ================= 首屏引导（M9） =================
+ * 时间轴平时藏在底部 16px 里。首屏截图实测：整个界面找不到「开始播放」。
+ * 加载后自动展开 2.6s 再收回 —— 既指出「播放在这里」，也演示「它会自己让位」。
+ * 它取代了 H-2 的引导横幅（横幅在侧栏里，而侧栏现在默认收起，等于没有）。
+ * 三条退出条件，任一成立都不打扰：sessionStorage 已看过 / 深链进入 / 读者已动手。 */
+(function firstRunTl() {
+  try { if (sessionStorage.getItem('gs-tl-seen')) return; } catch (e) { /* 隐私模式：照常引导 */ }
+  if ((location.hash || '').length > 1) return;   /* 深链：读者已经有明确目标 */
+  var touched = false;
+  function touch() { touched = true; }
+  ['pointerdown', 'wheel', 'keydown'].forEach(function (t) {
+    window.addEventListener(t, touch, { passive: true, capture: true });
+  });
+  setTimeout(function () {
+    if (touched || state.playing || state.detail) return;
+    openTl();
+    setTimeout(function () {
+      try { sessionStorage.setItem('gs-tl-seen', '1'); } catch (e) { /* 忽略 */ }
+      closeTl(0);   /* 默认守卫仍生效：播放中 / 指针还在轴上则保持展开 */
+    }, 2600);
+  }, 1600);
+})();
 
 })();
 </script>
