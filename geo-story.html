@@ -2213,12 +2213,15 @@ GS.routeEngine = (function () {
   }
 
   /* 时间驱动：future 尚未出发（隐藏） / now 正在行进（全亮+流光+光点） / past 已完成（暗淡保留）
-   * now 态进度优先用事件驱动值 j.hold（播放中由 seek 设置），否则按年份线性映射（拖拽时间轴）。 */
+   * now 态进度优先用事件驱动值 j.hold（播放中由 seek 设置），否则按年份线性映射（拖拽时间轴）。
+   * j.pin（2026-11-02 用户需求「选中旅程播放完成后停止在结束状态」）优先级最高：
+   * 它表示「这段旅程已经整段放完，定格在终点」，与当前年份无关。 */
   function applyTime(y) {
     routes.forEach(function (j) {
       if (!j.drawn) return;
       var st, p;
-      if (y < j.from) { st = 'future'; p = 0; }
+      if (j.pin) { st = 'now'; p = 1; }
+      else if (y < j.from) { st = 'future'; p = 0; }
       else if (y > j.to) { st = 'past'; p = 1; }
       else { st = 'now'; p = (j.hold != null) ? j.hold : yearP(j, y); }
       var dim = !!focusId && j.id !== focusId;
@@ -2233,7 +2236,7 @@ GS.routeEngine = (function () {
       j.flow.setLatLngs(pts);
       j.baseEl.style.opacity = dim ? 0 : st === 'now' ? .95 : st === 'past' ? .42 : .12;
       j.flowEl.style.opacity = dim ? 0 : st === 'now' ? .5 : st === 'past' ? .26 : 0;
-      j.flowEl.style.animationPlayState = st === 'now' && !dim ? 'running' : 'paused';
+      j.flowEl.style.animationPlayState = st === 'now' && !dim && !j.pin ? 'running' : 'paused';
       for (var i = 0; i < j.dots.length; i++) {
         var vis = show && j.dist[i] <= target + 1e-6;
         j.dots[i].setStyle({ opacity: vis ? 1 : 0, fillOpacity: vis ? 1 : 0 });
@@ -2336,7 +2339,17 @@ GS.routeEngine = (function () {
   /* 解除事件驱动，恢复年份线性映射（拖拽 / 步进 / 章节跳转时由调用方触发） */
   function release() {
     cancelSeek();
-    routes.forEach(function (j) { j.hold = null; });
+    routes.forEach(function (j) { j.hold = null; j.pin = 0; j.sig = ''; });
+  }
+
+  /* 定格某段旅程的「结束状态」（2026-11-02 用户需求）：
+   * 旅程重播放完后必须停在终点，而不是把光点与拖尾一撤、路线回落到按年份的进度
+   * ——选 j2（AD 49–52）时当前年份往往还停在 AD 46，回落之后整条线直接不见。
+   * 只写 hold 不够：applyTime 的状态由年份决定，y < j.from 会把 hold 判成 future。
+   * 故用独立标记 pin，让 applyTime 无视年份把它当「正在行进且 p = 1」。 */
+  function pinEnd(id) {
+    routes.forEach(function (j) { j.pin = j.id === id ? 1 : 0; j.sig = ''; });
+    applyTime(getYear());
   }
 
   /* 旅程重播动画：光点沿路径行进，留下拖尾 */
@@ -2348,15 +2361,20 @@ GS.routeEngine = (function () {
     if (travel.marker) { travel.marker._map && travel.marker._map.removeLayer(travel.marker); travel.marker = null; }
     if (travel.trail) { travel.trail._map && travel.trail._map.removeLayer(travel.trail); travel.trail = null; }
     travel.active = null;
+    /* 换旅程 / 取消聚焦 / 重置都要把定格态一并撤销，否则上一段线会赖在图上。
+     * 撤销后必须重算一次：pin 变了但 DOM 还是「整段描完」的样子。 */
+    var hadPin = false;
+    routes.forEach(function (j) { if (j.pin) hadPin = true; j.pin = 0; j.sig = ''; });
+    if (hadPin) applyTime(getYear());
   }
-  function replay(j, done) {
+  function replay(j, done, durMs) {
     cancelTravel();
     draw(j);
     travel.active = j;
     var icon = L.divIcon({ className: 'travel-ic', html: '<div class="td" style="--c:' + j.color + '"></div>', iconSize: [15, 15], iconAnchor: [7.5, 7.5] });
     travel.marker = L.marker(j.path[0], { icon: icon, interactive: false, zIndexOffset: 1000 }).addTo(layer);
     travel.trail = L.polyline([j.path[0]], { color: j.color, weight: 3, opacity: .95, lineCap: 'round', interactive: false }).addTo(layer);
-    var path = j.path, N = path.length, dur = 15000, t0 = performance.now();
+    var path = j.path, N = path.length, dur = durMs > 0 ? durMs : 15000, t0 = performance.now();
     (function frame(t) {
       /* p 必须双向夹取：rAF 回调的 timestamp 是【帧开始时刻】，可能早于本次
        * JS 执行时取的 t0（实测点选旅程时 p 为负，idx = floor(负 * 209) = 负数，
@@ -2368,7 +2386,16 @@ GS.routeEngine = (function () {
       if (travel.marker && path[idx]) travel.marker.setLatLng(path[idx]);
       if (travel.trail) travel.trail.setLatLngs(path.slice(0, idx + 1));
       if (p < 1 && travel.active === j) travel.raf = requestAnimationFrame(frame);
-      else { travel.timer = setTimeout(function () { if (travel.active === j) { cancelTravel(); if (done) done(); } }, 2200); }
+      else {
+        /* 到位后先让光点在终点停一拍（1.2s），再把光点与拖尾收走、
+         * 把路线本体定格成整段描完 —— 视觉上无缝（拖尾与本体同色同走向）。 */
+        travel.timer = setTimeout(function () {
+          if (travel.active !== j) return;
+          cancelTravel();
+          pinEnd(j.id);
+          if (done) done();
+        }, 1200);
+      }
     })(t0);
   }
 
@@ -2381,6 +2408,10 @@ GS.routeEngine = (function () {
     seek: seek,
     release: release,
     replay: replay,
+    pinEnd: pinEnd,
+    pinned: function () {
+      return routes.filter(function (j) { return !!j.pin; }).map(function (j) { return j.id; });
+    },
     focus: focus,
     cancelTravel: cancelTravel,
     cancelSeek: cancelSeek,

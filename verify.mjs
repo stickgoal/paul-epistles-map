@@ -1485,6 +1485,84 @@ if (lg) {
   })()`));
 }
 
+/* ================= R：选中旅程播放完成后的结束状态（2026-11-02） =================
+ * 用户需求：「选中每个旅程播放时，播放完成后停止在结束状态。」
+ * 旧实现：15s 描线动画结束后把光点与拖尾一起撤掉，路线回落到「按年份的进度」——
+ * 选 j2（AD 49–52）时当前年份往往还停在 AD 46，y < j.from ⇒ future ⇒ p=0，
+ * 整条线直接消失。新实现用 pin 把该段定格在 p = 1（与年份无关）。
+ * 判据必须落在「整段描完」这件事上：光点数量、终点光点、流光暂停、图例仍高亮。 */
+var rTog = await ev(`document.getElementById('legend').classList.contains('open')`);
+if (!rTog) {
+  var lgT = await centerOf('#lgToggle');
+  if (lgT) await realClick(lgT.x, lgT.y);
+  await sleep(500);
+}
+var rJ = await centerOf('.lg-j[data-j="j2"]');
+console.log('R-1 legend-j2:', rJ ? 'yes' : 'MISSING');
+if (rJ) {
+  await realClick(rJ.x, rJ.y);
+  await sleep(1200);
+  console.log('R-1 during-replay:', await ev(`(function(){
+    var j = GS.routeEngine.api.byId('j2');
+    return JSON.stringify({ route: GS_APP.state.route, travelIcons: document.querySelectorAll('.travel-ic').length,
+      drawnPts: j.base.getLatLngs().length, totalPts: j.path.length,
+      ok: GS_APP.state.route === 'j2' && document.querySelectorAll('.travel-ic').length === 1 });
+  })()`));
+  /* 15s 描线 + 1.2s 到位停顿：轮询到「光点收走且已定格」为止 */
+  var rDone = false;
+  for (var rw = 0; rw < 50; rw++) {
+    await sleep(500);
+    rDone = (await ev(`document.querySelectorAll('.travel-ic').length === 0 && GS.routeEngine.api.pinned().length > 0`)) === true;
+    if (rDone) break;
+  }
+  await sleep(400);
+  console.log('R-1 end-state:', await ev(`(function(){
+    var j = GS.routeEngine.api.byId('j2');
+    var last = j.path[j.path.length - 1];
+    var hl = j.head.getLatLng ? j.head.getLatLng() : null;
+    var pinned = GS.routeEngine.api.pinned();
+    return JSON.stringify({
+      year: document.getElementById('tlYear').textContent,
+      route: GS_APP.state.route, pinned: pinned,
+      drawnPts: j.base.getLatLngs().length, totalPts: j.path.length,
+      headOn: j.headOn && !!j.head._map,
+      headAtEnd: hl ? (Math.abs(hl.lat - last[0]) < 1e-6 && Math.abs(hl.lng - last[1]) < 1e-6) : false,
+      baseOpacity: getComputedStyle(j.baseEl).opacity,
+      flowAnim: getComputedStyle(j.flowEl).animationPlayState,
+      travelIcons: document.querySelectorAll('.travel-ic').length,
+      legendOn: document.querySelector('.lg-j[data-j="j2"]').classList.contains('on'),
+      /* 起点年份 AD 46 早于 j2 的 AD 49：旧实现这里必然被判成 future（opacity .12） */
+      ok: pinned.length === 1 && pinned[0] === 'j2' &&
+          j.base.getLatLngs().length === j.path.length &&
+          j.headOn && !!hl && Math.abs(hl.lat - last[0]) < 1e-6 && Math.abs(hl.lng - last[1]) < 1e-6 &&
+          Number(getComputedStyle(j.baseEl).opacity) > .9 &&
+          getComputedStyle(j.flowEl).animationPlayState === 'paused' &&
+          document.querySelectorAll('.travel-ic').length === 0 &&
+          document.querySelector('.lg-j[data-j="j2"]').classList.contains('on')
+    });
+  })()`));
+  await shot('r1_route_end.png');
+
+  /* R-2. 定格只属于「刚放完的这一段」：拖时间轴即交还年份驱动。
+   * 否则读者把时间轴拖回 AD 46，图上还挂着一条 AD 49–52 的完整路线，自相矛盾。 */
+  await ev(`GS_APP.setYear(56)`);
+  await sleep(600);
+  console.log('R-2 year-drives-again:', await ev(`(function(){
+    var j = GS.routeEngine.api.byId('j2');
+    return JSON.stringify({ year: document.getElementById('tlYear').textContent,
+      pinned: GS.routeEngine.api.pinned(),
+      baseOpacity: getComputedStyle(j.baseEl).opacity,
+      /* AD 56 > j2.to(52) ⇒ past：整段保留但压暗，不再是定格态的 .95 */
+      ok: GS.routeEngine.api.pinned().length === 0 && Number(getComputedStyle(j.baseEl).opacity) < .5 });
+  })()`));
+  /* 收尾：退出路线聚焦，恢复全量视图 */
+  await ev(`(function(){ GS_APP.setYear(46); return 1; })()`);
+  await sleep(300);
+  var rClear = await centerOf('.lg-j[data-j="j2"]');
+  if (rClear) await realClick(rClear.x, rClear.y);
+  await sleep(900);
+}
+
 /* ================= M9：地图最大化 / 时间轴贴底隐藏 / 地点锚定浮窗 =================
  * 用户需求（2026-11-02）：「最大化地图，将进度贴底部隐藏，鼠标移近才显示进度条；
  * 左侧的浮窗，直接隐藏。每个地点的信息点击时在地点附近显示浮窗。」
