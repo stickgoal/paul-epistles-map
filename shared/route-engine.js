@@ -6,6 +6,9 @@ GS.routeEngine = (function () {
   'use strict';
 
   var layer = null, getYear = function () { return 0; }, onState = null, routes = [], byId = {};
+  /* 路线聚焦（M8）：选中某段旅程时，其余路线整体隐去（含站点圆点与行进光点）。
+   * 不能只靠 CSS 类，因为 applyTime 每帧都直接写 style.opacity —— 会覆盖类样式。 */
+  var focusId = null;
 
   /* 中点二次贝塞尔平滑，但曲线必须【精确穿过每个站点】：
    * 旧实现整段用 Q(m1, b, m2)，最近点只到 b + (a+c-2b)/8 ——
@@ -43,8 +46,12 @@ GS.routeEngine = (function () {
   /* 绘制一段旅程；完成后按当前年代点亮 */
   function draw(j) {
     if (j.drawn) return;
-    j.drawn = true;
     var path = smoothPath(j.stops.map(function (s) { return s.ll; }));
+    /* 先算路径再置 drawn：若 smoothPath 抛错或返回空，旧实现在置了 drawn 之后
+     * 就永久处于「已画但无路径」的坏状态 —— 后续 replay 拿到空 path，
+     * idx 恒越界。宁可这次不画，也不要留下半成品状态。 */
+    if (!path || !path.length) return;
+    j.drawn = true;
     j.path = path;
     var cum = [0];
     for (var i = 1; i < path.length; i++) {
@@ -95,28 +102,36 @@ GS.routeEngine = (function () {
       if (y < j.from) { st = 'future'; p = 0; }
       else if (y > j.to) { st = 'past'; p = 1; }
       else { st = 'now'; p = (j.hold != null) ? j.hold : yearP(j, y); }
+      var dim = !!focusId && j.id !== focusId;
       var target = p * j.total, k = 0;
       while (k < j.cum.length - 1 && j.cum[k + 1] <= target) k++;
-      var sig = st + '|' + k;
+      var sig = st + '|' + k + '|' + (dim ? 'd' : 'n');
       if (j.sig === sig) return; /* 年代变化但路段索引未变，无需重绘 */
       j.sig = sig;
-      var show = st !== 'future';
+      var show = st !== 'future' && !dim;
       var pts = show ? j.path.slice(0, k + 1) : [j.path[0]];
       j.base.setLatLngs(pts);
       j.flow.setLatLngs(pts);
-      j.baseEl.style.opacity = st === 'now' ? .95 : st === 'past' ? .42 : .12;
-      j.flowEl.style.opacity = st === 'now' ? .5 : st === 'past' ? .26 : 0;
-      j.flowEl.style.animationPlayState = st === 'now' ? 'running' : 'paused';
+      j.baseEl.style.opacity = dim ? 0 : st === 'now' ? .95 : st === 'past' ? .42 : .12;
+      j.flowEl.style.opacity = dim ? 0 : st === 'now' ? .5 : st === 'past' ? .26 : 0;
+      j.flowEl.style.animationPlayState = st === 'now' && !dim ? 'running' : 'paused';
       for (var i = 0; i < j.dots.length; i++) {
         var vis = show && j.dist[i] <= target + 1e-6;
         j.dots[i].setStyle({ opacity: vis ? 1 : 0, fillOpacity: vis ? 1 : 0 });
       }
-      if (st === 'now') {
+      if (st === 'now' && !dim) {
         if (!j.headOn) { j.head.addTo(layer); j.headOn = true; }
         j.head.setLatLng(j.path[k]);
       } else if (j.headOn) { layer.removeLayer(j.head); j.headOn = false; }
       if (onState) onState(j, st);
     });
+  }
+
+  /* 聚焦一段旅程（null = 取消聚焦）。只改渲染，不动数据与进度。 */
+  function focus(id) {
+    focusId = id || null;
+    routes.forEach(function (j) { j.sig = ''; });   /* 强制下一帧全量重算（sig 含 dim 位） */
+    applyTime(getYear());
   }
 
   /* 事件驱动描线：把路线进度推到 ev 对应站点（place id 匹配 stops.p）。
@@ -184,7 +199,9 @@ GS.routeEngine = (function () {
     });
     var t0 = performance.now();
     (function frame(t) {
-      var p = Math.min(1, (t - t0) / dur);
+      /* 同 replay：rAF timestamp 是帧开始时刻，可能早于 t0 ⇒ p 可能为负，
+       * 负的 e 会让 tgt 越过 from（描线倒退一帧再回来，观感是一次抖动）。 */
+      var p = Math.min(1, Math.max(0, (t - t0) / dur));
       var e = p < 1 ? 1 - Math.pow(1 - p, 3) : 1;   /* easeOutCubic：起步快、收尾稳 */
       plan.forEach(function (x) {
         var tgt = x.from + (x.to - x.from) * e;
@@ -222,9 +239,14 @@ GS.routeEngine = (function () {
     travel.trail = L.polyline([j.path[0]], { color: j.color, weight: 3, opacity: .95, lineCap: 'round', interactive: false }).addTo(layer);
     var path = j.path, N = path.length, dur = 15000, t0 = performance.now();
     (function frame(t) {
-      var p = Math.min(1, (t - t0) / dur);
-      var idx = Math.floor(p * (N - 1));
-      if (travel.marker) travel.marker.setLatLng(path[idx]);
+      /* p 必须双向夹取：rAF 回调的 timestamp 是【帧开始时刻】，可能早于本次
+       * JS 执行时取的 t0（实测点选旅程时 p 为负，idx = floor(负 * 209) = 负数，
+       * path[负数] 是 undefined，setLatLng(undefined) 抛
+       * "Cannot read properties of undefined (reading 'lat')"，
+       * 且每帧抛一次 —— 4 次异常就是这么来的）。 */
+      var p = Math.min(1, Math.max(0, (t - t0) / dur));
+      var idx = Math.max(0, Math.min(N - 1, Math.floor(p * (N - 1))));
+      if (travel.marker && path[idx]) travel.marker.setLatLng(path[idx]);
       if (travel.trail) travel.trail.setLatLngs(path.slice(0, idx + 1));
       if (p < 1 && travel.active === j) travel.raf = requestAnimationFrame(frame);
       else { travel.timer = setTimeout(function () { if (travel.active === j) { cancelTravel(); if (done) done(); } }, 2200); }
@@ -240,6 +262,7 @@ GS.routeEngine = (function () {
     seek: seek,
     release: release,
     replay: replay,
+    focus: focus,
     cancelTravel: cancelTravel,
     cancelSeek: cancelSeek,
     byId: function (id) { return byId[id]; },

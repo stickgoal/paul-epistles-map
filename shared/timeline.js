@@ -8,6 +8,7 @@ GS.timeline = (function () {
 
   var cfg = {}, els = {}, state = { year: 0, playing: false };
   var seq = { raf: 0, timer: 0, active: false };
+  var allMarks = [], bandEls = [], staggerRaf = 0;
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
@@ -43,11 +44,16 @@ GS.timeline = (function () {
    * 2026-10-30（M4）：事件数 84 → 97，窄屏轨道 390px 只有 15px/年，
    * AD 57 一年 19 个事件 ⇒ 簇只能 2 列 × 10 行，轨道涨到 185px，
    * 把移动端事件列表压到 2 行。点径 9 → 8、步长 10 → 9 后轨道降到 ~114px。
-   * 移动端时间轴是次要入口（列表行才是主入口），8px 可点，配合列表不受影响。 */
+   * 移动端时间轴是次要入口（列表行才是主入口），8px 可点，配合列表不受影响。
+   *
+   * 2026-10-30（M9·地图优先）：桌面 12 → 10。时间轴高度直接决定地图能放多大
+   * （fit 的垂直安全区 = 视口 − 时间轴），实测轨道 153px 时全图被压到 z5，
+   * 点径降到 10（步长 11）后同年簇从 10 层降到 7 层，轨道 ~100px，
+   * fit 回到 z5.5，地图内容面积翻倍。10px 仍在可点范围内（轨道本身也是拖拽/点击区域）。 */
   function dotSize(W) {
-    if (W >= 900) return 12;
-    if (W >= 600) return 11;
-    if (W >= 430) return 10;
+    if (W >= 900) return 10;
+    if (W >= 600) return 10;
+    if (W >= 430) return 9;
     return 8;
   }
 
@@ -122,8 +128,8 @@ GS.timeline = (function () {
     var firstTop = AXIS_Y - D / 2;
     return {
       dots: dots, clusters: clusters, D: D, pitch: pitch, layers: used, overflow: overflow,
-      trackH: firstTop + (used - 1) * pitch + D + 15,
-      bandTop: firstTop + (used - 1) * pitch + D + 6,
+      trackH: firstTop + (used - 1) * pitch + D + 11,
+      bandTop: firstTop + (used - 1) * pitch + D + 4,
       spanY: Math.max.apply(null, clusters.map(function (c) { return c.ink; })) / pxPerYear,
       driftY: Math.max.apply(null, clusters.map(function (c) { return Math.abs(c.left + c.ink / 2 - c.x0); })) / pxPerYear
     };
@@ -145,6 +151,47 @@ GS.timeline = (function () {
     return best || fallback;
   }
 
+  /* 可重入的簇排布：只对当前【可见】圆点计算并写入几何（M8）。
+   * 隐藏态用 display:none —— 它不占位、不参与命中测试，但也因此必须从 marks 里剔除，
+   * 否则簇仍按隐藏点分配层，剩下的点会稀疏地散在原来的层里（轨道高度也不降）。
+   * 用 rAF 等首帧宽度的原因同旧实现：rAF 回调先于绘制，轨道高度在第一帧就定型，
+   * 用户看不到 60px → 114px 的跳动。 */
+  var pendingCount = 0;
+  function restagger() {
+    cancelAnimationFrame(staggerRaf);
+    if (!els.track) return;
+    var w = els.track.getBoundingClientRect().width;
+    if (!w) { staggerRaf = requestAnimationFrame(restagger); return; }
+    var vis = allMarks.filter(function (m) { return !cfg.markFilter || cfg.markFilter(m); });
+    allMarks.forEach(function (m) {
+      if (!m.el) return;
+      if (cfg.markFilter && !cfg.markFilter(m)) m.el.style.display = 'none';
+      else if (m.el.style.display === 'none') m.el.style.display = '';
+    });
+    var best = vis.length ? pickLayout(w, vis) : null;
+    if (!best) { els.track.style.height = '34px'; return; }
+
+    /* 写入 DOM：left 保持该年的百分比位置（随量程自适应），
+     * 水平偏移写入 --dx（px），点径与垂直位置随 D / 层数写入。 */
+    for (var i = 0; i < best.dots.length; i++) {
+      var d = best.dots[i], el = d.mark.el;
+      el.style.width = best.D + 'px';
+      el.style.height = best.D + 'px';
+      el.style.marginLeft = (-best.D / 2) + 'px';
+      el.style.setProperty('--dx', (d.x - d.x0) + 'px');
+      el.style.top = d.y + 'px';
+      el.dataset.row = d.row;
+    }
+    /* 轨道高度与章节色带位置随层数/点径同步（点径自适应 ⇒ 高度公式不能用常量 13） */
+    els.track.style.height = best.trackH + 'px';
+    var bands = els.track.querySelectorAll('.tl-band');
+    for (var b = 0; b < bands.length; b++) bands[b].style.top = best.bandTop + 'px';
+
+    if (cfg.onPending) {
+      cfg.onPending({ count: pendingCount, marks: vis, rows: best.layers, pitch: best.pitch, dot: best.D });
+    }
+  }
+
   function init(opts) {
     cfg = {
       from: opts.from, to: opts.to,
@@ -153,10 +200,10 @@ GS.timeline = (function () {
     };
     els = opts.els;
     state.year = opts.from;
-    var pending = 0;
+    pendingCount = 0;
 
     (opts.bands || []).forEach(function (b) {
-      if (b.from > cfg.to) { pending++; return; }   /* 完全在量程之外（后续章节待补充） */
+      if (b.from > cfg.to) { pendingCount++; return; }   /* 完全在量程之外（后续章节待补充） */
       var band = document.createElement('div');
       band.className = 'tl-band';
       var l = Math.max(0, (b.from - cfg.from) / (cfg.to - cfg.from) * 100);
@@ -169,10 +216,11 @@ GS.timeline = (function () {
       band.addEventListener('click', function (ev) { ev.stopPropagation(); if (cfg.onBand) cfg.onBand(b); });
       els.track.insertBefore(band, els.dots);
       b.el = band;
+      bandEls.push(b);
     });
 
-    var marks = opts.marks || [];
-    marks.forEach(function (m) {
+    allMarks = opts.marks || [];
+    allMarks.forEach(function (m) {
       var d = document.createElement('button');
       d.className = 'tl-dot';
       d.style.left = ((m.from - cfg.from) / (cfg.to - cfg.from) * 100) + '%';
@@ -187,39 +235,10 @@ GS.timeline = (function () {
      * 列优先填充（先竖后横）⇒ 簇「窄而高」，横向跨度小 ⇒ 时间语义得以保留。
      * 簇水平居中于该年位置；簇之间横向交叠时分配到不同的层（layer），
      * 层内互不重叠 ⇒ 圆点两两不相交（几何上零重叠，非靠事后挪动）。
-     * 点径随轨道宽自适应（dotSize）；簇列数按实际轨道宽运行期搜索择优（pickLayout）。 */
-    (function stagger() {
-      var w = els.track.getBoundingClientRect().width;
-      if (!w) {
-        /* 首帧前布局可能尚未就绪（本项目 97 事件 + 内联媒体的首帧约 4s）。
-         * 用 rAF 等下一帧而不是 setTimeout：rAF 回调先于绘制执行，
-         * 轨道高度能在第一帧就定型，用户不会看到 60px → 114px 的跳动。 */
-        requestAnimationFrame(stagger);
-        return;
-      }
-      var best = pickLayout(w, marks);
-      if (!best) return;
-
-      /* 写入 DOM：left 保持该年的百分比位置（随量程自适应），
-       * 水平偏移写入 --dx（px），点径与垂直位置随 D / 层数写入。 */
-      for (var i = 0; i < best.dots.length; i++) {
-        var d = best.dots[i], el = d.mark.el;
-        el.style.width = best.D + 'px';
-        el.style.height = best.D + 'px';
-        el.style.marginLeft = (-best.D / 2) + 'px';
-        el.style.setProperty('--dx', (d.x - d.x0) + 'px');
-        el.style.top = d.y + 'px';
-        el.dataset.row = d.row;
-      }
-      /* 轨道高度与章节色带位置随层数/点径同步（点径自适应 ⇒ 高度公式不能用常量 13） */
-      els.track.style.height = best.trackH + 'px';
-      var bands = els.track.querySelectorAll('.tl-band');
-      for (var b = 0; b < bands.length; b++) bands[b].style.top = best.bandTop + 'px';
-
-      if (cfg.onPending) {
-        cfg.onPending({ count: pending, marks: marks, rows: best.layers, pitch: best.pitch, dot: best.D });
-      }
-    })();
+     * 点径随轨道宽自适应（dotSize）；簇列数按实际轨道宽运行期搜索择优（pickLayout）。
+     * 2026-10-30（M8）：改为可重入的 restagger()，路线筛选后只对【可见】圆点重排，
+     * 否则被隐去的点仍参与簇计算，剩下的点会稀疏地散在原来的层里。 */
+    restagger();
 
     /* 拖拽 / 点击轨道 */
     var dragging = false;
@@ -293,7 +312,9 @@ GS.timeline = (function () {
       if (dur <= 0) { setYear(target); done(); return; }
       (function frame(t) {
         if (!seq.active) return;
-        var p = Math.min(1, (t - t0) / dur);
+        /* 同 route-engine：rAF timestamp 是帧开始时刻，可能早于 t0 ⇒ p 可能为负，
+         * 会让年份倒走一帧再回来（时间轴刻度闪一下）。双向夹取。 */
+        var p = Math.min(1, Math.max(0, (t - t0) / dur));
         var e = 1 - Math.pow(1 - p, 2.2);
         setYear(start + span * e);
         if (p < 1) seq.raf = requestAnimationFrame(frame);
@@ -346,7 +367,19 @@ GS.timeline = (function () {
     stop: stopSeq,
     pause: function () { stopSeq(); },
     isPlaying: function () { return state.playing; },
-    year: function () { return state.year; }
+    year: function () { return state.year; },
+    /* 事件筛选（M8）：markFn(mark)→bool 决定哪些圆点参与排布与显示；
+     * bandFn(band)→bool 决定哪些章节色带保留。传 null 即全部恢复。
+     * 筛选后重新排布（不是简单隐藏）—— 剩下的点会重新紧凑成簇，轨道随之变矮。 */
+    setFilter: function (markFn, bandFn) {
+      cfg.markFilter = markFn || null;
+      cfg.bandFilter = bandFn || null;
+      bandEls.forEach(function (b) {
+        if (!b.el) return;
+        b.el.style.display = (cfg.bandFilter && !cfg.bandFilter(b)) ? 'none' : '';
+      });
+      restagger();
+    }
   };
   return { init: init, api: api };
 })();

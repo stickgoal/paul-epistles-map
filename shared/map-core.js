@@ -6,9 +6,19 @@ GS.mapCore = (function () {
   'use strict';
 
   var map = null, glowMarker = null, litTimer = null;
-  var lastItems = [], lastObstacleSel = '.place .ev-dot, .ctx';
+  /* 障碍集与核心盒都排除被路线筛选隐去的地点（.route-off）：
+   * 隐去的地点在几何上仍然占着 96×96 的盒子，若继续参与避让，可见标签会被
+   * 「看不见的东西」推得四处乱跑。 */
+  var lastItems = [], lastObstacleSel = '.place-icon:not(.route-off) .ev-dot, .ctx-icon:not(.route-off) .ctx';
   var labelTimer = null, lastLabelZoom = 0;
-  var lastFit = null;
+  var lastFit = null, storyFit = null;
+  /* 标签分级（M8）：baseZoom 是首次 fit 落定的首屏 zoom，L2/L3 的显示阈值以它为基准。
+   * 只记一次 —— 若每次 fit 都更新，用户手动缩放后再触发 fit（resize/打开面板）会让
+   * 阈值跟着漂，同一缩放下标签数量时多时少。 */
+  var baseZoom = 0;
+  /* 强制显示集合：hover / 选中地点 / 播放到达时，把分级不到或被挤掉的标签临时提上来。
+   * 由模板层调用 forceLabel(id, true/false) 维护，placeLabels 读它决定是否允许隐藏。 */
+  var forceSet = {};
   /* 安全区（px）：浮在地图上的面板/时间轴遮住的区域。fitBounds 只把故事范围塞进
    * 「没被遮住」的那块，否则全屏地图下罗马与马耳他会躲在左侧面板背后。 */
   var insets = { t: 26, r: 26, b: 26, l: 26 };
@@ -32,6 +42,7 @@ GS.mapCore = (function () {
     var center = map.unproject(px, zoom);
     fitLog.push([insets.t, insets.r, insets.b, insets.l, zoom, Math.round(boxC.x), Math.round(boxC.y), animate ? 'anim' : 'set']);
     if (fitLog.length > 24) fitLog.shift();
+    if (!baseZoom) baseZoom = zoom;   /* 首屏 zoom 定标（标签分级阈值的基准，见 placeLabels） */
     if (animate) map.flyTo(center, zoom, { duration: (durMs || 1200) / 1000 });
     else map.setView(center, zoom, { animate: false });
   }
@@ -65,7 +76,7 @@ GS.mapCore = (function () {
       zoomControl: false, attributionControl: false,
       minZoom: 3, maxZoom: 10, zoomSnap: .5, wheelPxPerZoomLevel: 140
     });
-    var fit = lastFit = opts.fit || DEFAULT_FIT;
+    var fit = lastFit = storyFit = opts.fit || DEFAULT_FIT;
     clampInsets();
     fitStory(false);
     /* 缩放与比例尺不再交给 Leaflet 的角容器：它的 .leaflet-control 是 float:left;clear:both，
@@ -172,8 +183,9 @@ GS.mapCore = (function () {
   }
 
   /* 点亮某坐标：柔光 + 双重涟漪（keep=true 持续到 clearLit）
-   * 节奏整体放慢（2026-10-17）：光晕淡入 1.8s、涟漪单程 3.6s、二次涟漪 1.8s 触发，
-   * 与地点标记的 5.6s 呼吸同频，避免快闪。 */
+   * 节奏整体放慢（2026-10-17）：光晕淡入 1.8s、涟漪单程 3.6s、二次涟漪 1.8s 触发。
+   * 2026-10-30 起地点呼吸环已移除，这层光晕成为全图唯一的「地点级」动态强调 ——
+   * 只在当前事件地点出现（keep 由到达/离开控制），不再有 28 个环同时扩散。 */
   function lit(ll, color, keep) {
     color = color || '#c2593f';
     clearLit();
@@ -218,6 +230,47 @@ GS.mapCore = (function () {
   function placeLabels(items, obstacleSel) {
     lastItems = items || [];
     lastObstacleSel = obstacleSel || lastObstacleSel;
+
+    /* ---------- 分级与消隐（M8，2026-11-02） ----------
+     * 旧算法只有「挪」（9 方位 × 形态降级）与「缩短」（去英文名/去计数）两条路，
+     * 全冲突时取「重叠面积最小者」—— 即任何标签【必须显示】。密集区（安纳托利亚/
+     * 叙利亚）9 个方位全被占满，于是必然糊成一片（首屏实测 28 个标签 16 对互压）。
+     *
+     * 新增第三条路：占不到位就【隐藏】。分三级，阈值相对首屏 zoom（窗口尺寸不同，
+     * fit 出的首屏 zoom 也不同：1080p 实测 5.5、窄屏 5.0，用绝对值会让窄屏永远
+     * 看不到 L2）：
+     *   L1（≥6 事件）任何缩放都显示；L2（2–4）首屏 +0.5 级；L3（0–1）首屏 +1.3 级。
+     * L1 永不被隐藏 —— 宁可轻微重叠，也不能首屏一个地名都没有。
+     *
+     * 测量前必须把所有标签恢复显示：display:none 的元素 getBoundingClientRect()
+     * 返回 0，会被误判成「零尺寸标签」，方位评估与越界惩罚全部失效。 */
+    var zNow = map ? map.getZoom() : 6;
+    var base = baseZoom || zNow;
+    lastItems.forEach(function (cm) {
+      var t = cm.marker && cm.marker.getTooltip ? cm.marker.getTooltip() : null;
+      var el = t && t.getElement ? t.getElement() : null;
+      if (el) { el.style.display = ''; el.classList.remove('label-hidden'); }
+    });
+    /* 小视口再筛一层 L1：移动端地图可用区常只有 430×230（顶部胶囊 + 底部抽屉），
+     * 6 个主干城市在小地图上照样糊成一团。按事件数取前 3
+     * （罗马 14 / 凯撒利亚 13 / 耶路撒冷 11）—— 它们同时覆盖西、东、南三个方位，
+     * 缩放到哪都还留得住一个参照点。 */
+    var sz = map ? map.getSize() : { x: 1200, y: 800 };
+    var usableW = Math.max(0, sz.x - insets.l - insets.r);
+    var usableH = Math.max(0, sz.y - insets.t - insets.b);
+    var tight = usableW * usableH < 300000;
+    var l1Top = {};
+    if (tight) {
+      lastItems.filter(function (cm) { return (cm.tier || 1) === 1; })
+        .sort(function (a, b) { return (b.weight || 0) - (a.weight || 0); })
+        .slice(0, 3)
+        .forEach(function (cm) { l1Top[cm.placeId] = 1; });
+    }
+    function tierOK(tier, pid) {
+      if (!tier || tier <= 1) return !tight || !!l1Top[pid];
+      return zNow >= base + (tier === 2 ? 0.5 : 1.3);
+    }
+
     document.body.classList.add('measuring');
     var obstacles = [];
     document.querySelectorAll(lastObstacleSel).forEach(function (elm) {
@@ -231,7 +284,7 @@ GS.mapCore = (function () {
      * 24px 盒只覆盖可见核心周围，既反映真实冲突，又不互相误判。
      * 自身核心豁免 —— 标签必然从自己的锚点伸出。 */
     var cores = [];
-    document.querySelectorAll('.place-icon').forEach(function (elm) {
+    document.querySelectorAll('.place-icon:not(.route-off)').forEach(function (elm) {
       var inner = elm.querySelector('.place');
       var r = elm.getBoundingClientRect();
       if (!r.width) return;
@@ -245,7 +298,18 @@ GS.mapCore = (function () {
 
     var placed = [];
     var dirUsed = {};            /* 方位使用计数：同分时偏好少用过的方向，实现分散 */
-    var items2 = lastItems.map(function (cm) {
+    var items2 = lastItems.filter(function (cm) {
+      /* 路线筛选（M8）：被隐去的地点不参与避让。过滤放在这里而不是调用方，
+       * 因为 resize / moveend / setInsets 都会用 lastItems 重算 —— 调用方只在
+       * 点击图例那一刻传过筛选后的数组，之后就会被「全量重算」悄悄还原。 */
+      var el = cm.marker && cm.marker.getElement ? cm.marker.getElement() : null;
+      if (el && el.classList.contains('route-off')) return false;
+      /* 强制显示（hover / 选中 / 播放到达）必须优先于分级：分级过滤发生在这里，
+       * 若不在同一处放行，被 tier 挡掉的标签根本进不了候选集，后面 items2 里的
+       * force 标记永远读不到 —— 实测「悬停米利都标签不出现」就是这个顺序错误。 */
+      if (cm.placeId && forceSet[cm.placeId]) return true;
+      return tierOK(cm.tier, cm.placeId);
+    }).map(function (cm) {
       /* 该标签锚定在哪个地点上（用于豁免自身核心） */
       var anchorId = cm.anchorId || null;
       var variants = buildLabelVariants(cm.html);
@@ -254,7 +318,27 @@ GS.mapCore = (function () {
        * （实测 28 个标签膨胀成 1883 个残留节点）。 */
       var tip = cm.marker.getTooltip();
       if (!tip) { cm.marker.bindTooltip(cm.html, { permanent: true, direction: 'right', offset: [16, 0], className: 'city-tip' }); tip = cm.marker.getTooltip(); }
-      return { anchorId: anchorId, variants: variants, tipEl: tip.getElement() };
+      var te = tip.getElement();
+      /* 兜底再打一次地点 id：tooltip 可能在首次 placeLabels 时才真正挂上 DOM，
+       * 构造期的 setAttribute 会落空（诊断脚本靠它豁免自身核心重叠）。 */
+      if (te && anchorId) te.setAttribute('data-place', anchorId);
+      return { anchorId: anchorId, variants: variants, tipEl: te,
+               tier: cm.tier || 1, placeId: cm.placeId || anchorId,
+               force: !!(anchorId && forceSet[anchorId]), cm: cm };
+    });
+    /* 排序：L1 先占位（重要的先挑方位），同 tier 保持数据顺序（地名位置稳定，
+     * 不会因为某次重算把两个同级标签的方位对调）。 */
+    items2.sort(function (a, b) { return a.tier - b.tier; });
+
+    /* 未入选的标签（分级不到 / 被路线筛掉）统一隐藏。不能只靠 CSS 的 opacity:0 ——
+     * 它们仍会占着旧的绝对定位，视觉上像「幽灵标签」压着别人。 */
+    var keepIds = {};
+    items2.forEach(function (it) { if (it.placeId) keepIds[it.placeId] = 1; });
+    lastItems.forEach(function (cm) {
+      if (cm.placeId && keepIds[cm.placeId]) return;
+      var t = cm.marker && cm.marker.getTooltip ? cm.marker.getTooltip() : null;
+      var el = t && t.getElement ? t.getElement() : null;
+      if (el) el.style.display = 'none';
     });
 
     /* 贪心初放（第一遍）——逐形态评估：先算每一档形态的最优候选，再按「信息量优先」挑选。
@@ -286,13 +370,30 @@ GS.mapCore = (function () {
       }
 
       var best = viBests[0];
-      if (best && best.score > 0) {
+      /* 轻微重叠容差（M8）：score = 重叠面积(px²) + 越界面积×2。
+       * 一个 12.5px 汉字的一角约 60–80px² —— 压住这点面积仍然读得出来，
+       * 却能让密集区多显示好几个地名。旧实现只要 score > 0 就判「放不下」，
+       * 实测 z6.5 时安纳托利亚一带把 10 个 L2 地点砍到只剩 2 个，放大等于没放大。
+       * L1 容差更大：宁可重叠也不许消失。 */
+      var TOL = it.tier > 1 ? 90 : 260;
+      if (best && best.score > TOL) {
         var downgraded = null;
         for (var vj = 1; vj < viBests.length; vj++) {
-          if (viBests[vj] && viBests[vj].score <= 0) { downgraded = viBests[vj]; break; }
+          if (viBests[vj] && viBests[vj].score <= TOL) { downgraded = viBests[vj]; break; }
         }
         if (downgraded) best = downgraded;
         else {
+          /* 所有形态 × 所有方位都有冲突 —— 旧实现到这里只能取「重叠面积最小者」，
+           * 也就是任何标签【必须显示】。新增第三条路：
+           *   · L2/L3 且非强制 → 隐藏（placed 记 null 占位，保持与 items2 索引对齐，
+           *     否则后续 labelConflict 的 selfIdx 会全部错位）；
+           *   · L1 或强制显示 → 仍取重叠最小者（宁可轻微重叠，也不能让主干城市没名字，
+           *     更不能让用户 hover/选中的那个地点消失）。 */
+          if (it.tier > 1 && !it.force) {
+            it.tipEl.style.display = 'none';
+            placed.push(null);
+            return;
+          }
           var minS = Infinity;
           for (var vk = 0; vk < viBests.length; vk++) {
             var cand = viBests[vk];
@@ -320,6 +421,10 @@ GS.mapCore = (function () {
       for (var oi2 = 0; oi2 < order.length; oi2++) {
         var pi = order[oi2];
         var cur = placed[pi];
+        /* 分级消隐的标签不参与二次消解 —— 它的隐藏是「当前缩放下不该显示」的
+         * 分级结论，不是「暂时被挤掉」。硬把它拉回来会让密集区重新变糊。
+         * 缩放变化会整体重算，那时它自然会重新入选。 */
+        if (!cur) continue;
         var curScore = labelConflict(cur.rect, obstacles, cores, cur.anchorId, placed, pi);
         var bestAlt = null, bestScore = curScore, bestVi = -1;
         for (var vi2 = 0; vi2 < items2[pi].variants.length; vi2++) {
@@ -368,9 +473,21 @@ GS.mapCore = (function () {
   }
 
   /* 标签在某矩形位置上的冲突分：与静态障碍（事件点/上下文标记）、非自身地点核心
-   * （权重 ×3）、以及其它已放置标签的重叠面积之和。selfIdx 用于排除自身。 */
+   * （权重 ×3）、以及其它已放置标签的重叠面积之和。selfIdx 用于排除自身。
+   *
+   * 2026-10-30（M9）：加入「越界」惩罚。此前只统计互相压叠，标签可以整个探到
+   * 视口右缘外被裁掉（地图容器 overflow:hidden），也可以缩到面板/时间轴底下。
+   * fit 收到的安全区（insets）正好就是「读者真正看得见」的那块，直接拿它当边界：
+   * 越界面积 ×2 计入冲突分 —— 只要有别的方位能放得下，就不会选越界那一侧；
+   * 全都放不下时仍按越界最少者落位（不会因为惩罚而丢标签）。 */
   function labelConflict(r, obstacles, cores, anchorId, placed, selfIdx) {
     var score = 0, i, ox, oy;
+    var sz = map ? map.getSize() : { x: 1024, y: 768 };
+    var box = { l: insets.l + 4, t: insets.t + 4, r: sz.x - insets.r - 4, b: sz.y - insets.b - 4 };
+    if (r.left < box.l) score += (box.l - r.left) * r.height * 2;
+    if (r.right > box.r) score += (r.right - box.r) * r.height * 2;
+    if (r.top < box.t) score += (box.t - r.top) * r.width * 2;
+    if (r.bottom > box.b) score += (r.bottom - box.b) * r.width * 2;
     for (i = 0; i < obstacles.length; i++) {
       ox = Math.min(r.right, obstacles[i].right) - Math.max(r.left, obstacles[i].left);
       oy = Math.min(r.bottom, obstacles[i].bottom) - Math.max(r.top, obstacles[i].top);
@@ -384,7 +501,7 @@ GS.mapCore = (function () {
                                                          把标签全部推离核心、彼此叠死） */
     }
     for (i = 0; i < placed.length; i++) {
-      if (i === selfIdx) continue;
+      if (i === selfIdx || !placed[i]) continue;   /* null = 被分级消隐的标签，不占面积 */
       ox = Math.min(r.right, placed[i].rect.right) - Math.max(r.left, placed[i].rect.left);
       oy = Math.min(r.bottom, placed[i].rect.bottom) - Math.max(r.top, placed[i].rect.top);
       if (ox > 0 && oy > 0) score += ox * oy;
@@ -413,6 +530,28 @@ GS.mapCore = (function () {
     clearLit: clearLit,
     ripple: ripple,
     placeLabels: placeLabels,
+    /* 强制显示 / 取消强制显示某地点的标签（hover、选中地点、播放到达）。
+     * 只打标记不重算 —— 调用方常在同一帧里连续标记多个地点，逐个重算会把
+     * placeLabels 跑 N 次（每次 28 标签 × 9 方位 × 3 形态的 getBoundingClientRect）。
+     * 标记完由调用方统一调一次 placeLabels。 */
+    forceLabel: function (placeId, on) {
+      if (!placeId) return;
+      if (on) forceSet[placeId] = 1; else delete forceSet[placeId];
+    },
+    clearForced: function () { forceSet = {}; },
+    /* 诊断 / 验收用：当前可见与隐藏的标签数、首屏基准 zoom。
+     * 分级是否真的生效必须能读出来，不能靠截图数（截图数不出被裁在视口外的）。 */
+    labelStats: function () {
+      var vis = 0, hid = 0;
+      lastItems.forEach(function (cm) {
+        var t = cm.marker && cm.marker.getTooltip ? cm.marker.getTooltip() : null;
+        var el = t && t.getElement ? t.getElement() : null;
+        if (!el) return;
+        if (el.style.display === 'none') hid++; else vis++;
+      });
+      return { visible: vis, hidden: hid, total: lastItems.length,
+               zoom: map ? map.getZoom() : 0, base: baseZoom };
+    },
     setLabelsVisible: function (v) { map.getContainer().classList.toggle('hide-labels', !v); },
     /* 更新安全区并（可选）重新适配视野。浮层尺寸变化后由调用方触发；
      * refit=false 只更新 padding（下次 fitBounds 生效），不动当前视野。 */
@@ -430,7 +569,16 @@ GS.mapCore = (function () {
     },
     insets: function () { return { t: insets.t, r: insets.r, b: insets.b, l: insets.l }; },
     fits: function () { return fitLog.slice(); },
+    /* 把「故事范围」临时改成某个子范围（M8：选中一段旅程时只框住这段旅程）。
+     * 后续所有 fitStory（resize / inset 变化）都会以它为基准，直到 resetView 复原。 */
+    setFit: function (b, animate, durMs) {
+      if (!b) return;
+      lastFit = b;
+      fitStory(!!animate, durMs);
+    },
+    fitBounds: function () { return lastFit; },
     resetView: function (durMs) {
+      if (storyFit) lastFit = storyFit;   /* 复原为全故事范围（选中旅程后取消筛选） */
       fitStory(true, durMs);
     },
     /* 当前视野是否已覆盖故事范围（供「开播前才落位」判断） */

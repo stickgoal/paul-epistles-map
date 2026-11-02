@@ -119,7 +119,10 @@ console.log('A10b guide-not-blocking:', await ev(`(function(){
   var rows = 0;
   document.querySelectorAll('.ev').forEach(function (r) { if (overlap(r) > 0) rows++; });
   blocked.listRows = rows;
-  var any = Object.keys(blocked).some(function (k) { return blocked[k] > 0; });
+  /* 2026-10-30（M7 全屏地图）：地图铺满视口、面板浮在它上面，引导横幅与「地图矩形」
+   * 必然相交 2 万 px² —— 这是构图本身，不是遮挡。真正要守的是「不挡住可交互元素」，
+   * 故判据只看 playBtn / timeline / listRows。 */
+  var any = blocked.playBtn > 0 || blocked.timeline > 0 || blocked.listRows > 0;
   return JSON.stringify({ visible: true, blocked: blocked, clear: !any });
 })()`));
 
@@ -899,7 +902,18 @@ await shot('f3_playing.png');
  * 本轮按需求「线条播放时镜头不动，保持稳定感」彻底取消跟车。
  * 断言方式：取一个固定参考点（耶路撒冷），每 200ms 采样它在容器内的像素坐标——
  * 镜头一旦有任何平移/缩放，这个坐标必然变化；全部相等 ⇒ 画面完全静止。
- * 同时要求描线仍在推进（routeGrew）、且没有 moveend 风暴。 */
+ * 同时要求描线仍在推进（routeGrew）、且没有 moveend 风暴。
+ *
+ * 2026-10-30（M9）补一条前置等待：首个事件（antioch-commission）就是 j1 的第 0 个站点，
+ * 它没有「要描的线段」——hold 恒为 0、base 点数恒为 1。若从开播瞬间开始采样，
+ * routeGrew 必然假失败（实测 16 个采样点全是 pts=1）。故先等镜头切到第二个事件
+ * （此时才有真实描线量），再开事件计数器与采样窗口。 */
+var d3first = await ev(`window.GS_APP.state.focus`);
+for (var dw = 0; dw < 48; dw++) {
+  await sleep(250);
+  var d3now = await ev(`window.GS_APP.state.focus`);
+  if (d3now && d3now !== d3first) break;
+}
 await ev(`(function(){
   window.__ev = { moveend: 0, zoomend: 0 };
   var map = GS_APP.map;
@@ -982,15 +996,20 @@ console.log('D4 arrive-gating: mid=' + d4mid);
 console.log('D4 verdict:', JSON.stringify({ arrived: d4arrived, cardBeforeArrival: d4cardEarly,
   zoomBefore: d4zoom0, after: d4after, ok: d4ok }));
 
-/* D4b. 播放中环收敛（2026-10-27）：body.playing 时全图呼吸环应静息（animation:none），
- * 避免跟车平移 × 全图 28 环持续扩散的双重动态（用户反馈的「闪」）；暂停后恢复呼吸。 */
-console.log('D4b ring-while-playing:', await ev(`(function(){
-  var r = document.querySelector('.place .ring');
-  var cs = r ? getComputedStyle(r) : null;
+/* D4b. 无呼吸环 / 无循环闪烁（2026-10-30 用户「取消呼吸环，直接不闪烁」）：
+ * 旧断言要求「播放中环静息、暂停恢复呼吸」，现已整体移除 —— 断言反向：
+ * ① 不再有 .place .ring 节点；② 标记类元素上不存在 infinite 循环动画
+ * （排除路线流动 .route-flow：它是线性的方向指示，不是明暗闪烁）。 */
+console.log('D4b no-ring:', await ev(`(function(){
+  var rings = document.querySelectorAll('.place .ring').length;
+  var bad = [];
+  document.querySelectorAll('.place *, .fx-ic *, .travel-ic *, .rh-ic *').forEach(function (el) {
+    if (el.classList.contains('route-flow')) return;
+    var cs = getComputedStyle(el);
+    if (cs.animationName !== 'none' && cs.animationIterationCount === 'infinite') bad.push(el.className || el.tagName);
+  });
   return JSON.stringify({ playing: document.body.classList.contains('playing'),
-    anim: cs ? cs.animationName : 'none',
-    opacity: cs ? parseFloat(cs.opacity) : -1,
-    ok: !!cs && cs.animationName === 'none' });
+    rings: rings, infinite: bad, ok: rings === 0 && bad.length === 0 });
 })()`));
 
 /* D5. 路线精确经过地点（需求3）：每条旅程的每个站点必须落在路径上。
@@ -1013,25 +1032,22 @@ console.log('D5 route-through-places:', await ev(`(function(){
   return JSON.stringify({ maxDevDeg: Math.round(worst*1e6)/1e6, worstAt: worstAt, exact: worst < 0.001 });
 })()`));
 
-/* D6. 地点呼吸频率（需求「呼吸环太急，像抽搐」）：双环错相半周期、周期 ≥ 8s。
- * 旧实现 5.6s / 错相 2.8s + 起步极快的 cubic-bezier(.32,.52,.42,1)：每 2.8s 就有一圈
- * 「啪」地弹出去，读作抽搐。现为 9s / 4.5s，缓动改成两头慢的 in-out。
- * 注意：headless Chrome 默认 prefers-reduced-motion:reduce，全局动画被
- * prefers-reduced-motion 媒体查询压成 .01ms——必须先模拟 no-preference 再测计算值。 */
+/* D6. 全图「不闪」不变量（2026-10-30 取代原「呼吸频率」断言）：
+ * 用户要求「取消呼吸环，直接不闪烁」后，地点/事件/行进标记上不应再有任何
+ * iteration=infinite 的动画；唯一允许的是路线虚线流动（线性位移，非明暗变化）。
+ * 注意：headless Chrome 默认 prefers-reduced-motion:reduce，会把动画压成 .01ms，
+ * 必须先模拟 no-preference，否则算出来的 animationName 一律为 none（假通过）。 */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
-/* 环是「播放中静息、暂停恢复」的（见 D4b），呼吸动画须在非播放态断言 */
 await ev(`window.GS_APP.pause()`); await sleep(300);
-console.log('D6 breathing:', await ev(`(function(){
-  var rings = document.querySelectorAll('.place[data-place="paphos"] .ring');
-  var cs = rings.length ? getComputedStyle(rings[0]) : null;
-  var dur = cs ? parseFloat(cs.animationDuration) : 0;
-  var d2 = rings.length > 1 ? parseFloat(getComputedStyle(rings[1]).animationDelay) : -1;
-  return JSON.stringify({ rings: rings.length,
-    name: cs ? cs.animationName : 'none',
-    duration: cs ? cs.animationDuration : 'none',
-    ring2Delay: rings.length > 1 ? getComputedStyle(rings[1]).animationDelay : 'none',
-    halfCycleOffset: Math.abs(d2 - dur / 2) < 0.05,
-    ok: rings.length === 2 && !!cs && cs.animationName === 'breathe' && dur >= 8 && Math.abs(d2 - dur / 2) < 0.05 });
+console.log('D6 no-flash:', await ev(`(function(){
+  var bad = [];
+  document.querySelectorAll('.place-icon *, .ev-dot, .fx-ic *, .travel-ic *, .rh-ic *, .ctx-icon *').forEach(function (el) {
+    if (el.classList.contains('route-flow')) return;
+    var cs = getComputedStyle(el);
+    if (cs.animationName !== 'none' && cs.animationIterationCount === 'infinite') bad.push(el.className || el.tagName);
+  });
+  var ring = document.querySelectorAll('.ring').length;
+  return JSON.stringify({ rings: ring, infinite: bad.slice(0, 6), ok: ring === 0 && bad.length === 0 });
 })()`));
 
 /* D7. 播放/缩放节奏放慢（需求2）：行程与推近时长须显著大于旧值（2600 / 550ms）。 */
@@ -1235,6 +1251,116 @@ console.log('J2 mobile-drawer:', await ev(`(function(){
   });
 })()`));
 await shot('f5_mobile.png');
+
+/* ================= M8：标签密度分级（2026-11-02） =================
+ * 首屏截图曾出现「28 个地名 + 22 个事件计数 + 97 个事件点」全部同权重铺满，
+ * 安纳托利亚/叙利亚一带糊成乱码。M8 的三条修法各配一条断言：
+ *   M8-1 分级消隐：首屏只剩 L1 主干城市，标签之间零重叠
+ *   M8-2 临时提升：悬停被隐去的地名核心，它的标签出现；移开复隐
+ *   M8-3 播放收敛：播放期地名收敛到当前章节，暂停后恢复常态
+ * 必须切回桌面视口重载 —— J 段已把设备改成 430×932 移动端。 */
+await send('Emulation.setDeviceMetricsOverride', { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
+await send('Page.navigate', { url: PAGE });
+await sleep(7800);
+
+console.log('M8-1 label-density:', await ev(`(function(){
+  var all=[].slice.call(document.querySelectorAll('.leaflet-tooltip.city-tip'));
+  var vis=all.filter(function(t){return t.style.display!=='none';});
+  var bx=vis.map(function(t){var r=t.getBoundingClientRect();return {l:r.left,t:r.top,r:r.right,b:r.bottom};});
+  var pairs=0, worst=0;
+  for(var i=0;i<bx.length;i++)for(var j=i+1;j<bx.length;j++){
+    var ox=Math.min(bx[i].r,bx[j].r)-Math.max(bx[i].l,bx[j].l);
+    var oy=Math.min(bx[i].b,bx[j].b)-Math.max(bx[i].t,bx[j].t);
+    if(ox>0&&oy>0){pairs++;worst=Math.max(worst,ox*oy);}
+  }
+  var st=GS_APP.labelStats();
+  return JSON.stringify({stats:st,visible:vis.length,overlapPairs:pairs,worstArea:Math.round(worst),
+    ok: st.total===28 && vis.length===6 && pairs===0 && st.hidden===22 && st.base>0});
+})()`));
+
+/* M8-2 悬停恢复：挑一个首屏被隐去的 L2 地点（米利都），用真实鼠标移动。
+ * 不能派发合成的 MouseEvent —— 那样测不到「核心是否真的在指针命中层里」
+ * （.place-icon 是 pointer-events:none，只有 .core 是 auto，命中链断了就失效）。 */
+var hid = JSON.parse(await ev(`(function(){
+  var ids=['miletus','troas','athens','tyre','sidon','berea'];
+  for(var i=0;i<ids.length;i++){
+    var p=document.querySelector('.place[data-place="'+ids[i]+'"]');
+    if(!p) continue;
+    var tip=document.querySelector('.leaflet-tooltip.city-tip[data-place="'+ids[i]+'"]');
+    var r=p.closest('.place-icon').getBoundingClientRect();
+    if((!tip||tip.style.display==='none')&&r.width>0)
+      return JSON.stringify({id:ids[i],x:Math.round(r.left+r.width/2),y:Math.round(r.top+r.height/2)});
+  }
+  return JSON.stringify({id:null});
+})()`));
+var m8h = false, m8b = false;
+if (hid.id) {
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: hid.x, y: hid.y });
+  await sleep(420);
+  m8h = (await ev(`(function(){var t=document.querySelector('.leaflet-tooltip.city-tip[data-place="${hid.id}"]');return !!(t&&t.style.display!=='none');})()`)) === true;
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1650, y: 90 });   /* 移出地图左上角空白 */
+  await sleep(420);
+  m8b = (await ev(`(function(){var t=document.querySelector('.leaflet-tooltip.city-tip[data-place="${hid.id}"]');return !!(t&&t.style.display==='none');})()`)) === true;
+}
+console.log('M8-2 hover-reveal:', JSON.stringify({ target: hid.id, appeared: m8h, hiddenAgain: m8b,
+  ok: !!hid.id && m8h && m8b }));
+
+/* M8-3 播放收敛：本章地点必须【强制显示】（ch1 途经的安提阿/帕弗/路司得/特庇
+ * 多是 L2/L3，若只让当前可见的 L1 保持实色，播放第一段时全图只有 1 个地名）。
+ * 非本章地点保留但压暗（opacity .18），不 display:none —— 保留地理上下文。 */
+await ev(`GS_APP.play()`);
+await sleep(3000);
+console.log('M8-3 play-converge:', await ev(`(function(){
+  var vis=[].slice.call(document.querySelectorAll('.leaflet-tooltip.city-tip')).filter(function(t){return t.style.display!=='none';});
+  var cur=vis.filter(function(t){return t.classList.contains('cur-ch');});
+  var dim=vis.filter(function(t){return !t.classList.contains('cur-ch');});
+  var op=dim.length?getComputedStyle(dim[0]).opacity:null;
+  return JSON.stringify({playing:document.body.classList.contains('playing'),
+    visible:vis.length,curCh:cur.length,dim:dim.length,dimOpacity:op,
+    ok: document.body.classList.contains('playing') && cur.length>=5 &&
+        dim.length>=1 && Number(op)<0.3});
+})()`));
+await ev(`GS_APP.pause()`);
+await sleep(600);
+console.log('M8-4 pause-restore:', await ev(`(function(){
+  var vis=[].slice.call(document.querySelectorAll('.leaflet-tooltip.city-tip')).filter(function(t){return t.style.display!=='none';});
+  var st=GS_APP.labelStats();
+  return JSON.stringify({playing:document.body.classList.contains('playing'),
+    visible:vis.length,hidden:st.hidden,
+    ok: !document.body.classList.contains('playing') && vis.length===6 && st.hidden===22});
+})()`));
+
+/* M8-5 路线聚焦（2026-11-02 需求「点选某条路线时，非本路线的地点和时间不显示」）：
+ * 真实点击图例里的第一段旅程，断言地图地点、事件点、时间轴圆点三层同时收敛，
+ * 再点一次取消。只测其中一层是不够的 —— 三个层面任何一层漏收口都会出现
+ * 「点了路线但还有东西留在图上」。 */
+var lg = await centerOf('.lg-j[data-j="j1"]');
+console.log('M8-5 legend-found:', lg ? 'yes' : 'MISSING');
+if (lg) {
+  await realClick(lg.x, lg.y);
+  await sleep(1100);
+  console.log('M8-5 route-focus:', await ev(`(function(){
+    var places=[].slice.call(document.querySelectorAll('.place-icon'));
+    var dots=[].slice.call(document.querySelectorAll('.ev-dot'));
+    var tl=[].slice.call(document.querySelectorAll('.tl-dot'));
+    var offP=places.filter(function(e){return e.classList.contains('route-off');}).length;
+    var offD=dots.filter(function(e){return e.classList.contains('route-off');}).length;
+    var offT=tl.filter(function(e){return e.classList.contains('route-off')||e.style.display==='none';}).length;
+    return JSON.stringify({route:GS_APP.state.route,
+      placesTotal:places.length,placesOff:offP,
+      dotsTotal:dots.length,dotsOff:offD,
+      tlTotal:tl.length,tlOff:offT,
+      ok: !!GS_APP.state.route && offP>0 && offD>0 && offD<dots.length});
+  })()`));
+  await realClick(lg.x, lg.y);   /* 再点一次取消聚焦 */
+  await sleep(1100);
+  console.log('M8-5 route-clear:', await ev(`(function(){
+    var offP=[].slice.call(document.querySelectorAll('.place-icon.route-off')).length;
+    var offD=[].slice.call(document.querySelectorAll('.ev-dot.route-off')).length;
+    return JSON.stringify({route:GS_APP.state.route,placesOff:offP,dotsOff:offD,
+      ok: GS_APP.state.route===null && offP===0 && offD===0});
+  })()`));
+}
 
 console.log('JS ERRORS:', errors.length ? errors.join(' | ') : 'NONE');
 ws.close();

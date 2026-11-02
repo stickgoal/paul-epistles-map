@@ -840,37 +840,39 @@ body.panel-off #panelToggle svg{transform:rotate(180deg)}
 
 .note{margin:8px 26px 26px;font-size:11px;line-height:1.85;color:var(--ink-3)}
 
-/* ============ 时间轴（浮在地图底部的卡片） ============ */
+/* ============ 时间轴（浮在地图底部的卡片） ============
+ * 2026-10-30（M9·地图优先）：整卡从 259px 压到 ~170px。原因不是"卡片丑"，而是
+ * 它是 fit 安全区里唯一可压缩的垂直项 —— 桌面 fit 的瓶颈在高度（故事 y 跨度
+ * 15.8° × Mercator 1.25 ≈ 20°，比宽度更容易顶满），时间轴每多 1px，地图就少 1px，
+ * 一旦跨过缩放档位（z5.5 → z5）地图内容直接腰斩。压缩手段：内边距 12/11 → 8、
+ * 顶部行 4 → 2、按钮 7 → 5、轨道下沿留白 15 → 11。点径同时 12 → 10（见 timeline.js）。 */
 .tl{position:absolute;left:calc(var(--sb) + 28px);right:14px;bottom:14px;z-index:1400;
-  padding:12px 20px 11px;border-radius:16px;
+  padding:8px 20px 8px;border-radius:16px;
   background:var(--glass);
   -webkit-backdrop-filter:blur(20px) saturate(1.08);backdrop-filter:blur(20px) saturate(1.08);
   border:1px solid rgba(231,231,225,.9);
   box-shadow:0 18px 50px rgba(20,20,18,.15),0 2px 6px rgba(20,20,18,.05);
   transition:left .34s cubic-bezier(.3,.8,.3,1)}
 body.panel-off .tl{left:14px}
-.tl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px}
+.tl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;gap:10px}
 .tl-cap{font-size:11px;letter-spacing:.1em;color:var(--ink-3);font-weight:600;white-space:nowrap}
 .tl-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .tl-count{font-size:11px;color:var(--ink-3);font-feature-settings:"tnum";white-space:nowrap}
 .tl-year{font-size:15px;font-weight:700;font-feature-settings:"tnum";letter-spacing:-.01em;min-width:56px;text-align:right}
-.play{display:flex;align-items:center;gap:6px;border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 13px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s}
+.play{display:flex;align-items:center;gap:6px;border:1px solid var(--hair);background:#fff;border-radius:999px;padding:4px 12px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:.2s}
 .play:hover{border-color:var(--ink-3);color:var(--ink)}
 .play.playing{background:var(--ink);border-color:var(--ink);color:#fff}
-/* 未播放时的主行动号召：深色实心 + 呼吸光晕，播放后恢复常规样式
- * 注意：按钮动画必须用独立 keyframes 名（playHint），勿与地图呼吸环共享 'breathe'——
- * CSS 同名 keyframes 后定义者覆盖（环的 scale(2.5)+淡出 在后，约 302 行），
- * 会让按钮「每 2.8s 放大 2.5 倍并闪没」（2026-10-27 实测）；
- * verify D6 又要求环动画名保持 'breathe'，故改按钮名而非环名。 */
-.play.hint{background:var(--ink);border-color:var(--ink);color:#fff;padding:7px 16px;font-size:12.5px;font-weight:600;box-shadow:0 2px 10px rgba(20,20,18,.18);animation:playHint 2.8s cubic-bezier(.4,0,.5,1) infinite}
+/* 未播放时的主行动号召：深色实心（静态强调，不再做无限光晕扩散）。
+ * 2026-10-30「直接不闪烁」：playHint 的 2.8s 阴影脉冲与地点呼吸环同属
+ * 「常驻循环动画」，去掉后用深色底 + 字重建立同等的主次层级。 */
+.play.hint{background:var(--ink);border-color:var(--ink);color:#fff;padding:4px 14px;font-size:12px;font-weight:600;box-shadow:0 2px 10px rgba(20,20,18,.18)}
 .play.hint:hover{background:#000;border-color:#000}
-@keyframes playHint{0%,100%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 0 rgba(20,20,18,.16)}50%{box-shadow:0 2px 10px rgba(20,20,18,.18),0 0 0 7px rgba(20,20,18,0)}}
 .play .i-pause{display:none}
 .play.playing .i-play{display:none}
 .play.playing .i-pause{display:block}
-.tl-step{border:1px solid var(--hair);background:#fff;border-radius:999px;width:28px;height:28px;font-size:9px;color:var(--ink-2);cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+.tl-step{border:1px solid var(--hair);background:#fff;border-radius:999px;width:26px;height:26px;font-size:9px;color:var(--ink-2);cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;padding:0;flex:none}
 .tl-step:hover{border-color:var(--ink-3);color:var(--ink)}
-.tl-speed{border:1px solid var(--hair);background:#fff;border-radius:999px;padding:6px 10px;font-size:11px;color:var(--ink-2);cursor:pointer;transition:.2s;font-feature-settings:"tnum";flex:none}
+.tl-speed{border:1px solid var(--hair);background:#fff;border-radius:999px;padding:4px 9px;font-size:11px;color:var(--ink-2);cursor:pointer;transition:.2s;font-feature-settings:"tnum";flex:none}
 .tl-speed:hover{border-color:var(--ink-3);color:var(--ink)}
 /* 音效开关（M6）：与步进按钮同尺寸，用 aria-pressed 切换图标，不做位移动画 */
 .tl-sound{position:relative}
@@ -881,7 +883,7 @@ body.panel-off .tl{left:14px}
 /* 轨道高度须容纳「圆点最大行数 × 13px + 起始 9px」+ 色带 3px + 间隙。
  * 12 事件挤在 AD 46–49（量程 46–54）时实测最多 3 行，故取 60px；
  * 行数由 timeline 的 stagger 按实际像素判定并写入 onPending(rows)。*/
-.tl-track{position:relative;height:60px;cursor:pointer;touch-action:none;margin-top:2px}
+.tl-track{position:relative;height:60px;cursor:pointer;touch-action:none;margin-top:0}
 .tl-rail{position:absolute;left:0;right:0;top:14px;height:2px;background:var(--hair);border-radius:2px}
 /* 章节色带：3px → 5px 并提高基础不透明度，否则在浅灰底图上几乎不可见 */
 .tl-band{position:absolute;top:56px;height:5px;border-radius:2.5px;opacity:.5;transition:opacity .35s,filter .35s;cursor:pointer}
@@ -897,8 +899,8 @@ body.panel-off .tl{left:14px}
 .tl-knob{position:absolute;top:4px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#fff;border:1px solid var(--hair);box-shadow:0 2px 10px rgba(20,20,18,.16);display:flex;align-items:center;justify-content:center;transition:transform .15s;pointer-events:none}
 .tl-track:active .tl-knob{transform:scale(1.12)}
 .tl-knob::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--ink)}
-.tl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-feature-settings:"tnum";margin-top:2px}
-.tl-keys{font-size:11.5px;color:var(--ink-2);letter-spacing:.02em}
+.tl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-feature-settings:"tnum";margin-top:0}
+.tl-keys{font-size:10.5px;color:var(--ink-2);letter-spacing:.02em}
 
 /* ============ 首屏引导卡（H-2：让「可播放」可发现） ============ */
 /* 首屏引导横幅：核心交互「时间轴故事播放」的可发现性（H-2）。
@@ -964,6 +966,12 @@ body.panel-off .tl{left:14px}
 .lg-j.on{background:var(--accent-soft);color:var(--accent-deep)}
 .lg-j.on::after{color:var(--accent)}
 .lg-j.on i{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+/* 筛选选中态（M8）：与「正在行进」的 .on 区分 —— 选中是读者的选择（持续），
+ * 行进是时间轴的进度（会变）。选中用左侧色条 + 深底，行进只用浅底。 */
+.lg-j.sel{background:var(--ink);color:#fff;box-shadow:inset 3px 0 0 var(--ink)}
+.lg-j.sel em{color:rgba(255,255,255,.72)}
+.lg-j.sel::after{content:'\00D7';font-size:11px;color:rgba(255,255,255,.8)}
+.lg-j.sel i{box-shadow:0 0 0 2px rgba(255,255,255,.5)}
 .lg-j.past{opacity:.66}
 .lg-j.future{opacity:.38}
 .lg-hint{margin-top:9px;padding-top:9px;border-top:1px solid var(--hair-2);font-size:10.5px;color:var(--ink-3)}
@@ -987,7 +995,7 @@ body.panel-off .now{left:14px;max-width:min(480px,calc(100vw - 30px))}
 
 /* 署名与来源：随浮动时间轴卡片走（地图右下角要留给缩放与比例尺） */
 .attri{font-size:10px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap}
-.tl-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px}
+.tl-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:3px}
 .tl-foot .attri{margin-left:auto;text-align:right}
 
 /* Leaflet 控件样式覆盖（缩放按钮已改为模板自带的 .mapctl，见下） */
@@ -997,7 +1005,10 @@ body.panel-off .now{left:14px;max-width:min(480px,calc(100vw - 30px))}
 .leaflet-bar a:hover{background:#fff!important;color:var(--ink)!important}
 .leaflet-control-scale-line{border-color:#c3c6bd!important;color:var(--ink-2);background:rgba(255,255,255,.75);border-radius:2px;font-size:10px;padding:1px 5px}
 
-.leaflet-tooltip.city-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink);font-size:12.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;pointer-events:none}
+.leaflet-tooltip.city-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink);font-size:12.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;pointer-events:none;
+  /* 呼吸环移除后，静止态的地点身份只剩「饼图核心 + 地名」——标签直接压在底图与
+   * 路线上，必须自带一层浅色晕圈才读得清（不换成胶囊底：28 个胶囊会重新变吵）。 */
+  text-shadow:0 0 3px #fdfdfb,0 0 3px #fdfdfb,0 0 6px rgba(253,253,251,.92),0 1px 1px rgba(253,253,251,.95)}
 /* 标签避让的附加偏移：map-core 用 --tx/--ty 指定（不重绑 tooltip，避免 DOM 泄漏）。
    Leaflet 各类 direction 自带 margin-left/margin-top（6px / -6px），
    故这里用 calc 把两者叠加，而不是直接覆盖 margin。 */
@@ -1008,6 +1019,16 @@ body.panel-off .now{left:14px;max-width:min(480px,calc(100vw - 30px))}
 .leaflet-tooltip.city-tip::before{display:none}
 .city-tip .en{display:block;font-size:10px;font-weight:500;color:var(--ink-3);letter-spacing:.05em;margin-top:1px}
 .city-tip .cnt{font-weight:500;color:var(--accent);font-size:11px;margin-left:6px;font-feature-settings:"tnum"}
+/* 播放期地名收敛（M8）：只让当前章节沿途的地名保持实色，其余压到 0.18。
+ * 不用 display:none —— 地名全消失会让读者失去方位感（「现在在地中海哪一段」）。
+ * 与 map-core 的分级消隐（display:none）是两套机制，可以叠加：被分级隐藏的
+ * 标签不渲染，这里的 opacity 对它们无效，符合预期。
+ *
+ * 必须 !important：Leaflet 的 Tooltip 在 _initLayout 里把默认 opacity 写成
+ * 【内联样式】（实测 inlineStyle="opacity: 0.9; ..."），内联永远压过普通规则。
+ * .pinned 排除 hover/选中而临时提上来的标签 —— 读者主动关注的地方不该是灰的。 */
+body.playing .leaflet-tooltip.city-tip{transition:opacity .45s}
+body.playing .leaflet-tooltip.city-tip:not(.cur-ch):not(.pinned){opacity:.18 !important}
 .leaflet-tooltip.ctx-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink-3);font-size:11px;font-weight:500;white-space:nowrap;pointer-events:none}
 .leaflet-tooltip.ctx-tip::before{display:none}
 .hide-labels .leaflet-tooltip{display:none}
@@ -1019,22 +1040,23 @@ body.panel-off .now{left:14px;max-width:min(480px,calc(100vw - 30px))}
 .place-icon .place{position:relative;width:96px;height:96px}
 .place .glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 6%,transparent) 45%,transparent 68%);opacity:0;transition:opacity .45s;pointer-events:none;z-index:1}
 .place.lit .glow{opacity:1}
-/* 呼吸环：双环错相半周期，9s 一叹（0→62% 扩张渐隐、62→100% 静息）。
- * 2026-10-30 放慢（原 5.6s / 错相 2.8s）：旧曲线 cubic-bezier(.32,.52,.42,1)
- * 起步极快 —— 每 2.8s 就有一圈「啪」地弹出去，观感是抽搐而不是呼吸。
- * 改法两条：周期 5.6 → 9s（每 4.5s 才起一圈），缓动换成两头慢的
- * cubic-bezier(.4,.05,.5,.95)（真正的吸气—呼气），扩到 2.15 倍即止。 */
-.place .ring{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:1.5px solid #b9bdb4;animation:breathe 9s cubic-bezier(.4,.05,.5,.95) infinite;pointer-events:none;opacity:.45}
-.place .ring.b2{animation-delay:4.5s}
-@keyframes breathe{0%{transform:scale(1);opacity:.45}62%{transform:scale(2.15);opacity:0}100%{transform:scale(2.15);opacity:0}}
-/* 播放中收敛：全图呼吸环静息（跟车平移 × 全图 28 环持续扩散 = 双重动态，观感「闪」）。
- * 到达处的动态强调交给 fx-glow 单点光晕；暂停/播毕自动恢复呼吸（body.playing 移除）。 */
-body.playing .place .ring{animation:none;opacity:.18}
+/* 呼吸环已移除（2026-10-30 用户反馈「去掉吧」）：28 个地点各有一圈扩散环，
+ * 即使放到 9s 仍是全图持续的背景运动，与「稳定感」的诉求冲突。
+ * 现在静止态的身份由【复合饼图核心 + 地名标签】承担，动态只保留
+ * 「当前事件」的单点光晕（.fx-glow）与事件点抵达外扩（.ev-dot.arrive）。 */
+
 /* 复合核心：SVG 饼图（扇区=事件类型占比、面积=事件数），点击打开地点介绍。
  * 直径随事件数增长、上限 24px，与标签避让用的 24px 视觉核心盒一致。 */
 .place .core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;background:none;border:none;box-shadow:none;padding:0;line-height:0;cursor:pointer;pointer-events:auto;transition:transform .25s cubic-bezier(.34,1.56,.64,1);z-index:4}
 .place .core .pie{display:block;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(20,20,18,.3))}
 .place:hover .core{transform:translate(-50%,-50%) scale(1.18)}
+
+/* 路线筛选（M8）：选中某段旅程后，不在本旅程上的地点 / 事件点整体隐去。
+ * 用 opacity + pointer-events 而不是 display:none —— Leaflet 的 marker 元素带
+ * transform 定位，display 切换会让 marker 的 _icon 尺寸缓存与 hover 命中失效；
+ * 标签避让在筛选后会以「可见元素」重算（见 map-core 的 .place-icon:not(.route-off)）。 */
+.place-icon.route-off,.ctx-icon.route-off{opacity:0;pointer-events:none;transition:opacity .3s}
+.ev-dot.route-off{display:none}
 
 /* 事件标记：按类型区分的线性图标（与地点核心的圆点形态明确区分） */
 .ev-dot{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:7px;background:#fff;border:1.6px solid var(--c);color:var(--c);display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;transform:scale(.2);opacity:0;transition:opacity .3s,transform .45s cubic-bezier(.34,1.56,.64,1),background .25s,color .25s,box-shadow .3s,border-color .3s;padding:0;z-index:3;box-shadow:0 1px 4px rgba(20,20,18,.18)}
@@ -1064,22 +1086,22 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 .ctx-icon{pointer-events:none}
 .ctx{width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #b9bdb4;box-shadow:0 1px 3px rgba(20,20,18,.15)}
 
-/* 点亮特效：柔光淡入后进入 9s 呼吸（与地点环同频；原 5.6s 同样偏快） */
+/* 点亮特效：柔光淡入后【常亮】，不再呼吸。
+ * 2026-10-30 用户「直接不闪烁」：任何 infinite 的明暗变化在余光里都是闪，
+ * 所以柔光只保留一次性淡入（1.8s），之后保持恒定不透明度。 */
 .fx-ic{pointer-events:none}
-.fx-glow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin 1.8s ease-out forwards,glowbreathe 9s ease-in-out 1.8s infinite}
+.fx-glow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 7%,transparent) 45%,transparent 68%);opacity:0;animation:fxin 1.8s ease-out forwards}
 @keyframes fxin{0%{opacity:0}22%{opacity:1}to{opacity:1}}
-@keyframes glowbreathe{0%,100%{opacity:.8}50%{opacity:1}}
 
 /* 旅程动画 */
 .travel-ic{pointer-events:none}
 .td{width:15px;height:15px;margin:-7.5px 0 0 -7.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 5px color-mix(in srgb,var(--c,#c2593f) 22%,transparent),0 0 16px color-mix(in srgb,var(--c,#c2593f) 55%,transparent);position:relative}
-.td::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.55;animation:pulse 2.8s ease-out infinite}
+/* 行进点/路线头原来各挂一圈无限 pulse 扩散环（2.8s / 2.4s），与地点呼吸环同源，
+ * 一并移除：移动标记本身的位移已足够表达「在路上」，再叠脉冲就是闪。 */
 .route-flow{animation:dashflow 6.5s linear infinite}
 @keyframes dashflow{to{stroke-dashoffset:-56}}
-@keyframes pulse{0%{transform:scale(1);opacity:.45}70%{transform:scale(3);opacity:0}100%{transform:scale(3);opacity:0}}
 .rh-ic{pointer-events:none}
 .rh{width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--c,#c2593f);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#c2593f) 20%,transparent),0 0 14px color-mix(in srgb,var(--c,#c2593f) 65%,transparent);position:relative}
-.rh::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--c,#c2593f);opacity:.5;animation:pulse 2.4s ease-out infinite}
 
 /* 响应式：窄屏同样「地图铺满 + 浮层」，事件面板变成可收起的底部抽屉。
  * 手机屏幕放不下「地图 + 3 行列表 + 169px 时间轴」，因此默认收起抽屉，
@@ -1087,7 +1109,11 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
 @media (max-width: 960px){
   .sidebar{left:10px;right:10px;top:auto;bottom:calc(var(--tlh) + 10px);width:auto;
     height:44dvh;max-height:520px;border-radius:16px}
-  body.panel-off .sidebar{transform:translateY(calc(100% + 14px));opacity:.001;pointer-events:none}
+  /* 抽屉收起：必须真的滑出视口下沿，而不是「移自身高度 + 14」。
+   * 抽屉下边锚在 calc(--tlh + 10px)，只移 100% 会停在半空（opacity .001 看不见，
+   * 但矩形仍压住时间轴顶部与播放按钮 —— 2026-10-30 实测压住 1560px²）。
+   * 位移 = 自身高度 + 它距视口底的距离（--tlh + 10）+ 余量 4。 */
+  body.panel-off .sidebar{transform:translateY(calc(100% + var(--tlh) + 14px));opacity:.001;pointer-events:none}
   /* 开关：抽屉展开时贴在其右上角，收起后浮在时间轴上方（左），不挡缩放控件 */
   #panelToggle{left:auto;right:16px;top:auto;bottom:calc(var(--tlh) + 10px + 44dvh - 46px);height:30px;padding:0 10px}
   #panelToggle .pt-lb{display:inline}
@@ -1215,7 +1241,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
         <div id="typeLegend"></div>
         <h4 style="margin-top:11px">传道旅程</h4>
         <div id="journeyLegend"></div>
-        <div class="lg-hint">点击旅程重播动画 · 时间轴推进会按年代点亮路径</div>
+        <div class="lg-hint">点击旅程：只看这段旅程（地点与时间同步筛选，再点取消）</div>
       </div>
     </div>
     <div class="now" id="now"></div>
@@ -1440,9 +1466,19 @@ GS.mapCore = (function () {
   'use strict';
 
   var map = null, glowMarker = null, litTimer = null;
-  var lastItems = [], lastObstacleSel = '.place .ev-dot, .ctx';
+  /* 障碍集与核心盒都排除被路线筛选隐去的地点（.route-off）：
+   * 隐去的地点在几何上仍然占着 96×96 的盒子，若继续参与避让，可见标签会被
+   * 「看不见的东西」推得四处乱跑。 */
+  var lastItems = [], lastObstacleSel = '.place-icon:not(.route-off) .ev-dot, .ctx-icon:not(.route-off) .ctx';
   var labelTimer = null, lastLabelZoom = 0;
-  var lastFit = null;
+  var lastFit = null, storyFit = null;
+  /* 标签分级（M8）：baseZoom 是首次 fit 落定的首屏 zoom，L2/L3 的显示阈值以它为基准。
+   * 只记一次 —— 若每次 fit 都更新，用户手动缩放后再触发 fit（resize/打开面板）会让
+   * 阈值跟着漂，同一缩放下标签数量时多时少。 */
+  var baseZoom = 0;
+  /* 强制显示集合：hover / 选中地点 / 播放到达时，把分级不到或被挤掉的标签临时提上来。
+   * 由模板层调用 forceLabel(id, true/false) 维护，placeLabels 读它决定是否允许隐藏。 */
+  var forceSet = {};
   /* 安全区（px）：浮在地图上的面板/时间轴遮住的区域。fitBounds 只把故事范围塞进
    * 「没被遮住」的那块，否则全屏地图下罗马与马耳他会躲在左侧面板背后。 */
   var insets = { t: 26, r: 26, b: 26, l: 26 };
@@ -1466,6 +1502,7 @@ GS.mapCore = (function () {
     var center = map.unproject(px, zoom);
     fitLog.push([insets.t, insets.r, insets.b, insets.l, zoom, Math.round(boxC.x), Math.round(boxC.y), animate ? 'anim' : 'set']);
     if (fitLog.length > 24) fitLog.shift();
+    if (!baseZoom) baseZoom = zoom;   /* 首屏 zoom 定标（标签分级阈值的基准，见 placeLabels） */
     if (animate) map.flyTo(center, zoom, { duration: (durMs || 1200) / 1000 });
     else map.setView(center, zoom, { animate: false });
   }
@@ -1499,7 +1536,7 @@ GS.mapCore = (function () {
       zoomControl: false, attributionControl: false,
       minZoom: 3, maxZoom: 10, zoomSnap: .5, wheelPxPerZoomLevel: 140
     });
-    var fit = lastFit = opts.fit || DEFAULT_FIT;
+    var fit = lastFit = storyFit = opts.fit || DEFAULT_FIT;
     clampInsets();
     fitStory(false);
     /* 缩放与比例尺不再交给 Leaflet 的角容器：它的 .leaflet-control 是 float:left;clear:both，
@@ -1606,8 +1643,9 @@ GS.mapCore = (function () {
   }
 
   /* 点亮某坐标：柔光 + 双重涟漪（keep=true 持续到 clearLit）
-   * 节奏整体放慢（2026-10-17）：光晕淡入 1.8s、涟漪单程 3.6s、二次涟漪 1.8s 触发，
-   * 与地点标记的 5.6s 呼吸同频，避免快闪。 */
+   * 节奏整体放慢（2026-10-17）：光晕淡入 1.8s、涟漪单程 3.6s、二次涟漪 1.8s 触发。
+   * 2026-10-30 起地点呼吸环已移除，这层光晕成为全图唯一的「地点级」动态强调 ——
+   * 只在当前事件地点出现（keep 由到达/离开控制），不再有 28 个环同时扩散。 */
   function lit(ll, color, keep) {
     color = color || '#c2593f';
     clearLit();
@@ -1652,6 +1690,47 @@ GS.mapCore = (function () {
   function placeLabels(items, obstacleSel) {
     lastItems = items || [];
     lastObstacleSel = obstacleSel || lastObstacleSel;
+
+    /* ---------- 分级与消隐（M8，2026-11-02） ----------
+     * 旧算法只有「挪」（9 方位 × 形态降级）与「缩短」（去英文名/去计数）两条路，
+     * 全冲突时取「重叠面积最小者」—— 即任何标签【必须显示】。密集区（安纳托利亚/
+     * 叙利亚）9 个方位全被占满，于是必然糊成一片（首屏实测 28 个标签 16 对互压）。
+     *
+     * 新增第三条路：占不到位就【隐藏】。分三级，阈值相对首屏 zoom（窗口尺寸不同，
+     * fit 出的首屏 zoom 也不同：1080p 实测 5.5、窄屏 5.0，用绝对值会让窄屏永远
+     * 看不到 L2）：
+     *   L1（≥6 事件）任何缩放都显示；L2（2–4）首屏 +0.5 级；L3（0–1）首屏 +1.3 级。
+     * L1 永不被隐藏 —— 宁可轻微重叠，也不能首屏一个地名都没有。
+     *
+     * 测量前必须把所有标签恢复显示：display:none 的元素 getBoundingClientRect()
+     * 返回 0，会被误判成「零尺寸标签」，方位评估与越界惩罚全部失效。 */
+    var zNow = map ? map.getZoom() : 6;
+    var base = baseZoom || zNow;
+    lastItems.forEach(function (cm) {
+      var t = cm.marker && cm.marker.getTooltip ? cm.marker.getTooltip() : null;
+      var el = t && t.getElement ? t.getElement() : null;
+      if (el) { el.style.display = ''; el.classList.remove('label-hidden'); }
+    });
+    /* 小视口再筛一层 L1：移动端地图可用区常只有 430×230（顶部胶囊 + 底部抽屉），
+     * 6 个主干城市在小地图上照样糊成一团。按事件数取前 3
+     * （罗马 14 / 凯撒利亚 13 / 耶路撒冷 11）—— 它们同时覆盖西、东、南三个方位，
+     * 缩放到哪都还留得住一个参照点。 */
+    var sz = map ? map.getSize() : { x: 1200, y: 800 };
+    var usableW = Math.max(0, sz.x - insets.l - insets.r);
+    var usableH = Math.max(0, sz.y - insets.t - insets.b);
+    var tight = usableW * usableH < 300000;
+    var l1Top = {};
+    if (tight) {
+      lastItems.filter(function (cm) { return (cm.tier || 1) === 1; })
+        .sort(function (a, b) { return (b.weight || 0) - (a.weight || 0); })
+        .slice(0, 3)
+        .forEach(function (cm) { l1Top[cm.placeId] = 1; });
+    }
+    function tierOK(tier, pid) {
+      if (!tier || tier <= 1) return !tight || !!l1Top[pid];
+      return zNow >= base + (tier === 2 ? 0.5 : 1.3);
+    }
+
     document.body.classList.add('measuring');
     var obstacles = [];
     document.querySelectorAll(lastObstacleSel).forEach(function (elm) {
@@ -1665,7 +1744,7 @@ GS.mapCore = (function () {
      * 24px 盒只覆盖可见核心周围，既反映真实冲突，又不互相误判。
      * 自身核心豁免 —— 标签必然从自己的锚点伸出。 */
     var cores = [];
-    document.querySelectorAll('.place-icon').forEach(function (elm) {
+    document.querySelectorAll('.place-icon:not(.route-off)').forEach(function (elm) {
       var inner = elm.querySelector('.place');
       var r = elm.getBoundingClientRect();
       if (!r.width) return;
@@ -1679,7 +1758,18 @@ GS.mapCore = (function () {
 
     var placed = [];
     var dirUsed = {};            /* 方位使用计数：同分时偏好少用过的方向，实现分散 */
-    var items2 = lastItems.map(function (cm) {
+    var items2 = lastItems.filter(function (cm) {
+      /* 路线筛选（M8）：被隐去的地点不参与避让。过滤放在这里而不是调用方，
+       * 因为 resize / moveend / setInsets 都会用 lastItems 重算 —— 调用方只在
+       * 点击图例那一刻传过筛选后的数组，之后就会被「全量重算」悄悄还原。 */
+      var el = cm.marker && cm.marker.getElement ? cm.marker.getElement() : null;
+      if (el && el.classList.contains('route-off')) return false;
+      /* 强制显示（hover / 选中 / 播放到达）必须优先于分级：分级过滤发生在这里，
+       * 若不在同一处放行，被 tier 挡掉的标签根本进不了候选集，后面 items2 里的
+       * force 标记永远读不到 —— 实测「悬停米利都标签不出现」就是这个顺序错误。 */
+      if (cm.placeId && forceSet[cm.placeId]) return true;
+      return tierOK(cm.tier, cm.placeId);
+    }).map(function (cm) {
       /* 该标签锚定在哪个地点上（用于豁免自身核心） */
       var anchorId = cm.anchorId || null;
       var variants = buildLabelVariants(cm.html);
@@ -1688,7 +1778,27 @@ GS.mapCore = (function () {
        * （实测 28 个标签膨胀成 1883 个残留节点）。 */
       var tip = cm.marker.getTooltip();
       if (!tip) { cm.marker.bindTooltip(cm.html, { permanent: true, direction: 'right', offset: [16, 0], className: 'city-tip' }); tip = cm.marker.getTooltip(); }
-      return { anchorId: anchorId, variants: variants, tipEl: tip.getElement() };
+      var te = tip.getElement();
+      /* 兜底再打一次地点 id：tooltip 可能在首次 placeLabels 时才真正挂上 DOM，
+       * 构造期的 setAttribute 会落空（诊断脚本靠它豁免自身核心重叠）。 */
+      if (te && anchorId) te.setAttribute('data-place', anchorId);
+      return { anchorId: anchorId, variants: variants, tipEl: te,
+               tier: cm.tier || 1, placeId: cm.placeId || anchorId,
+               force: !!(anchorId && forceSet[anchorId]), cm: cm };
+    });
+    /* 排序：L1 先占位（重要的先挑方位），同 tier 保持数据顺序（地名位置稳定，
+     * 不会因为某次重算把两个同级标签的方位对调）。 */
+    items2.sort(function (a, b) { return a.tier - b.tier; });
+
+    /* 未入选的标签（分级不到 / 被路线筛掉）统一隐藏。不能只靠 CSS 的 opacity:0 ——
+     * 它们仍会占着旧的绝对定位，视觉上像「幽灵标签」压着别人。 */
+    var keepIds = {};
+    items2.forEach(function (it) { if (it.placeId) keepIds[it.placeId] = 1; });
+    lastItems.forEach(function (cm) {
+      if (cm.placeId && keepIds[cm.placeId]) return;
+      var t = cm.marker && cm.marker.getTooltip ? cm.marker.getTooltip() : null;
+      var el = t && t.getElement ? t.getElement() : null;
+      if (el) el.style.display = 'none';
     });
 
     /* 贪心初放（第一遍）——逐形态评估：先算每一档形态的最优候选，再按「信息量优先」挑选。
@@ -1720,13 +1830,30 @@ GS.mapCore = (function () {
       }
 
       var best = viBests[0];
-      if (best && best.score > 0) {
+      /* 轻微重叠容差（M8）：score = 重叠面积(px²) + 越界面积×2。
+       * 一个 12.5px 汉字的一角约 60–80px² —— 压住这点面积仍然读得出来，
+       * 却能让密集区多显示好几个地名。旧实现只要 score > 0 就判「放不下」，
+       * 实测 z6.5 时安纳托利亚一带把 10 个 L2 地点砍到只剩 2 个，放大等于没放大。
+       * L1 容差更大：宁可重叠也不许消失。 */
+      var TOL = it.tier > 1 ? 90 : 260;
+      if (best && best.score > TOL) {
         var downgraded = null;
         for (var vj = 1; vj < viBests.length; vj++) {
-          if (viBests[vj] && viBests[vj].score <= 0) { downgraded = viBests[vj]; break; }
+          if (viBests[vj] && viBests[vj].score <= TOL) { downgraded = viBests[vj]; break; }
         }
         if (downgraded) best = downgraded;
         else {
+          /* 所有形态 × 所有方位都有冲突 —— 旧实现到这里只能取「重叠面积最小者」，
+           * 也就是任何标签【必须显示】。新增第三条路：
+           *   · L2/L3 且非强制 → 隐藏（placed 记 null 占位，保持与 items2 索引对齐，
+           *     否则后续 labelConflict 的 selfIdx 会全部错位）；
+           *   · L1 或强制显示 → 仍取重叠最小者（宁可轻微重叠，也不能让主干城市没名字，
+           *     更不能让用户 hover/选中的那个地点消失）。 */
+          if (it.tier > 1 && !it.force) {
+            it.tipEl.style.display = 'none';
+            placed.push(null);
+            return;
+          }
           var minS = Infinity;
           for (var vk = 0; vk < viBests.length; vk++) {
             var cand = viBests[vk];
@@ -1754,6 +1881,10 @@ GS.mapCore = (function () {
       for (var oi2 = 0; oi2 < order.length; oi2++) {
         var pi = order[oi2];
         var cur = placed[pi];
+        /* 分级消隐的标签不参与二次消解 —— 它的隐藏是「当前缩放下不该显示」的
+         * 分级结论，不是「暂时被挤掉」。硬把它拉回来会让密集区重新变糊。
+         * 缩放变化会整体重算，那时它自然会重新入选。 */
+        if (!cur) continue;
         var curScore = labelConflict(cur.rect, obstacles, cores, cur.anchorId, placed, pi);
         var bestAlt = null, bestScore = curScore, bestVi = -1;
         for (var vi2 = 0; vi2 < items2[pi].variants.length; vi2++) {
@@ -1802,9 +1933,21 @@ GS.mapCore = (function () {
   }
 
   /* 标签在某矩形位置上的冲突分：与静态障碍（事件点/上下文标记）、非自身地点核心
-   * （权重 ×3）、以及其它已放置标签的重叠面积之和。selfIdx 用于排除自身。 */
+   * （权重 ×3）、以及其它已放置标签的重叠面积之和。selfIdx 用于排除自身。
+   *
+   * 2026-10-30（M9）：加入「越界」惩罚。此前只统计互相压叠，标签可以整个探到
+   * 视口右缘外被裁掉（地图容器 overflow:hidden），也可以缩到面板/时间轴底下。
+   * fit 收到的安全区（insets）正好就是「读者真正看得见」的那块，直接拿它当边界：
+   * 越界面积 ×2 计入冲突分 —— 只要有别的方位能放得下，就不会选越界那一侧；
+   * 全都放不下时仍按越界最少者落位（不会因为惩罚而丢标签）。 */
   function labelConflict(r, obstacles, cores, anchorId, placed, selfIdx) {
     var score = 0, i, ox, oy;
+    var sz = map ? map.getSize() : { x: 1024, y: 768 };
+    var box = { l: insets.l + 4, t: insets.t + 4, r: sz.x - insets.r - 4, b: sz.y - insets.b - 4 };
+    if (r.left < box.l) score += (box.l - r.left) * r.height * 2;
+    if (r.right > box.r) score += (r.right - box.r) * r.height * 2;
+    if (r.top < box.t) score += (box.t - r.top) * r.width * 2;
+    if (r.bottom > box.b) score += (r.bottom - box.b) * r.width * 2;
     for (i = 0; i < obstacles.length; i++) {
       ox = Math.min(r.right, obstacles[i].right) - Math.max(r.left, obstacles[i].left);
       oy = Math.min(r.bottom, obstacles[i].bottom) - Math.max(r.top, obstacles[i].top);
@@ -1818,7 +1961,7 @@ GS.mapCore = (function () {
                                                          把标签全部推离核心、彼此叠死） */
     }
     for (i = 0; i < placed.length; i++) {
-      if (i === selfIdx) continue;
+      if (i === selfIdx || !placed[i]) continue;   /* null = 被分级消隐的标签，不占面积 */
       ox = Math.min(r.right, placed[i].rect.right) - Math.max(r.left, placed[i].rect.left);
       oy = Math.min(r.bottom, placed[i].rect.bottom) - Math.max(r.top, placed[i].rect.top);
       if (ox > 0 && oy > 0) score += ox * oy;
@@ -1847,6 +1990,28 @@ GS.mapCore = (function () {
     clearLit: clearLit,
     ripple: ripple,
     placeLabels: placeLabels,
+    /* 强制显示 / 取消强制显示某地点的标签（hover、选中地点、播放到达）。
+     * 只打标记不重算 —— 调用方常在同一帧里连续标记多个地点，逐个重算会把
+     * placeLabels 跑 N 次（每次 28 标签 × 9 方位 × 3 形态的 getBoundingClientRect）。
+     * 标记完由调用方统一调一次 placeLabels。 */
+    forceLabel: function (placeId, on) {
+      if (!placeId) return;
+      if (on) forceSet[placeId] = 1; else delete forceSet[placeId];
+    },
+    clearForced: function () { forceSet = {}; },
+    /* 诊断 / 验收用：当前可见与隐藏的标签数、首屏基准 zoom。
+     * 分级是否真的生效必须能读出来，不能靠截图数（截图数不出被裁在视口外的）。 */
+    labelStats: function () {
+      var vis = 0, hid = 0;
+      lastItems.forEach(function (cm) {
+        var t = cm.marker && cm.marker.getTooltip ? cm.marker.getTooltip() : null;
+        var el = t && t.getElement ? t.getElement() : null;
+        if (!el) return;
+        if (el.style.display === 'none') hid++; else vis++;
+      });
+      return { visible: vis, hidden: hid, total: lastItems.length,
+               zoom: map ? map.getZoom() : 0, base: baseZoom };
+    },
     setLabelsVisible: function (v) { map.getContainer().classList.toggle('hide-labels', !v); },
     /* 更新安全区并（可选）重新适配视野。浮层尺寸变化后由调用方触发；
      * refit=false 只更新 padding（下次 fitBounds 生效），不动当前视野。 */
@@ -1864,7 +2029,16 @@ GS.mapCore = (function () {
     },
     insets: function () { return { t: insets.t, r: insets.r, b: insets.b, l: insets.l }; },
     fits: function () { return fitLog.slice(); },
+    /* 把「故事范围」临时改成某个子范围（M8：选中一段旅程时只框住这段旅程）。
+     * 后续所有 fitStory（resize / inset 变化）都会以它为基准，直到 resetView 复原。 */
+    setFit: function (b, animate, durMs) {
+      if (!b) return;
+      lastFit = b;
+      fitStory(!!animate, durMs);
+    },
+    fitBounds: function () { return lastFit; },
     resetView: function (durMs) {
+      if (storyFit) lastFit = storyFit;   /* 复原为全故事范围（选中旅程后取消筛选） */
       fitStory(true, durMs);
     },
     /* 当前视野是否已覆盖故事范围（供「开播前才落位」判断） */
@@ -1887,6 +2061,9 @@ GS.routeEngine = (function () {
   'use strict';
 
   var layer = null, getYear = function () { return 0; }, onState = null, routes = [], byId = {};
+  /* 路线聚焦（M8）：选中某段旅程时，其余路线整体隐去（含站点圆点与行进光点）。
+   * 不能只靠 CSS 类，因为 applyTime 每帧都直接写 style.opacity —— 会覆盖类样式。 */
+  var focusId = null;
 
   /* 中点二次贝塞尔平滑，但曲线必须【精确穿过每个站点】：
    * 旧实现整段用 Q(m1, b, m2)，最近点只到 b + (a+c-2b)/8 ——
@@ -1924,8 +2101,12 @@ GS.routeEngine = (function () {
   /* 绘制一段旅程；完成后按当前年代点亮 */
   function draw(j) {
     if (j.drawn) return;
-    j.drawn = true;
     var path = smoothPath(j.stops.map(function (s) { return s.ll; }));
+    /* 先算路径再置 drawn：若 smoothPath 抛错或返回空，旧实现在置了 drawn 之后
+     * 就永久处于「已画但无路径」的坏状态 —— 后续 replay 拿到空 path，
+     * idx 恒越界。宁可这次不画，也不要留下半成品状态。 */
+    if (!path || !path.length) return;
+    j.drawn = true;
     j.path = path;
     var cum = [0];
     for (var i = 1; i < path.length; i++) {
@@ -1976,28 +2157,36 @@ GS.routeEngine = (function () {
       if (y < j.from) { st = 'future'; p = 0; }
       else if (y > j.to) { st = 'past'; p = 1; }
       else { st = 'now'; p = (j.hold != null) ? j.hold : yearP(j, y); }
+      var dim = !!focusId && j.id !== focusId;
       var target = p * j.total, k = 0;
       while (k < j.cum.length - 1 && j.cum[k + 1] <= target) k++;
-      var sig = st + '|' + k;
+      var sig = st + '|' + k + '|' + (dim ? 'd' : 'n');
       if (j.sig === sig) return; /* 年代变化但路段索引未变，无需重绘 */
       j.sig = sig;
-      var show = st !== 'future';
+      var show = st !== 'future' && !dim;
       var pts = show ? j.path.slice(0, k + 1) : [j.path[0]];
       j.base.setLatLngs(pts);
       j.flow.setLatLngs(pts);
-      j.baseEl.style.opacity = st === 'now' ? .95 : st === 'past' ? .42 : .12;
-      j.flowEl.style.opacity = st === 'now' ? .5 : st === 'past' ? .26 : 0;
-      j.flowEl.style.animationPlayState = st === 'now' ? 'running' : 'paused';
+      j.baseEl.style.opacity = dim ? 0 : st === 'now' ? .95 : st === 'past' ? .42 : .12;
+      j.flowEl.style.opacity = dim ? 0 : st === 'now' ? .5 : st === 'past' ? .26 : 0;
+      j.flowEl.style.animationPlayState = st === 'now' && !dim ? 'running' : 'paused';
       for (var i = 0; i < j.dots.length; i++) {
         var vis = show && j.dist[i] <= target + 1e-6;
         j.dots[i].setStyle({ opacity: vis ? 1 : 0, fillOpacity: vis ? 1 : 0 });
       }
-      if (st === 'now') {
+      if (st === 'now' && !dim) {
         if (!j.headOn) { j.head.addTo(layer); j.headOn = true; }
         j.head.setLatLng(j.path[k]);
       } else if (j.headOn) { layer.removeLayer(j.head); j.headOn = false; }
       if (onState) onState(j, st);
     });
+  }
+
+  /* 聚焦一段旅程（null = 取消聚焦）。只改渲染，不动数据与进度。 */
+  function focus(id) {
+    focusId = id || null;
+    routes.forEach(function (j) { j.sig = ''; });   /* 强制下一帧全量重算（sig 含 dim 位） */
+    applyTime(getYear());
   }
 
   /* 事件驱动描线：把路线进度推到 ev 对应站点（place id 匹配 stops.p）。
@@ -2065,7 +2254,9 @@ GS.routeEngine = (function () {
     });
     var t0 = performance.now();
     (function frame(t) {
-      var p = Math.min(1, (t - t0) / dur);
+      /* 同 replay：rAF timestamp 是帧开始时刻，可能早于 t0 ⇒ p 可能为负，
+       * 负的 e 会让 tgt 越过 from（描线倒退一帧再回来，观感是一次抖动）。 */
+      var p = Math.min(1, Math.max(0, (t - t0) / dur));
       var e = p < 1 ? 1 - Math.pow(1 - p, 3) : 1;   /* easeOutCubic：起步快、收尾稳 */
       plan.forEach(function (x) {
         var tgt = x.from + (x.to - x.from) * e;
@@ -2103,9 +2294,14 @@ GS.routeEngine = (function () {
     travel.trail = L.polyline([j.path[0]], { color: j.color, weight: 3, opacity: .95, lineCap: 'round', interactive: false }).addTo(layer);
     var path = j.path, N = path.length, dur = 15000, t0 = performance.now();
     (function frame(t) {
-      var p = Math.min(1, (t - t0) / dur);
-      var idx = Math.floor(p * (N - 1));
-      if (travel.marker) travel.marker.setLatLng(path[idx]);
+      /* p 必须双向夹取：rAF 回调的 timestamp 是【帧开始时刻】，可能早于本次
+       * JS 执行时取的 t0（实测点选旅程时 p 为负，idx = floor(负 * 209) = 负数，
+       * path[负数] 是 undefined，setLatLng(undefined) 抛
+       * "Cannot read properties of undefined (reading 'lat')"，
+       * 且每帧抛一次 —— 4 次异常就是这么来的）。 */
+      var p = Math.min(1, Math.max(0, (t - t0) / dur));
+      var idx = Math.max(0, Math.min(N - 1, Math.floor(p * (N - 1))));
+      if (travel.marker && path[idx]) travel.marker.setLatLng(path[idx]);
       if (travel.trail) travel.trail.setLatLngs(path.slice(0, idx + 1));
       if (p < 1 && travel.active === j) travel.raf = requestAnimationFrame(frame);
       else { travel.timer = setTimeout(function () { if (travel.active === j) { cancelTravel(); if (done) done(); } }, 2200); }
@@ -2121,6 +2317,7 @@ GS.routeEngine = (function () {
     seek: seek,
     release: release,
     replay: replay,
+    focus: focus,
     cancelTravel: cancelTravel,
     cancelSeek: cancelSeek,
     byId: function (id) { return byId[id]; },
@@ -2141,6 +2338,7 @@ GS.timeline = (function () {
 
   var cfg = {}, els = {}, state = { year: 0, playing: false };
   var seq = { raf: 0, timer: 0, active: false };
+  var allMarks = [], bandEls = [], staggerRaf = 0;
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
@@ -2176,11 +2374,16 @@ GS.timeline = (function () {
    * 2026-10-30（M4）：事件数 84 → 97，窄屏轨道 390px 只有 15px/年，
    * AD 57 一年 19 个事件 ⇒ 簇只能 2 列 × 10 行，轨道涨到 185px，
    * 把移动端事件列表压到 2 行。点径 9 → 8、步长 10 → 9 后轨道降到 ~114px。
-   * 移动端时间轴是次要入口（列表行才是主入口），8px 可点，配合列表不受影响。 */
+   * 移动端时间轴是次要入口（列表行才是主入口），8px 可点，配合列表不受影响。
+   *
+   * 2026-10-30（M9·地图优先）：桌面 12 → 10。时间轴高度直接决定地图能放多大
+   * （fit 的垂直安全区 = 视口 − 时间轴），实测轨道 153px 时全图被压到 z5，
+   * 点径降到 10（步长 11）后同年簇从 10 层降到 7 层，轨道 ~100px，
+   * fit 回到 z5.5，地图内容面积翻倍。10px 仍在可点范围内（轨道本身也是拖拽/点击区域）。 */
   function dotSize(W) {
-    if (W >= 900) return 12;
-    if (W >= 600) return 11;
-    if (W >= 430) return 10;
+    if (W >= 900) return 10;
+    if (W >= 600) return 10;
+    if (W >= 430) return 9;
     return 8;
   }
 
@@ -2255,8 +2458,8 @@ GS.timeline = (function () {
     var firstTop = AXIS_Y - D / 2;
     return {
       dots: dots, clusters: clusters, D: D, pitch: pitch, layers: used, overflow: overflow,
-      trackH: firstTop + (used - 1) * pitch + D + 15,
-      bandTop: firstTop + (used - 1) * pitch + D + 6,
+      trackH: firstTop + (used - 1) * pitch + D + 11,
+      bandTop: firstTop + (used - 1) * pitch + D + 4,
       spanY: Math.max.apply(null, clusters.map(function (c) { return c.ink; })) / pxPerYear,
       driftY: Math.max.apply(null, clusters.map(function (c) { return Math.abs(c.left + c.ink / 2 - c.x0); })) / pxPerYear
     };
@@ -2278,6 +2481,47 @@ GS.timeline = (function () {
     return best || fallback;
   }
 
+  /* 可重入的簇排布：只对当前【可见】圆点计算并写入几何（M8）。
+   * 隐藏态用 display:none —— 它不占位、不参与命中测试，但也因此必须从 marks 里剔除，
+   * 否则簇仍按隐藏点分配层，剩下的点会稀疏地散在原来的层里（轨道高度也不降）。
+   * 用 rAF 等首帧宽度的原因同旧实现：rAF 回调先于绘制，轨道高度在第一帧就定型，
+   * 用户看不到 60px → 114px 的跳动。 */
+  var pendingCount = 0;
+  function restagger() {
+    cancelAnimationFrame(staggerRaf);
+    if (!els.track) return;
+    var w = els.track.getBoundingClientRect().width;
+    if (!w) { staggerRaf = requestAnimationFrame(restagger); return; }
+    var vis = allMarks.filter(function (m) { return !cfg.markFilter || cfg.markFilter(m); });
+    allMarks.forEach(function (m) {
+      if (!m.el) return;
+      if (cfg.markFilter && !cfg.markFilter(m)) m.el.style.display = 'none';
+      else if (m.el.style.display === 'none') m.el.style.display = '';
+    });
+    var best = vis.length ? pickLayout(w, vis) : null;
+    if (!best) { els.track.style.height = '34px'; return; }
+
+    /* 写入 DOM：left 保持该年的百分比位置（随量程自适应），
+     * 水平偏移写入 --dx（px），点径与垂直位置随 D / 层数写入。 */
+    for (var i = 0; i < best.dots.length; i++) {
+      var d = best.dots[i], el = d.mark.el;
+      el.style.width = best.D + 'px';
+      el.style.height = best.D + 'px';
+      el.style.marginLeft = (-best.D / 2) + 'px';
+      el.style.setProperty('--dx', (d.x - d.x0) + 'px');
+      el.style.top = d.y + 'px';
+      el.dataset.row = d.row;
+    }
+    /* 轨道高度与章节色带位置随层数/点径同步（点径自适应 ⇒ 高度公式不能用常量 13） */
+    els.track.style.height = best.trackH + 'px';
+    var bands = els.track.querySelectorAll('.tl-band');
+    for (var b = 0; b < bands.length; b++) bands[b].style.top = best.bandTop + 'px';
+
+    if (cfg.onPending) {
+      cfg.onPending({ count: pendingCount, marks: vis, rows: best.layers, pitch: best.pitch, dot: best.D });
+    }
+  }
+
   function init(opts) {
     cfg = {
       from: opts.from, to: opts.to,
@@ -2286,10 +2530,10 @@ GS.timeline = (function () {
     };
     els = opts.els;
     state.year = opts.from;
-    var pending = 0;
+    pendingCount = 0;
 
     (opts.bands || []).forEach(function (b) {
-      if (b.from > cfg.to) { pending++; return; }   /* 完全在量程之外（后续章节待补充） */
+      if (b.from > cfg.to) { pendingCount++; return; }   /* 完全在量程之外（后续章节待补充） */
       var band = document.createElement('div');
       band.className = 'tl-band';
       var l = Math.max(0, (b.from - cfg.from) / (cfg.to - cfg.from) * 100);
@@ -2302,10 +2546,11 @@ GS.timeline = (function () {
       band.addEventListener('click', function (ev) { ev.stopPropagation(); if (cfg.onBand) cfg.onBand(b); });
       els.track.insertBefore(band, els.dots);
       b.el = band;
+      bandEls.push(b);
     });
 
-    var marks = opts.marks || [];
-    marks.forEach(function (m) {
+    allMarks = opts.marks || [];
+    allMarks.forEach(function (m) {
       var d = document.createElement('button');
       d.className = 'tl-dot';
       d.style.left = ((m.from - cfg.from) / (cfg.to - cfg.from) * 100) + '%';
@@ -2320,39 +2565,10 @@ GS.timeline = (function () {
      * 列优先填充（先竖后横）⇒ 簇「窄而高」，横向跨度小 ⇒ 时间语义得以保留。
      * 簇水平居中于该年位置；簇之间横向交叠时分配到不同的层（layer），
      * 层内互不重叠 ⇒ 圆点两两不相交（几何上零重叠，非靠事后挪动）。
-     * 点径随轨道宽自适应（dotSize）；簇列数按实际轨道宽运行期搜索择优（pickLayout）。 */
-    (function stagger() {
-      var w = els.track.getBoundingClientRect().width;
-      if (!w) {
-        /* 首帧前布局可能尚未就绪（本项目 97 事件 + 内联媒体的首帧约 4s）。
-         * 用 rAF 等下一帧而不是 setTimeout：rAF 回调先于绘制执行，
-         * 轨道高度能在第一帧就定型，用户不会看到 60px → 114px 的跳动。 */
-        requestAnimationFrame(stagger);
-        return;
-      }
-      var best = pickLayout(w, marks);
-      if (!best) return;
-
-      /* 写入 DOM：left 保持该年的百分比位置（随量程自适应），
-       * 水平偏移写入 --dx（px），点径与垂直位置随 D / 层数写入。 */
-      for (var i = 0; i < best.dots.length; i++) {
-        var d = best.dots[i], el = d.mark.el;
-        el.style.width = best.D + 'px';
-        el.style.height = best.D + 'px';
-        el.style.marginLeft = (-best.D / 2) + 'px';
-        el.style.setProperty('--dx', (d.x - d.x0) + 'px');
-        el.style.top = d.y + 'px';
-        el.dataset.row = d.row;
-      }
-      /* 轨道高度与章节色带位置随层数/点径同步（点径自适应 ⇒ 高度公式不能用常量 13） */
-      els.track.style.height = best.trackH + 'px';
-      var bands = els.track.querySelectorAll('.tl-band');
-      for (var b = 0; b < bands.length; b++) bands[b].style.top = best.bandTop + 'px';
-
-      if (cfg.onPending) {
-        cfg.onPending({ count: pending, marks: marks, rows: best.layers, pitch: best.pitch, dot: best.D });
-      }
-    })();
+     * 点径随轨道宽自适应（dotSize）；簇列数按实际轨道宽运行期搜索择优（pickLayout）。
+     * 2026-10-30（M8）：改为可重入的 restagger()，路线筛选后只对【可见】圆点重排，
+     * 否则被隐去的点仍参与簇计算，剩下的点会稀疏地散在原来的层里。 */
+    restagger();
 
     /* 拖拽 / 点击轨道 */
     var dragging = false;
@@ -2426,7 +2642,9 @@ GS.timeline = (function () {
       if (dur <= 0) { setYear(target); done(); return; }
       (function frame(t) {
         if (!seq.active) return;
-        var p = Math.min(1, (t - t0) / dur);
+        /* 同 route-engine：rAF timestamp 是帧开始时刻，可能早于 t0 ⇒ p 可能为负，
+         * 会让年份倒走一帧再回来（时间轴刻度闪一下）。双向夹取。 */
+        var p = Math.min(1, Math.max(0, (t - t0) / dur));
         var e = 1 - Math.pow(1 - p, 2.2);
         setYear(start + span * e);
         if (p < 1) seq.raf = requestAnimationFrame(frame);
@@ -2479,7 +2697,19 @@ GS.timeline = (function () {
     stop: stopSeq,
     pause: function () { stopSeq(); },
     isPlaying: function () { return state.playing; },
-    year: function () { return state.year; }
+    year: function () { return state.year; },
+    /* 事件筛选（M8）：markFn(mark)→bool 决定哪些圆点参与排布与显示；
+     * bandFn(band)→bool 决定哪些章节色带保留。传 null 即全部恢复。
+     * 筛选后重新排布（不是简单隐藏）—— 剩下的点会重新紧凑成簇，轨道随之变矮。 */
+    setFilter: function (markFn, bandFn) {
+      cfg.markFilter = markFn || null;
+      cfg.bandFilter = bandFn || null;
+      bandEls.forEach(function (b) {
+        if (!b.el) return;
+        b.el.style.display = (cfg.bandFilter && !cfg.bandFilter(b)) ? 'none' : '';
+      });
+      restagger();
+    }
   };
   return { init: init, api: api };
 })();
@@ -5761,7 +5991,7 @@ var SEQ = EVENTS.map(function (e, i) { return { e: e, i: i }; })
   .sort(function (a, b) { return a.e.from - b.e.from || a.i - b.i; })
   .map(function (x) { return x.e; });   /* 同年事件保持 events.json 手工叙事顺序（勿按 id 字典序） */
 
-var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, arrivedId: null, chapter: null, speed: 1, speedIdx: 0 };
+var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, arrivedId: null, chapter: null, route: null, placePin: null, speed: 1, speedIdx: 0 };
 
 /* 初始视野：由「有事件的地方」自动聚合，而非写死整个地中海。
    取所有事件地点的经纬范围 + 12%留白；随章节数据增加自动扩展（耶路撒冷/罗马/马耳他纳入后自然变宽）。 */
@@ -5787,8 +6017,10 @@ var map = mapCore.map();
 var routesLayer = L.layerGroup().addTo(map);
 var placeLayer = L.layerGroup().addTo(map);
 var labelItems = [];
+var LABEL_BY = {};  /* 地点 id -> labelItems 里的条目（hover/选中时查它的 tooltip 是否被隐藏） */
 var dotEls = {};    /* 事件 id -> 地图上的事件点 DOM */
 var placeEls = {};  /* 地点 id -> .place DOM */
+var mkEls = {};     /* 地点 id -> Leaflet 图标容器 DOM（.place-icon / .ctx-icon，路线筛选用） */
 
 /* ================= 浮层安全区 =================
  * 全屏地图下，面板与时间轴都盖在图上。把「被盖住」的尺寸交给 mapCore，
@@ -5818,9 +6050,11 @@ function syncInsets(force) {
   if (mobile) {
     /* 抽屉收起时不占位（transform 已把它移出视口，但 rect 高度仍是 44dvh） */
     var panelH = (off || !sb) ? 0 : Math.round(sb.getBoundingClientRect().height) + 10;
-    ins = { t: 56, r: 10, b: tlh + 10 + panelH, l: 10 };
+    ins = { t: 52, r: 10, b: tlh + 8 + panelH, l: 10 };
   } else {
-    ins = { t: 56, r: 16, b: tlh + 28, l: off ? 54 : sbw + 28 };
+    /* 底部只让出「时间轴卡片 + 它自身的 14px 底距 + 4px 呼吸缝」：
+     * 旧的 +28 是拍脑袋的余量，在高度敏感的场景里等于白送 10px 给留白。 */
+    ins = { t: 52, r: 16, b: tlh + 18, l: off ? 46 : sbw + 22 };
   }
   var needFit = !!force || window.innerWidth !== lastFitW ||
     Math.abs(window.innerHeight - lastFitH) > 60 ||
@@ -5893,27 +6127,89 @@ function buildPie(typeCounts, total) {
   });
   return '<svg class="pie" viewBox="0 0 ' + d + ' ' + d + '" width="' + d + '" height="' + d + '">' + out.join('') + '</svg>';
 }
+/* ================= 标签临时提升（M8） =================
+ * 分级消隐让首屏只剩 L1 六个主干城市，但读者仍可能想看被隐去的小地名：
+ * 悬停它的核心 / 打开地点介绍窗 / 播放到达该地时，把它临时提到最高优先级。
+ * 用引用计数而非布尔 —— 同一地点可能同时被「悬停」和「当前事件地点」占用，
+ * 任一来源释放都不该把标签撤掉（否则鼠标一移开，播放中的地名就闪没了）。 */
+var labelPin = {};
+function tipElOf(pid) {
+  var cm = LABEL_BY[pid];
+  var t = cm && cm.marker.getTooltip ? cm.marker.getTooltip() : null;
+  return t && t.getElement ? t.getElement() : null;
+}
+function pinLabel(pid, on) {
+  if (!pid) return;
+  if (on) labelPin[pid] = (labelPin[pid] || 0) + 1;
+  else labelPin[pid] = Math.max(0, (labelPin[pid] || 0) - 1);
+  /* 本章的强制显示优先于 hover 释放：鼠标移开不该把播放中的地名撤掉 */
+  mapCore.forceLabel(pid, labelPin[pid] > 0 || !!chapterPins[pid]);
+  /* .pinned 让播放期的「非本章压暗」规则放过它（CSS 见 .city-tip 附近） */
+  var el = tipElOf(pid);
+  if (el) el.classList.toggle('pinned', labelPin[pid] > 0);
+}
+/* 只在「确实隐藏着」时才重算：placeLabels 一次要跑 28 标签 × 9 方位 × 3 形态的
+ * getBoundingClientRect，每次 mouseenter 都跑会让密集区悬停明显发涩。 */
+function ensureLabelVisible(pid) {
+  var el = tipElOf(pid);
+  if (!el || el.style.display !== 'none') return;
+  pinLabel(pid, true);
+  mapCore.placeLabels(labelItems);
+}
+function releaseLabel(pid) {
+  if (!labelPin[pid]) return;
+  pinLabel(pid, false);
+  mapCore.placeLabels(labelItems);
+}
+
 PLACES.forEach(function (p) {
   if (p.ctx) {
     var ic = L.divIcon({ className: 'ctx-icon', html: '<div class="ctx"></div>', iconSize: [9, 9], iconAnchor: [4.5, 4.5] });
     var m = L.marker(p.ll, { icon: ic, interactive: false, keyboard: false }).addTo(placeLayer);
     m.bindTooltip(p.cn, { permanent: true, direction: 'right', offset: [9, 0], className: 'ctx-tip' });
+    mkEls[p.id] = m.getElement();
     return;
   }
   var evs = EVENTS.filter(function (e) { return e.place === p.id; });
   var tCounts = {};
   evs.forEach(function (e) { tCounts[e.type] = (tCounts[e.type] || 0) + 1; });
   var BOX = 96, R = 34;
-  var html = '<div class="place" data-place="' + p.id + '"><span class="glow"></span><span class="ring"></span><span class="ring b2"></span><span class="core" title="' + esc(p.cn) + '">' + buildPie(tCounts, evs.length) + '</span></div>';
+  var html = '<div class="place" data-place="' + p.id + '"><span class="glow"></span><span class="core" title="' + esc(p.cn) + '">' + buildPie(tCounts, evs.length) + '</span></div>';
   var icon = L.divIcon({ className: 'place-icon', html: html, iconSize: [BOX, BOX], iconAnchor: [BOX / 2, BOX / 2] });
   var mk = L.marker(p.ll, { icon: icon, riseOnHover: true, keyboard: false }).addTo(placeLayer);
-  var tip = '<div>' + esc(p.cn) + (evs.length ? '<span class="cnt">' + evs.length + ' 个事件</span>' : '') + '</div><div class="en">' + esc(p.en) + '</div>';
+  /* 标签形态：只留「中文名 + 英文名」。
+   * 2026-11-02 去掉常显的「N 个事件」计数后缀 —— 28 个标签每个多占 3–4 字宽，
+   * 视觉宽度近乎翻倍，是首屏标签互压的第一元凶；而「罗马 14 个事件」这类数字
+   * 对读者几乎无用（数量本已由饼图面积与事件点个数编码）。计数改到悬停详情
+   * （openPlace 的「地点 · N 个事件」）与地点介绍窗里给出。
+   *
+   * tier = 标签重要性分级，事件数是天然代理，无需手工维护：
+   *   L1（≥6 事件，6 个）：罗马 / 凯撒利亚 / 耶路撒冷 / 以弗所 / 哥林多 / 腓立比
+   *   L2（2–4 事件，10 个）：安提阿 / 路司得 / 马耳他 / 米利都 / 佳澳 …
+   *   L3（0–1 事件，12 个）：帕弗 / 特庇 / 庇哩亚 / 推罗 / 西顿 / 每拉 …
+   * 分级阈值与「放不下就隐藏」的判定都在 map-core.placeLabels 里（需要知道
+   * 首屏 zoom 才能定相对阈值，模板层拿不到）。 */
+  var tier = evs.length >= 6 ? 1 : (evs.length >= 2 ? 2 : 3);
+  var tip = '<div>' + esc(p.cn) + '</div><div class="en">' + esc(p.en) + '</div>';
   mk.bindTooltip(tip, { permanent: true, direction: 'right', offset: [16, 0], className: 'city-tip' });
-  labelItems.push({ marker: mk, html: tip, anchorId: p.id });
+  /* 给 tooltip 打上地点 id：诊断脚本据此豁免「标签压住自己核心」的必然重叠
+   * （标签从自己的锚点伸出，这不算冲突），否则 labelOverCore 永远虚高。 */
+  var tipEl0 = mk.getTooltip().getElement();
+  if (tipEl0) tipEl0.setAttribute('data-place', p.id);
+  /* weight = 事件数：小视口（移动端地图可用区常只有 430×230）时 L1 也要再筛，
+   * 只留事件数最多的前 3 个，否则 6 个主干城市在小地图上照样糊成一团。 */
+  var item = { marker: mk, html: tip, anchorId: p.id, tier: tier, placeId: p.id, weight: evs.length };
+  labelItems.push(item);
+  LABEL_BY[p.id] = item;
   var pel = mk.getElement();
+  mkEls[p.id] = pel;
   placeEls[p.id] = pel.querySelector('.place');
-  /* 点击地点核心 → 弹出该地介绍窗（2026-10-17 前为地点筛选，筛选入口移至介绍窗内按钮） */
-  pel.querySelector('.core').addEventListener('click', function (e) { e.stopPropagation(); openPlace(p.id); });
+  /* 点击地点核心 → 弹出该地介绍窗（2026-10-17 前为地点筛选，筛选入口移至介绍窗内按钮）。
+   * 悬停 → 被分级隐去的标签临时显示（M8）。 */
+  var coreEl = pel.querySelector('.core');
+  coreEl.addEventListener('mouseenter', function () { ensureLabelVisible(p.id); });
+  coreEl.addEventListener('mouseleave', function () { releaseLabel(p.id); });
+  coreEl.addEventListener('click', function (e) { e.stopPropagation(); openPlace(p.id); });
 
   /* 事件点围绕核心均匀分布；第一个朝上 */
   evs.forEach(function (ev, i) {
@@ -5986,7 +6282,7 @@ function renderList() {
   CHAPTERS.forEach(function (c) {
     if (state.chapter && state.chapter !== c.id) return;
     var evs = EVENTS.filter(function (e) {
-      return e.ch === c.id && (!state.filter || e.place === state.filter);
+      return e.ch === c.id && inRouteScope(e) && (!state.filter || e.place === state.filter);
     });
     if (!evs.length) return;
     shown += evs.length;
@@ -6141,6 +6437,8 @@ function closeEvent() {
   if (!state.detail) return;
   state.detail = null;
   placeBack = null;
+  /* 释放 openPlace 对标签的临时提升（M8） */
+  if (state.placePin) { pinLabel(state.placePin, false); state.placePin = null; mapCore.placeLabels(labelItems); }
   $('detail').classList.add('hidden');
   $('detail').classList.remove('place');
   $('list').classList.remove('hidden');
@@ -6165,6 +6463,11 @@ function openPlace(id) {
   setStoryEnd(false);
   pause();
   state.focus = null;
+  /* 选中的地点必须能看到名字（M8：它可能正是被分级隐去的 L2/L3） */
+  if (state.placePin && state.placePin !== id) pinLabel(state.placePin, false);
+  state.placePin = id;
+  pinLabel(id, true);
+  mapCore.placeLabels(labelItems);
   var evs = EVENTS.filter(function (e) { return e.place === id; });
   var rows = evs.map(function (ev) {
     return '<div class="ev" data-ev="' + ev.id + '">' +
@@ -6266,14 +6569,17 @@ function openAudit() {
  * 2026-10-17：.cur 增加 arrivedId 门控——路线还没到地点，事件名（.ev-label）
  * 与高亮都不出现；行程中的目标事件既不高亮也不压暗（traveling 态）。 */
 function applyReveal(y) {
-  var n = 0;
+  var n = 0, total = 0;
   EVENTS.forEach(function (ev) {
-    var on = y >= ev.from - 1e-9;
+    var inScope = inRouteScope(ev);
+    if (inScope) total++;
+    var on = inScope && y >= ev.from - 1e-9;
     if (on) n++;
     var cur = ev.id === state.focus && state.arrivedId === ev.id;
     var traveling = state.playing && ev.id === state.focus && state.arrivedId !== ev.id;
     var d = dotEls[ev.id];
     if (d) {
+      d.classList.toggle('route-off', !inScope);
       d.classList.toggle('on', on);
       d.classList.toggle('cur', cur && on);
       /* 播放中：非当前、非未来事件压暗，让当前事件独占视觉焦点；
@@ -6283,7 +6589,8 @@ function applyReveal(y) {
     }
     if (ev.dotEl) ev.dotEl.classList.toggle('on', on);
   });
-  var cnt = n + ' / ' + EVENTS.length + ' 事件';
+  /* 计数分母随路线筛选收缩（「12 / 97」在只看一段旅程时是误导） */
+  var cnt = n + ' / ' + total + ' 事件';
   if ($('tlCount').textContent !== cnt) $('tlCount').textContent = cnt;
   routes.applyTime(y);
 }
@@ -6338,11 +6645,37 @@ function syncPlayBtn() {
 function onSeekFrame(ll, t) {
   if (t >= 1 && camEv) arriveEvent(camEv);
 }
+/* 播放期地名收敛（M8）：只让「当前章节沿途」的地名出现，其余压到 0.18。
+ * 关键点：本章的地名要【强制显示】，不能只在当前可见的 L1 里挑 ——
+ * 首屏只有 6 个主干城市，而 ch1（第一次旅程）途经的安提阿/帕弗/路司得/特庇
+ * 大多是 L2/L3，若不做强制，播放第一段时全图只有 1 个地名是亮的、其余 5 个发灰，
+ * 等于把地名彻底删掉了。本章地点直接 pin，才能跟上叙事。
+ *
+ * 不用 display:none 处理非本章 —— 地名全消失会让读者失去方位感
+ * （「现在在地中海哪一段」），压到 0.18 保留地理上下文。 */
+var lastChLabel = null, chapterPins = {};
+function syncChapterLabels(ch) {
+  if (ch === lastChLabel) return;
+  lastChLabel = ch;
+  var keep = {};
+  if (ch) EVENTS.forEach(function (e) { if (e.ch === ch) keep[e.place] = 1; });
+  chapterPins = keep;
+  labelItems.forEach(function (cm) {
+    var el = tipElOf(cm.placeId);
+    if (!el) return;
+    var on = !ch || !!keep[cm.placeId];
+    el.classList.toggle('cur-ch', on);
+    /* ch 为 null（暂停/播毕）时不强制任何地点，回到分级消隐的常态 */
+    mapCore.forceLabel(cm.placeId, (ch && !!keep[cm.placeId]) || labelPin[cm.placeId] > 0);
+  });
+  mapCore.placeLabels(labelItems);
+}
 function revealEvent(ev) {
   setStoryEnd(false);
   state.focus = ev.id;
   state.arrivedId = null;         /* 本段行程尚未到达：卡片/标签/点亮全部等到抵达 */
   camEv = ev;
+  syncChapterLabels(ev.ch);       /* 地名收敛到本章（M8） */
   /* 镜头全程不动（见上方策略注释）：这里只启动描线，不碰相机。
    * SEEK_LEAD 后才启动 seek —— 若窗口内被暂停/步进（state.playing 已假），放弃本次描线。 */
   var myToken = playToken;
@@ -6380,8 +6713,16 @@ function startPlay() {
   setStoryEnd(false);
   playToken++;
   routes.release();   /* 从年份驱动切换到事件驱动描线 */
-  var ahead = SEQ.filter(function (e) { return e.from >= state.year - 1e-9; });
-  if (!ahead.length) { timeline.setYear(D0); ahead = SEQ; }
+  /* 播放范围 = 当前筛选范围（M8：选中某段旅程时只播这段旅程的事件）。
+   * 起点越过本范围末事件时回退到范围起点（而不是 D0），否则「选了第三段旅程
+   * 却从 AD 46 开始播」会把时间轴拖回前面去。 */
+  var ahead = SEQ.filter(function (e) { return inRouteScope(e) && e.from >= state.year - 1e-9; });
+  if (!ahead.length) {
+    var y0 = state.route ? CH_BY[ROUTE_CH[state.route]].from : D0;
+    timeline.setYear(y0);
+    ahead = SEQ.filter(function (e) { return inRouteScope(e) && e.from >= y0 - 1e-9; });
+  }
+  if (!ahead.length) ahead = SEQ.filter(inRouteScope);
   state.playing = true; state.auto = true;
   state.arrivedId = null;         /* 新序列：首个事件抵达前不弹卡 */
   syncPlayBtn();
@@ -6409,6 +6750,7 @@ function startPlay() {
       onEnd: function () {
         state.playing = false; state.auto = false;
         document.body.classList.remove('playing');
+        syncChapterLabels(null);   /* 播毕恢复全部地名实色（M8） */
         syncPlayBtn();
         setStoryEnd(true);   /* 播完隐藏事件图标，回到干净底图 */
         toast('AD ' + EV_LO + '–' + EV_HI, '故事播放完毕 · 点击地图任意处或拖动时间轴可回看');
@@ -6416,7 +6758,7 @@ function startPlay() {
       }
     });
   };
-  document.body.classList.add('playing');   /* 播放中：全图呼吸环静息，见 CSS body.playing .place .ring */
+  document.body.classList.add('playing');   /* 播放中：CSS 可据此收敛非必要动效（地点环已整体移除） */
   if (settle) setTimeout(boot, CRUISE_MS / state.speed + 120);
   else boot();
   GS.fx.emit('play:start');
@@ -6426,6 +6768,7 @@ function pause() {
   timeline.pause();
   state.playing = false; state.auto = false;
   document.body.classList.remove('playing');
+  syncChapterLabels(null);   /* 暂停即恢复全部地名实色（M8） */
   routes.release();   /* 暂停后描线交还年份驱动 */
   syncPlayBtn();
   hideCard();
@@ -6435,11 +6778,14 @@ function pause() {
 function togglePlay() { state.playing ? pause() : startPlay(); }
 function stepEvent(dir) {
   pause();
+  /* 步进只在当前筛选范围内走（选中某段旅程时不会「跳到别的旅程去」） */
+  var scoped = SEQ.filter(inRouteScope);
+  if (!scoped.length) scoped = SEQ;
   var idx = -1;
-  SEQ.forEach(function (e, i) { if (e.id === state.focus) idx = i; });
-  var ni = idx < 0 ? (dir > 0 ? 0 : SEQ.length - 1) : idx + dir;
-  if (ni < 0 || ni >= SEQ.length) return;
-  var ev = SEQ[ni];
+  scoped.forEach(function (e, i) { if (e.id === state.focus) idx = i; });
+  var ni = idx < 0 ? (dir > 0 ? 0 : scoped.length - 1) : idx + dir;
+  if (ni < 0 || ni >= scoped.length) return;
+  var ev = scoped[ni];
   timeline.setYear(ev.from);
   /* 步进无描线动画，但镜头仍须落到事件地点（否则点了下一事件地图不动） */
   routes.seek(ev, 0);
@@ -6490,7 +6836,13 @@ function renderLegend() {
   $('journeyLegend').querySelectorAll('.lg-j').forEach(function (row) {
     var j = R_BY[row.getAttribute('data-j')];
     j.rowEl = row;
-    row.addEventListener('click', function () { replayJourney(j); });
+    row.setAttribute('role', 'button');
+    row.setAttribute('tabindex', '0');
+    row.setAttribute('aria-pressed', 'false');
+    row.addEventListener('click', function () { selectRoute(j.id); });
+    row.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectRoute(j.id); }
+    });
   });
   /* L-1：折叠摘要只统计「已含事件」的旅程，避免把待补充章节算进来 */
   var evMaxFrom = Math.max.apply(null, EVENTS.map(function (e) { return e.from; }));
@@ -6505,10 +6857,86 @@ function renderLegend() {
   GS.fx.on('play:start', function () { $('legend').classList.add('open'); });
   GS.fx.on('play:end', function () { $('legend').classList.remove('open'); });
 }
-function replayJourney(j) {
+/* ================= 路线筛选（M8） =================
+ * 点选图例里的某段旅程 → 地图只留这段旅程的地点与事件点，时间轴只留它的圆点与色带，
+ * 侧栏列表同步收缩；再点一次（或 Esc / 重置视图）恢复全量。
+ *
+ * 归属判定用 ev.ch === route.ch，不用「地点是否在本旅程站点上」：
+ * 耶路撒冷同时是 j1 / j2 / j3 的站点，按地点判会把三次旅程的事件混在一起
+ * （这正是 M2 修过的「跨旅程串线」问题的另一面）。
+ * j1…j5 与 ch1…ch5 一一对应；ch6（罗马被囚与尾声）没有旅程，故无对应路线。
+ *
+ * 三个层面必须同时收口，否则会出现「点了路线但还有东西留在图上」：
+ *   ① 地图地点（mkEls → .route-off）② 地图事件点（dotEls → .route-off）
+ *   ③ 时间轴（timeline.setFilter 重排）+ 侧栏列表（renderList）+ 计数（applyReveal）。 */
+var ROUTE_CH = {};
+ROUTES.forEach(function (j) { ROUTE_CH[j.id] = j.ch; });
+function inRouteScope(ev) { return !state.route || ev.ch === ROUTE_CH[state.route]; }
+function routeEventCount(rid) {
+  var ch = ROUTE_CH[rid];
+  return EVENTS.filter(function (e) { return e.ch === ch; }).length;
+}
+/* 本旅程要保留的地点 = 站点 ∪ 本旅程事件所在地点。
+ * 后者不可省：站点之外仍有事件地点时，若只按站点保留，会出现「事件在范围内、
+ * 它的地点被隐去」，事件点跟着地点一起消失。 */
+function routePlaceKeep(rid) {
+  var j = R_BY[rid], keep = {};
+  if (!j) return keep;
+  j.stops.forEach(function (s) { if (s.p) keep[s.p] = 1; });
+  EVENTS.forEach(function (e) { if (e.ch === j.ch) keep[e.place] = 1; });
+  return keep;
+}
+function applyRouteFilter() {
+  var rid = state.route, keep = rid ? routePlaceKeep(rid) : null;
+  PLACES.forEach(function (p) {
+    var el = mkEls[p.id];
+    if (el) el.classList.toggle('route-off', !!rid && !keep[p.id]);
+  });
+  EVENTS.forEach(function (ev) {
+    var d = dotEls[ev.id];
+    if (d) d.classList.toggle('route-off', !inRouteScope(ev));
+  });
+  routes.focus(rid);
+  timeline.setFilter(
+    rid ? function (m) { return m.ch === ROUTE_CH[rid]; } : null,
+    rid ? function (b) { return b.id === ROUTE_CH[rid]; } : null
+  );
+  renderList();
+  renderFilter();
+  applyReveal(state.year);            /* 计数与 .on/.dim 按新范围重算 */
+  mapCore.placeLabels(labelItems);    /* 可见标签重排（隐去的地点已从障碍集剔除） */
+}
+function selectRoute(rid) {
+  if (!rid || !R_BY[rid] || state.route === rid) { clearRoute(); return; }
   pause();
+  state.route = rid;
+  var j = R_BY[rid];
+  $('journeyLegend').querySelectorAll('.lg-j').forEach(function (r) {
+    var on = r.getAttribute('data-j') === rid;
+    r.classList.toggle('sel', on);
+    r.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  applyRouteFilter();
+  /* 视野收到这段旅程（站点范围 + 0.5° 留白），fitStory 仍按浮层安全区居中 */
+  var la = j.stops.map(function (s) { return s.ll[0]; });
+  var ln = j.stops.map(function (s) { return s.ll[1]; });
+  mapCore.setFit([[Math.min.apply(null, la) - .5, Math.min.apply(null, ln) - .5],
+                  [Math.max.apply(null, la) + .5, Math.max.apply(null, ln) + .5]], true, 900);
   routes.replay(j);
-  toast(j.years, '<b>' + j.name + '</b> · ' + j.desc);
+  toast(j.years, '<b>' + j.name + '</b> · ' + routeEventCount(rid) + ' 个事件（只看本旅程）');
+  GS.fx.emit('chapter:enter', CH_BY[ROUTE_CH[rid]]);
+}
+function clearRoute(silent) {
+  if (!state.route) return;
+  state.route = null;
+  $('journeyLegend').querySelectorAll('.lg-j').forEach(function (r) {
+    r.classList.remove('sel');
+    r.setAttribute('aria-pressed', 'false');
+  });
+  routes.cancelTravel();
+  applyRouteFilter();
+  mapCore.resetView(900);
+  if (!silent) toast('全部旅程', '已恢复显示全部地点与事件');
 }
 
 /* ================= 图层开关 / 重置 ================= */
@@ -6524,6 +6952,7 @@ document.querySelectorAll('.chip[data-layer]').forEach(function (chip) {
 $('resetBtn').addEventListener('click', function () {
   pause();
   routes.cancelTravel();
+  clearRoute(true);            /* 先退出路线筛选（含视野复原），再做其余重置 */
   setFilter(null);
   if (state.chapter) { state.chapter = null; syncChapterChips(); renderList(); }
   closeEvent();
@@ -6541,7 +6970,12 @@ document.addEventListener('keydown', function (e) {
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); stepEvent(1); }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); stepEvent(-1); }
-  else if (e.key === 'Escape') { closeEvent(); if (state.filter) setFilter(null); }
+  /* Esc 逐层退出：详情窗 → 地点筛选 → 路线筛选（一次只退一层，符合「撤销」直觉） */
+  else if (e.key === 'Escape') {
+    if (state.detail) closeEvent();
+    else if (state.filter) setFilter(null);
+    else if (state.route) clearRoute();
+  }
 });
 
 /* ================= 时间轴 ================= */
@@ -6556,7 +6990,7 @@ document.addEventListener('keydown', function (e) {
 })();
 
 var tlMarks = EVENTS.map(function (e) {
-  return { id: e.id, from: e.from, color: e.typeMeta.color, title: e.title + ' · ' + PLACE_BY[e.place].cn };
+  return { id: e.id, ch: e.ch, from: e.from, color: e.typeMeta.color, title: e.title + ' · ' + PLACE_BY[e.place].cn };
 });
 var timeline = GS.timeline.init({
   from: D0, to: D1,
@@ -6704,6 +7138,7 @@ window.GS_APP = {
   dotEls: dotEls, map: map, timeline: timeline, setYear: function (y) { timeline.setYear(y); },
   insets: function () { return mapCore.insets(); },
   fits: function () { return mapCore.fits(); },
+  labelStats: function () { return mapCore.labelStats(); },   /* M8 分级消隐诊断 */
   togglePanel: function () { $('panelToggle').click(); },
   timing: { TRAVEL: TRAVEL, SEEK_LEAD: SEEK_LEAD, CRUISE_MS: CRUISE_MS, ARRIVE_MS: ARRIVE_MS, DWELL: DWELL, CAM: CAM }
 };

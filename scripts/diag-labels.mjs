@@ -24,7 +24,10 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 await new Promise((res) => { ws.onopen = res; });
 await send('Page.enable');
 await send('Runtime.enable');
-await send('Emulation.setDeviceMetricsOverride', { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
+await send('Emulation.setDeviceMetricsOverride',
+  process.env.MOBILE
+    ? { width: 430, height: 932, deviceScaleFactor: 2, mobile: true }
+    : { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
 await send('Page.navigate', { url: PAGE });
 await sleep(6000);
 /* 可选：DIAG_ZOOM 环境变量指定 zoom 复测（验证标签冲突是否随缩放消失/恶化）。
@@ -40,10 +43,15 @@ async function ev(x) {
 }
 
 console.log(await ev(`(function(){
-  var tips = [].slice.call(document.querySelectorAll('.leaflet-tooltip.city-tip'));
+  /* 只统计【真正渲染】的标签：M8 起分级消隐用 display:none 落地，
+   * 隐藏的标签没有盒子（getBoundingClientRect 全 0），若不排除会漏算可见标签
+   * 之间的重叠（全 0 矩形之间 ox/oy 恒为负，不会误报，但 tipCount 会虚高）。 */
+  var all = [].slice.call(document.querySelectorAll('.leaflet-tooltip.city-tip'));
+  var tips = all.filter(function (t) { return t.style.display !== 'none'; });
   var boxes = tips.map(function (t) {
     var r = t.getBoundingClientRect();
-    return { name: (t.textContent || '').slice(0, 24), l: r.left, t: r.top, r: r.right, b: r.bottom,
+    return { pid: t.getAttribute('data-place') || '',
+             name: (t.textContent || '').slice(0, 24), l: r.left, t: r.top, r: r.right, b: r.bottom,
              w: Math.round(r.width), h: Math.round(r.height), area: Math.round(r.width * r.height) };
   });
   var pairs = [];
@@ -66,6 +74,9 @@ console.log(await ev(`(function(){
   var coreHits = [];
   boxes.forEach(function (bx) {
     cores.forEach(function (c) {
+      /* 豁免自身核心：标签从自己的锚点伸出，必然与自己的核心盒相邻，
+       * 这不是冲突（map-core 的 labelConflict 里也做了同样豁免）。 */
+      if (bx.pid && bx.pid === c.id) return;
       var ox = Math.min(bx.r, c.r) - Math.max(bx.l, c.l);
       var oy = Math.min(bx.b, c.b) - Math.max(bx.t, c.t);
       if (ox > 0 && oy > 0) coreHits.push({ label: bx.name, core: c.id, area: Math.round(ox * oy) });
@@ -74,7 +85,11 @@ console.log(await ev(`(function(){
   pairs.sort(function (x, y) { return y.area - x.area; });
   coreHits.sort(function (x, y) { return y.area - x.area; });
   return JSON.stringify({
+    stats: GS_APP.labelStats ? GS_APP.labelStats() : null,
     tipCount: tips.length,
+    domTipCount: all.length,
+    hiddenCount: all.length - tips.length,
+    visibleNames: boxes.map(function (b) { return b.name; }),
     overlapPairs: pairs.length,
     worst: pairs.slice(0, 14),
     labelOverCore: coreHits.length,
