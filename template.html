@@ -788,17 +788,26 @@ var SEQ = EVENTS.map(function (e, i) { return { e: e, i: i }; })
 var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, arrivedId: null, chapter: null, route: null, placePin: null, speed: 1, speedIdx: 0 };
 
 /* 初始视野：由「有事件的地方」自动聚合，而非写死整个地中海。
-   取所有事件地点的经纬范围 + 12%留白；随章节数据增加自动扩展（耶路撒冷/罗马/马耳他纳入后自然变宽）。 */
+   随章节数据增加自动扩展（耶路撒冷 / 罗马 / 马耳他纳入后自然变宽）。
+   M9.2（用户「整个地图需要放大」）：旧实现取「长边的 12%」同时加到两个轴 ——
+   故事 23.7°×10.1°，长边留白 2.84° 把纬度方向的框撑到 15.8°，竖直反而成了
+   约束条件，fit 在 1440×900 只到 z5.5，内容仅占屏 53%×45%。
+   改为【逐轴】留 3.5%（下限 0.5°）：纬度框收到 10.8°，宽度成为约束，
+   配合 zoomSnap .25 可停在 z6.25，内容占屏 89%×76%（1680×1000 为 91%×82%）。
+   3.5% 是「刚好跨过 z6.25 门槛」的值：留白再大 0.1° 就会掉回 z6.0（75%）。
+   竖屏（430×932）受故事 23.7°×10.1° 的横条比例限制，只能到 74%×18% —— 要「全都在视野里」
+   就必须按宽度 fit，这是取舍不是 bug（M9.2 踩坑 3）。 */
 var STORY_FIT = (function () {
   var pts = [];
   EVENTS.forEach(function (e) { if (PLACE_BY[e.place]) pts.push(PLACE_BY[e.place].ll); });
   if (pts.length < 2) return null;
   var la = pts.map(function (p) { return p[0]; }), ln = pts.map(function (p) { return p[1]; });
-  var s = Math.max(Math.max.apply(null, la) - Math.min.apply(null, la),
-                   Math.max.apply(null, ln) - Math.min.apply(null, ln)) * 0.12;
-  s = Math.max(s, 0.6);   /* 至少留 0.6° 边距，避免单点聚集时过度放大 */
-  return [[Math.min.apply(null, la) - s, Math.min.apply(null, ln) - s],
-          [Math.max.apply(null, la) + s, Math.max.apply(null, ln) + s]];
+  var latS = Math.max.apply(null, la) - Math.min.apply(null, la);
+  var lngS = Math.max.apply(null, ln) - Math.min.apply(null, ln);
+  var padLat = Math.max(latS * 0.035, 0.5);   /* 0.5° 下限：单点聚集时不至于贴边 */
+  var padLng = Math.max(lngS * 0.035, 0.5);
+  return [[Math.min.apply(null, la) - padLat, Math.min.apply(null, ln) - padLng],
+          [Math.max.apply(null, la) + padLat, Math.max.apply(null, ln) + padLng]];
 })();
 
 /* ================= 地图与图层 ================= */

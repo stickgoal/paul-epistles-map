@@ -1,4 +1,4 @@
-// 构建单文件 HTML：内联 Leaflet JS/CSS + 地中海 GeoJSON + 共享引擎 + JSON 数据
+// 构建单文件 HTML：内联 Leaflet JS/CSS + 世界底图 GeoJSON + 共享引擎 + JSON 数据
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -16,7 +16,9 @@ const js = fs.readFileSync(path.join(here, 'assets/leaflet.js'), 'utf8')
   .replace(/^\s*\/\/# sourceMappingURL=.*$/gm, '')
   .replace(/<\/script/gi, '<\\/script');
 
-const geo = fs.readFileSync(path.join(here, 'assets/med.json'), 'utf8');
+/* 底图：全球 110m（scripts/make-basemap.mjs 生成）。M9.2 之前是裁剪到地中海窗口的
+ * med.json —— 竖屏放大后会露出矩形裁切边，故改为整份世界（见脚本头注释）。 */
+const geo = fs.readFileSync(path.join(here, 'assets/world.json'), 'utf8');
 
 const read = (p) => fs.readFileSync(path.join(here, p), 'utf8');
 

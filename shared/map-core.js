@@ -1,5 +1,5 @@
 /* GS.mapCore — 地图基底（与 paul-epistles-map 共用）：
- * Leaflet 初始化、地中海 GeoJSON 底图、经纬网、两段式飞行定位、地点点亮/涟漪、城市标签自动避位。
+ * Leaflet 初始化、全球底图 GeoJSON、经纬网、两段式飞行定位、地点点亮/涟漪、城市标签自动避位。
  * 由 build.mjs 内联进单文件；不依赖任何外部状态。 */
 window.GS = window.GS || {};
 GS.mapCore = (function () {
@@ -46,6 +46,11 @@ GS.mapCore = (function () {
     if (animate) map.flyTo(center, zoom, { duration: (durMs || 1200) / 1000 });
     else map.setView(center, zoom, { animate: false });
   }
+  /* 最小缩放（M9.2）：固定 3。
+   * 第一版曾按「刚好铺满领域窗口」动态算 minZoom（minZoomForWindow），用来躲开
+   * med.json 的矩形裁剪边；改成全球底图后边界根本不存在，这层视口相关的计算
+   * 整块删掉了 —— 少一个会随窗口尺寸漂移的变量，也就少一类「某些尺寸下才复现」的 bug。 */
+
   /* 安全区过大（小窗口 + 宽面板）时按比例收缩，保证至少留出 160×120 的可视区 */
   function clampInsets() {
     var s = map ? map.getSize() : { x: 800, y: 600 };
@@ -60,7 +65,15 @@ GS.mapCore = (function () {
     }
   }
 
-  var DEFAULT_FIT = [[27.6, -11.8], [47.8, 44.2]];
+  /* 底图（M9.2）：全球 110m，不再裁剪窗口。DEFAULT_FIT 只在调用方没传 fit 时兜底；
+   * 正常路径用模板算出的 STORY_FIT。
+   * 经纬网同步扩到全球 10° 一档：底图铺到全球后，只画地中海那一小片网格会在缩小时
+   * 变成中间一块突兀的方格纸。10° 在首屏 z6.25 约 540px 一格，正好比原来的 5° 稀疏一档，
+   * 与「地图放大后少一点网格」的观感一致。 */
+  var DEFAULT_FIT = [[-60, -180], [75, 180]];
+  var GRID = { lat: [-80, -70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70, 80],
+               lng: [-180, -170, -160, -150, -140, -130, -120, -110, -100, -90, -80, -70, -60, -50, -40,
+                     -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170] };
   var LABEL_CANDIDATES = [
     ['right', [14, 0]], ['right', [14, -12]], ['right', [14, -28]], ['right', [28, 0]], ['right', [28, -16]],
     ['left', [-14, 0]], ['left', [-14, 12]], ['left', [-14, 28]], ['left', [-28, 0]], ['left', [-28, 16]],
@@ -74,7 +87,9 @@ GS.mapCore = (function () {
     if (opts.insets) insets = { t: opts.insets.t, r: opts.insets.r, b: opts.insets.b, l: opts.insets.l };
     map = L.map('map', {
       zoomControl: false, attributionControl: false,
-      minZoom: 3, maxZoom: 10, zoomSnap: .5, wheelPxPerZoomLevel: 140
+      /* zoomSnap .25（M9.2）：.5 的步长会把「刚好放得下」的 zoom 向下取整掉一档
+       * （实测 6.2 → 6.0，内容只占 77%）；.25 让 fit 能停在 6.25，内容占到 89%。 */
+      minZoom: 3, maxZoom: 10, zoomSnap: .25, wheelPxPerZoomLevel: 140
     });
     var fit = lastFit = storyFit = opts.fit || DEFAULT_FIT;
     clampInsets();
@@ -90,11 +105,11 @@ GS.mapCore = (function () {
     }).addTo(map);
 
     var grat = L.layerGroup().addTo(map);
-    [30, 35, 40, 45].forEach(function (la) {
-      L.polyline([[la, -13], [la, 45]], { color: '#e0e3dc', weight: .7, opacity: .9, interactive: false }).addTo(grat);
+    GRID.lat.forEach(function (la) {
+      L.polyline([[la, GRID.lng[0]], [la, GRID.lng[GRID.lng.length - 1]]], { color: '#e0e3dc', weight: .7, opacity: .9, interactive: false }).addTo(grat);
     });
-    for (var lo = -10; lo <= 40; lo += 5) {
-      L.polyline([[27, lo], [48.5, lo]], { color: '#e0e3dc', weight: .7, opacity: .9, interactive: false }).addTo(grat);
+    for (var gi = 0; gi < GRID.lng.length; gi++) { var lo = GRID.lng[gi];
+      L.polyline([[GRID.lat[0], lo], [GRID.lat[GRID.lat.length - 1], lo]], { color: '#e0e3dc', weight: .7, opacity: .9, interactive: false }).addTo(grat);
     }
 
     /* 初始视野加固：容器尺寸未定（iframe/小窗/字体加载）时 fitBounds 会算错 zoom，
