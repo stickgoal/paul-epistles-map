@@ -17,11 +17,19 @@
 param(
   [Parameter(Mandatory = $true)][string]$Script,
   [int]$Width = 1280,
-  [int]$Height = 800
+  [int]$Height = 800,
+  [int]$Port = 0
 )
 
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path -Parent $PSScriptRoot)
+
+# CDP port: -Port wins, then $env:CDP_PORT, then 9222. Anything on the machine can hold
+# 9222 (a stray client socket bound to the wildcard address makes Chrome fail with
+# WSAEACCES 0x271D and fall back to IPv6-only), so the port has to be overridable.
+# The chosen port is exported so the node script connects to the same one.
+if ($Port -le 0) { $Port = if ($env:CDP_PORT) { [int]$env:CDP_PORT } else { 9222 } }
+$env:CDP_PORT = "$Port"
 
 $root = (Get-Location).Path
 $profileDir = Join-Path $root '.cdp-profile'
@@ -38,7 +46,7 @@ $proc = Start-Process -FilePath $chrome -PassThru -WindowStyle Hidden -ArgumentL
   '--no-sandbox'
   '--disable-gpu'
   "--window-size=$Width,$Height"
-  '--remote-debugging-port=9222'
+  "--remote-debugging-port=$Port"
   "--user-data-dir=$profileDir"
   'about:blank'
 )
@@ -49,12 +57,12 @@ try {
   for ($i = 0; $i -lt 60; $i++) {
     Start-Sleep -Milliseconds 250
     try {
-      $null = Invoke-RestMethod -Uri 'http://127.0.0.1:9222/json/version' -TimeoutSec 1
+      $null = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/json/version" -TimeoutSec 1
       $ready = $true
       break
     } catch { }
   }
-  if (-not $ready) { throw 'CDP port 9222 did not become ready' }
+  if (-not $ready) { throw "CDP port $Port did not become ready" }
 
   Write-Host "[cdp] running $Script ..."
   # Force UTF-8 on stdout: Windows PowerShell 5.1 otherwise decodes node's UTF-8

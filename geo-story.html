@@ -1095,10 +1095,13 @@ body.tl-open .now{bottom:calc(var(--tlh) + 14px)}
 .leaflet-bar a:hover{background:#fff!important;color:var(--ink)!important}
 .leaflet-control-scale-line{border-color:#c3c6bd!important;color:var(--ink-2);background:rgba(255,255,255,.75);border-radius:2px;font-size:10px;padding:1px 5px}
 
-.leaflet-tooltip.city-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink);font-size:12.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;pointer-events:none;
+.leaflet-tooltip.city-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink);font-size:12.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;pointer-events:auto;cursor:pointer;
   /* 呼吸环移除后，静止态的地点身份只剩「饼图核心 + 地名」——标签直接压在底图与
    * 路线上，必须自带一层浅色晕圈才读得清（不换成胶囊底：28 个胶囊会重新变吵）。 */
   text-shadow:0 0 3px #fdfdfb,0 0 3px #fdfdfb,0 0 6px rgba(253,253,251,.92),0 1px 1px rgba(253,253,251,.95)}
+/* 标签可点（M9.4）：地名本身也是入口，点击等同点地点核心。
+   命中盒 = 文字本身（padding 保持 0，加大会让相邻标签的点击区互相吃掉）；
+   拖动地图不受影响 —— 只拦 click，mousedown 照常冒泡给 Leaflet 的拖拽。 */
 /* 标签避让的偏移：由 map-core 的 applyTipDirection 写成【内联 margin】直接覆盖。
    这里的 calc 只是「JS 还没跑」时的兜底（--tx/--ty 未定义 → 退回 Leaflet 自带的
    ±6px）。不要改回用 --tx 变量承载偏移：Chrome 对 var() 依赖属性的重算是延迟的，
@@ -6391,19 +6394,84 @@ function pinLabel(pid, on) {
   var el = tipElOf(pid);
   if (el) el.classList.toggle('pinned', labelPin[pid] > 0);
 }
-/* 只在「确实隐藏着」时才重算：placeLabels 一次要跑 28 标签 × 9 方位 × 3 形态的
- * getBoundingClientRect，每次 mouseenter 都跑会让密集区悬停明显发涩。 */
-function ensureLabelVisible(pid) {
+/* 悬停「圆点或它的名字」= 同一个意图，用一份计数统一管（M9.4）。
+ * 为什么要合并：标签变成可点之后，鼠标可以从圆点直接滑到名字上。若两边各管各的
+ * pin，先到的 leave 会把 pin 撤掉并立刻重排，光标底下的名字当场消失；若简单跳过
+ * leave，那份 pin 又永远没人还（计数泄漏，标签从此常显）。
+ * 做法：enter/leave 各加减一次，归零才真正撤销；撤销后【延后一拍】再决定要不要
+ * 重排 —— 圆点→名字这一跳 leave 先于 enter 到达，等一拍就能看到计数已经回到 1。
+ * 只有「本来被分级隐去、靠悬停才亮出来」的那次才需要重排收回去（hoverRestore）；
+ * 标签可见时悬停只挂 .pinned（播放期提亮），离开就只摘掉它 —— 否则鼠标扫过一串
+ * 名字，每经过一个都要跑一次 28 标签 × 9 方位 × 3 形态的全量重算，肉眼可见发涩。 */
+var hoverCount = {}, hoverPin = {}, hoverRestore = {};
+function hoverEnter(pid) {
+  if (hoverCount[pid]) { hoverCount[pid]++; return; }
+  hoverCount[pid] = 1;
   var el = tipElOf(pid);
-  if (!el || el.style.display !== 'none') return;
-  pinLabel(pid, true);
-  mapCore.placeLabels(labelItems);
+  var hidden = !el || el.style.display === 'none';
+  if (!labelPin[pid]) { pinLabel(pid, true); hoverPin[pid] = 1; }
+  if (hidden) { hoverRestore[pid] = 1; mapCore.placeLabels(labelItems); }
 }
-function releaseLabel(pid) {
-  if (!labelPin[pid]) return;
-  pinLabel(pid, false);
-  mapCore.placeLabels(labelItems);
+function hoverLeave(pid) {
+  if (!hoverCount[pid]) return;
+  hoverCount[pid]--;
+  if (hoverCount[pid]) return;
+  if (hoverPin[pid]) { hoverPin[pid] = 0; pinLabel(pid, false); }
+  if (!hoverRestore[pid]) return;
+  setTimeout(function () {
+    /* 这一拍里指针可能又落回名字上（或详情窗正开着），那就别把名字收回去 ——
+     * 标记留着，等真正离开时再收。 */
+    if (hoverCount[pid] || state.placePin === pid) return;
+    hoverRestore[pid] = 0;
+    mapCore.placeLabels(labelItems);
+  }, 0);
 }
+
+/* ================= 地名标签也是入口（M9.4） =================
+ * 用户：「点击名字也可以弹出窗口」——标签和地点核心走同一个 openPlace。
+ * 三个实现约束：
+ * 1) 标签在 Leaflet 的 tooltip pane 里，是【独立元素】不是 marker 的子节点，
+ *    所以不能靠 marker 的 click；而且 placeLabels 会反复改它的 innerHTML，
+ *    逐个挂监听会被重写冲掉 —— 用容器上的事件委托。
+ * 2) 委托必须挂在【捕获阶段】：Leaflet 在 #map 上以冒泡方式监听 click（点空白
+ *    关窗、地图 click 事件），同在容器上的冒泡监听无法用 stopPropagation 互斥；
+ *    捕获阶段先拿到事件并 stopPropagation，Leaflet 就收不到，卡片不会被自己
+ *    刚打开的点击关掉。mousedown 不拦，拖动地图照常。
+ * 3) 悬停走 hoverEnter/hoverLeave（见上）：播放期标签压到 .18，指针移到名字上应当
+ *    亮起来；离开只还自己那一份，绝不碰 openPlace 的 pin，否则关窗后计数会漏。 */
+function tipOf(e) {
+  var el = e.target;
+  return el && el.closest ? el.closest('.leaflet-tooltip.city-tip[data-place]') : null;
+}
+/* 拖动地图时 mousedown 落在标签上，松手后浏览器照样派发 click —— Leaflet 自己在
+ * 容器冒泡阶段有「拖动过就吞掉 click」的判断，但我们是捕获阶段的原生监听，绕过了它。
+ * 实测：从「哥林多」名字上按住往左下拖 120px，地图平移了，卡片却也弹了出来。
+ * 这里自己记按下点，位移超过 6px 就判为拖动、不开窗。 */
+var tipDown = null;
+$('map').addEventListener('mousedown', function (e) {
+  var t = tipOf(e);
+  tipDown = t ? { pid: t.getAttribute('data-place'), x: e.clientX, y: e.clientY } : null;
+});
+$('map').addEventListener('click', function (e) {
+  var t = tipOf(e);
+  if (!t) return;
+  var pid = t.getAttribute('data-place');
+  if (!tipDown || tipDown.pid !== pid) return;                       /* 不是从这个名字上按下的 */
+  if (Math.abs(e.clientX - tipDown.x) + Math.abs(e.clientY - tipDown.y) > 6) return;  /* 拖动 */
+  tipDown = null;
+  e.stopPropagation();
+  openPlace(pid);
+}, true);
+$('map').addEventListener('mouseover', function (e) {
+  var t = tipOf(e);
+  if (t) hoverEnter(t.getAttribute('data-place'));
+});
+$('map').addEventListener('mouseout', function (e) {
+  var t = tipOf(e);
+  if (!t) return;
+  if (t.contains(e.relatedTarget)) return;   /* 在中英文两行之间移动，不算离开 */
+  hoverLeave(t.getAttribute('data-place'));
+});
 
 PLACES.forEach(function (p) {
   if (p.ctx) {
@@ -6456,8 +6524,8 @@ PLACES.forEach(function (p) {
   /* 点击地点核心 → 弹出该地介绍窗（2026-10-17 前为地点筛选，筛选入口移至介绍窗内按钮）。
    * 悬停 → 被分级隐去的标签临时显示（M8）。 */
   var coreEl = pel.querySelector('.core');
-  coreEl.addEventListener('mouseenter', function () { ensureLabelVisible(p.id); });
-  coreEl.addEventListener('mouseleave', function () { releaseLabel(p.id); });
+  coreEl.addEventListener('mouseenter', function () { hoverEnter(p.id); });
+  coreEl.addEventListener('mouseleave', function () { hoverLeave(p.id); });
   coreEl.addEventListener('click', function (e) { e.stopPropagation(); openPlace(p.id); });
 
   /* 事件点围绕核心均匀分布；第一个朝上 */

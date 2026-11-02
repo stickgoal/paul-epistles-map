@@ -1,5 +1,5 @@
 /* M1 验收脚本：启动态 / 事件渲染 / 点击详情 / 播放序列 / 步进 / 深链 / 章节与地点筛选 / 控制台错误
- * 依赖：headless Chrome 已带 --remote-debugging-port=9222 启动 */
+ * 依赖：headless Chrome 已带 --remote-debugging-port=<CDP_PORT|9222> 启动（run-cdp.ps1 会设好） */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,8 +7,9 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PAGE = 'file:///' + path.join(here, 'geo-story.html').replace(/\\/g, '/').replace(/^([A-Za-z]):/, '$1:');
 const OUT = here + path.sep;
+const CDP = process.env.CDP_PORT || '9222';
 
-const list = await (await fetch('http://127.0.0.1:9222/json/list')).json();
+const list = await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json();
 const page = list.find(t => t.type === 'page');
 if (!page) { console.error('no page target'); process.exit(1); }
 const ws = new WebSocket(page.webSocketDebuggerUrl);
@@ -1841,6 +1842,93 @@ if (s7) {
   await realClick(s7.x, s7.y);
   await sleep(1200);
   console.log('S-7 mobile-pick:', await ev(`JSON.stringify({ route: GS_APP.journey.current(), ok: GS_APP.journey.current() === 'j1' })`));
+}
+
+/* ================= T：地名标签也是入口（M9.4） =================
+ * 用户：「点击名字也可以弹出窗口」。三条断言分别守住三件事：
+ *   T-1 标签真的在命中层里（.city-tip 曾是 pointer-events:none，点了没反应）；
+ *   T-2 点另一个名字能换卡片（捕获阶段的 stopPropagation 没把 Leaflet 的地图
+ *       click 一起吃掉 —— 吃掉了卡片会被自己刚打开的这次点击立刻关掉）；
+ *   T-3 从标签拖动地图仍然有效（我们只拦 click，不拦 mousedown）。
+ * 全部走真实输入事件：合成 .click() 会绕过命中测试，正好测不出 T-1。 */
+await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+await send('Page.navigate', { url: PAGE });
+await sleep(7500);
+
+var tipPos = async (pid) => JSON.parse(await ev(`(function(){
+  var el = document.querySelector('.leaflet-tooltip.city-tip[data-place="${pid}"]');
+  if (!el || el.style.display === 'none') return 'NONE';
+  var r = el.getBoundingClientRect();
+  return JSON.stringify({ x: Math.round(r.x + r.width/2), y: Math.round(r.y + r.height/2) });
+})()`));
+var tp = await tipPos('corinth');
+if (tp && tp.x) {
+  await realClick(tp.x, tp.y);
+  await sleep(1000);
+  console.log('T-1 click-label:', await ev(`(function(){
+    var g = GS_APP.geo();
+    var el = document.querySelector('.leaflet-tooltip.city-tip[data-place="corinth"]');
+    return JSON.stringify({ state: GS_APP.state.detail, kind: g.kind, id: g.id, shown: g.shown,
+      name: (document.querySelector('#gcBody .d-cn')||{}).textContent,
+      labelStillShown: !!el && el.style.display !== 'none',
+      ok: GS_APP.state.detail === 'place:corinth' && g.shown &&
+          (document.querySelector('#gcBody .d-cn')||{}).textContent === '哥林多' &&
+          !!el && el.style.display !== 'none' });
+  })()`));
+  /* T-2 换一个名字 */
+  var tp2 = await tipPos('ephesus');
+  if (tp2 && tp2.x) {
+    await realClick(tp2.x, tp2.y);
+    await sleep(1000);
+    console.log('T-2 switch-label:', await ev(`(function(){
+      return JSON.stringify({ state: GS_APP.state.detail,
+        name: (document.querySelector('#gcBody .d-cn')||{}).textContent,
+        ok: GS_APP.state.detail === 'place:ephesus' &&
+            (document.querySelector('#gcBody .d-cn')||{}).textContent === '以弗所' });
+    })()`));
+  }
+  /* 关窗：点空白仍要能关（捕获监听不能连地图的「点空白关窗」一起吞掉） */
+  await realClick(40, 420);
+  await sleep(700);
+  console.log('T-2b blank-close:', await ev(`JSON.stringify({ state: GS_APP.state.detail, shown: GS_APP.geo().shown,
+    ok: GS_APP.state.detail === null && !GS_APP.geo().shown })`));
+}
+
+/* T-3 从标签拖动地图 */
+var tp3 = await tipPos('corinth');
+if (tp3 && tp3.x) {
+  var c0 = JSON.parse(await ev(`JSON.stringify(GS_APP.map.getCenter())`));
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: tp3.x, y: tp3.y });
+  await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: tp3.x, y: tp3.y, button: 'left', clickCount: 1 });
+  for (var di = 1; di <= 5; di++) {
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: tp3.x - di * 24, y: tp3.y + di * 12, button: 'left' });
+    await sleep(30);
+  }
+  await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: tp3.x - 120, y: tp3.y + 60, button: 'left', clickCount: 1 });
+  await sleep(900);
+  console.log('T-3 drag-from-label:', await ev(`(function(){
+    var c = GS_APP.map.getCenter();
+    var moved = Math.abs(c.lng - (${c0.lng})) > 0.01 || Math.abs(c.lat - (${c0.lat})) > 0.01;
+    return JSON.stringify({ moved: moved, detail: GS_APP.state.detail,
+      ok: moved && GS_APP.state.detail === null });   /* 拖动不该被当成点击开卡片 */
+  })()`));
+}
+
+/* T-4 窄屏点名字（手机上没有 hover，只有 tap；顺带验证标签没被时间轴/抽屉盖住） */
+await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });
+await send('Page.navigate', { url: PAGE });
+await sleep(7500);
+var tp4 = await tipPos('ephesus');
+if (tp4 && tp4.x) {
+  await realClick(tp4.x, tp4.y);
+  await sleep(1200);
+  console.log('T-4 mobile-tap-label:', await ev(`(function(){
+    var g = GS_APP.geo();
+    return JSON.stringify({ x: ${tp4.x}, y: ${tp4.y}, state: GS_APP.state.detail,
+      name: (document.querySelector('#gcBody .d-cn')||{}).textContent, shown: g.shown,
+      inViewport: !!g.rect && g.rect.t >= 0 && g.rect.t + g.rect.h <= innerHeight,
+      ok: GS_APP.state.detail === 'place:ephesus' && g.shown && g.rect.t >= 0 });
+  })()`));
 }
 
 console.log('JS ERRORS:', errors.length ? errors.join(' | ') : 'NONE');
