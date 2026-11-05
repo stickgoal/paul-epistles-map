@@ -9,6 +9,10 @@ GS.routeEngine = (function () {
   /* 路线聚焦（M8）：选中某段旅程时，其余路线整体隐去（含站点圆点与行进光点）。
    * 不能只靠 CSS 类，因为 applyTime 每帧都直接写 style.opacity —— 会覆盖类样式。 */
   var focusId = null;
+  /* 全貌模式（M10，2026-11-05）：用户选「看全貌」后，所有旅程【整段】静态铺开，
+   * 不再受当前年份（首屏 AD 46 会让 j2…j5 判成 future 而整条消失）、路线聚焦
+   * 或 pin 定格影响。与 applyTime 的常规分支互斥，退出时把 sig 全清强制重算。 */
+  var overviewMode = false;
 
   /* 中点二次贝塞尔平滑，但曲线必须【精确穿过每个站点】：
    * 旧实现整段用 Q(m1, b, m2)，最近点只到 b + (a+c-2b)/8 ——
@@ -100,6 +104,24 @@ GS.routeEngine = (function () {
   function applyTime(y) {
     routes.forEach(function (j) {
       if (!j.drawn) return;
+      /* 全貌：所有路线画满、全部站点亮起、不挂行进光点、流光静止。
+       * 不能在常规分支里靠「把年份推到最晚」实现 —— 那样 past 态只有 .42 不透明度，
+       * 五条线挤在一起会灰成一片，且 pin 定格仍会随年份被 release 冲掉。 */
+      if (overviewMode) {
+        if (j.sig === 'overview') return;
+        j.sig = 'overview';
+        j.base.setLatLngs(j.path);
+        j.flow.setLatLngs(j.path);
+        j.baseEl.style.opacity = .88;
+        j.flowEl.style.opacity = .28;
+        j.flowEl.style.animationPlayState = 'paused';
+        for (var oi = 0; oi < j.dots.length; oi++) {
+          j.dots[oi].setStyle({ opacity: 1, fillOpacity: 1 });
+        }
+        if (j.headOn) { layer.removeLayer(j.head); j.headOn = false; }
+        if (onState) onState(j, 'overview');   /* 'overview' 不匹配 now/past/future ⇒ 图例行回到常态 */
+        return;
+      }
       var st, p;
       if (j.pin) { st = 'now'; p = 1; }
       else if (y < j.from) { st = 'future'; p = 0; }
@@ -128,6 +150,18 @@ GS.routeEngine = (function () {
       } else if (j.headOn) { layer.removeLayer(j.head); j.headOn = false; }
       if (onState) onState(j, st);
     });
+  }
+
+  /* 切换全貌模式。进入时收掉重播动画与定格态，退出时强制下一帧按年份重算。 */
+  function setOverview(on) {
+    overviewMode = !!on;
+    if (overviewMode) {
+      cancelTravel();
+      routes.forEach(function (j) { j.hold = null; j.pin = 0; j.sig = ''; });
+    } else {
+      routes.forEach(function (j) { j.sig = ''; });
+    }
+    applyTime(getYear());
   }
 
   /* 聚焦一段旅程（null = 取消聚焦）。只改渲染，不动数据与进度。 */
@@ -294,6 +328,8 @@ GS.routeEngine = (function () {
       return routes.filter(function (j) { return !!j.pin; }).map(function (j) { return j.id; });
     },
     focus: focus,
+    setOverview: setOverview,
+    isOverview: function () { return overviewMode; },
     cancelTravel: cancelTravel,
     cancelSeek: cancelSeek,
     byId: function (id) { return byId[id]; },

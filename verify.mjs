@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PAGE = 'file:///' + path.join(here, 'geo-story.html').replace(/\\/g, '/').replace(/^([A-Za-z]):/, '$1:');
+/* M10 起首屏多了一层模态引导（选「看全貌」/ 某段旅程）。W…U 这些既有断言测的是
+ * 引导【之后】的原首屏，若不做跳过，遮罩会挡住 W-2 时间轴、W-3 热区、A9 图例等
+ * 全部真实输入。故旧用例统一走 ?intro=0；引导本身由末尾 V 段单独验收。
+ * 深链 PAGE + '#e/...' 保持原样 —— 它自带目标，应用内会自行跳过引导。 */
+const PAGE0 = PAGE + '?intro=0';
 const OUT = here + path.sep;
 const CDP = process.env.CDP_PORT || '9222';
 
@@ -32,7 +37,7 @@ await new Promise((res) => { ws.onopen = res; });
 await send('Page.enable');
 await send('Runtime.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(6000);   /* 首帧就绪：97 事件 + 内联媒体在无 GPU 的 headless 下约 4.7s（GS_APP.boot≈2.5s，首次绘制更晚） */
 
 async function ev(x) {
@@ -97,7 +102,7 @@ await shot('f1_boot.png');
  *   ③ 2.6s 后自动收起，只露 16px 把手，把手文字不透明
  * 必须先清 sessionStorage：同一次会话内它只演示一次。 */
 await ev(`try{sessionStorage.removeItem('gs-tl-seen')}catch(e){}`);
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(2400);
 console.log('W-2a first-run-open:', await ev(`(function(){
   var tl = document.querySelector('.tl').getBoundingClientRect();
@@ -375,7 +380,7 @@ await sleep(650);
 /* M3 区段开始前先重新导航到初始态：
  *   上面的 A11 跑完了整片播放，相机停在最后一个事件（罗马）附近，
  *   此时量「初始视野」必然假失败 —— 与 A4 的教训同源。 */
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(6000);
 
 console.log('M3-1 chapters:', await ev(`(function(){
@@ -801,7 +806,7 @@ console.log('M6-4 ring-verdict:', ringSeen ? JSON.stringify({ ok: JSON.parse(rin
 /* A4. 初始视野聚焦地点密集区：全部事件地点应在视口内，且不覆盖整个地中海
  *   必须在【未播放】的初始状态下测：前面 A11 跑完整片播放后相机停在最后一个事件
  *   （耶路撒冷）附近，直接测会得到「6 处地点不在视口内」的假失败。故先重新导航。 */
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(6000);
 console.log('A4 initial-view:', await ev(`(function(){
   var b = GS_APP.map.getBounds(), z = GS_APP.map.getZoom();
@@ -1302,7 +1307,7 @@ console.log('K3 pie:', await ev(`(function(){
  * 旧版是「地图 32dvh + 下方列表」的两段式，手机上一半屏幕给了列表。 */
 await ev(`sessionStorage.removeItem('gs.guide.seen.v1')`);
 await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(6200);
 console.log('J mobile full-bleed:', await ev(`(function(){
   var m = document.getElementById('map').getBoundingClientRect();
@@ -1387,7 +1392,7 @@ await shot('f5_mobile.png');
  *   M8-3 播放收敛：播放期地名收敛到当前章节，暂停后恢复常态
  * 必须切回桌面视口重载 —— J 段已把设备改成 430×932 移动端。 */
 await send('Emulation.setDeviceMetricsOverride', { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(7800);
 
 console.log('M8-1 label-density:', await ev(`(function(){
@@ -1574,7 +1579,7 @@ if (rJ) {
  * 这里补「地图是否真的铺满」「面板是否真的让位」「浮窗是否真的贴着锚点、且跟着地图走」。
  * 重载一次拿到干净的初始态：上一段 M8-5 把路线聚焦点开又取消了，相机停在哪里不可控。 */
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(7000);
 
 /* W-1. 地图铺满视口：整块屏幕交给地图，面板与时间轴都只是浮在它上面的层，
@@ -1713,7 +1718,7 @@ if (w4.id) {
  *   · 「显示地名」不能只看 state：要证明那些 tooltip 真的 display≠none、
  *     整块落在视口内、两两不重叠（否则等于把地名糊在一起）。 */
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(7000);
 await ev(`(function(){ GS_APP.tl.open(); return 1; })()`);
 await sleep(500);
@@ -1826,7 +1831,7 @@ if (s2) {
 
 /* S-7. 窄屏：chip 排要能横向滚动且首尾都点得到（430px 放不下 6 个 chip） */
 await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 1, mobile: true });
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(7000);
 await ev(`(function(){ GS_APP.tl.open(); return 1; })()`);
 await sleep(500);
@@ -1852,7 +1857,7 @@ if (s7) {
  *   T-3 从标签拖动地图仍然有效（我们只拦 click，不拦 mousedown）。
  * 全部走真实输入事件：合成 .click() 会绕过命中测试，正好测不出 T-1。 */
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(7500);
 
 var tipPos = async (pid) => JSON.parse(await ev(`(function(){
@@ -1914,9 +1919,66 @@ if (tp3 && tp3.x) {
   })()`));
 }
 
+/* ================= U. 2026-11-05「点击事件地名，会隐藏所有信息」回归 =============
+ * 两条真实缺陷，全部走真实鼠标输入：
+ *  U-1 openEvent 无条件把年份拉回该事件年 —— 时间轴在 AD 60（91 个事件点已点亮）时
+ *      点开一个 AD 46 的事件，年份回到 46，88 个点当场熄灭；
+ *  U-2 「事件地点」chip 直接 removeLayer(placeLayer) —— 地名标签（同一 marker 的
+ *      tooltip）、事件点、地点核心一起被拆，等于清空整张地图；再打开时 DOM 重建，
+ *      .on 状态与点击监听全丢（U-3 验证切回来后还点得动）。 */
+await send('Emulation.setDeviceMetricsOverride', { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
+await send('Page.navigate', { url: PAGE0 });
+await sleep(6000);
+await ev('GS_APP.setYear(60); true');
+await sleep(400);
+var u1Before = JSON.parse(await ev(`JSON.stringify({ dots: document.querySelectorAll('.ev-dot.on').length, year: Math.round(GS_APP.state.year) })`));
+var dotPosExpr = `(function(){var e=document.querySelector('.ev-dot[data-ev="antioch-commission"]');if(!e)return 'NONE';var r=e.getBoundingClientRect();return Math.round(r.x+r.width/2)+','+Math.round(r.y+r.height/2);})()`;
+var u1Pos = await ev(dotPosExpr);
+if (u1Pos !== 'NONE') {
+  var u1xy = u1Pos.split(',').map(Number);
+  await realClick(u1xy[0], u1xy[1]);
+  await sleep(900);
+  console.log('U-1 no-year-rewind:', await ev(`(function(){
+    var after = document.querySelectorAll('.ev-dot.on').length, g = GS_APP.geo();
+    return JSON.stringify({ before: ${u1Before.dots}, after: after, year: Math.round(GS_APP.state.year), shown: g.shown, id: g.id,
+      ok: ${u1Before.dots} >= 80 && after >= ${u1Before.dots} &&
+          Math.round(GS_APP.state.year) === 60 && g.shown && g.kind === 'event' });
+  })()`));
+}
+await realClick(40, 420);   /* 点空白关窗 */
+await sleep(500);
+var u2Chip = '.chip[data-layer="places"]';
+var labelCountExpr = `Array.from(document.querySelectorAll('.leaflet-tooltip.city-tip')).filter(function(e){return e.style.display!=='none'&&getComputedStyle(e).display!=='none';}).length`;
+var u2Labels0 = Number(await ev(labelCountExpr));
+await click(u2Chip);
+await sleep(600);
+console.log('U-2 layer-off-keeps-info:', await ev(`(function(){
+  var labels = ${labelCountExpr};
+  var coresHidden = Array.from(document.querySelectorAll('.place .core')).filter(function(e){return getComputedStyle(e).visibility==='hidden';}).length;
+  var dotsHidden = Array.from(document.querySelectorAll('.ev-dot')).filter(function(e){return getComputedStyle(e).visibility==='hidden';}).length;
+  var dotsOn = document.querySelectorAll('.ev-dot.on').length;
+  var off = !document.querySelector('.chip[data-layer="places"]').classList.contains('on');
+  return JSON.stringify({ labelsBefore: ${u2Labels0}, labels: labels, coresHidden: coresHidden, dotsHidden: dotsHidden, dotsOn: dotsOn, off: off,
+    ok: off && ${u2Labels0} >= 3 && labels === ${u2Labels0} && coresHidden > 0 && dotsHidden > 0 && dotsOn === ${u1Before.dots} });
+})()`));
+await click(u2Chip);
+await sleep(600);
+var u3Pos = await ev(dotPosExpr);
+if (u3Pos !== 'NONE') {
+  var u3xy = u3Pos.split(',').map(Number);
+  await realClick(u3xy[0], u3xy[1]);
+  await sleep(900);
+  console.log('U-3 layer-on-still-clickable:', await ev(`(function(){
+    var g = GS_APP.geo(), on = document.querySelector('.chip[data-layer="places"]').classList.contains('on');
+    var dotsOn = document.querySelectorAll('.ev-dot.on').length, labels = ${labelCountExpr};
+    return JSON.stringify({ on: on, dotsOn: dotsOn, labels: labels, shown: g.shown, kind: g.kind,
+      ok: on && dotsOn === ${u1Before.dots} && labels === ${u2Labels0} && g.shown && g.kind === 'event' });
+  })()`));
+}
+
 /* T-4 窄屏点名字（手机上没有 hover，只有 tap；顺带验证标签没被时间轴/抽屉盖住） */
 await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });
-await send('Page.navigate', { url: PAGE });
+await send('Page.navigate', { url: PAGE0 });
 await sleep(7500);
 var tp4 = await tipPos('ephesus');
 if (tp4 && tp4.x) {
@@ -1930,6 +1992,274 @@ if (tp4 && tp4.x) {
       ok: GS_APP.state.detail === 'place:ephesus' && g.shown && g.rect.t >= 0 });
   })()`));
 }
+
+/* ================= V. M10 首屏引导 / 全貌 / 悬停事件 / 「显示事件」开关 =============
+ * 用户原话：「进入就引导探索哪个旅程或者看全貌。如果是看全貌，就直接显示所有线路
+ * 及地点，地点支持点击，鼠标悬浮则显示事件；右侧增加筛选『是否显示事件』（如果
+ * 不显示事件，就是在点击地名后弹出信息窗中显示）」。
+ * 全部用真实鼠标输入：引导按钮、旅程卡、地名标签、开关都走命中测试，不用 DOM .click()。
+ * V 段刻意放在最后：它要访问不带 ?intro=0 的默认首屏，不能污染前面 W…U 的旧断言。 */
+await send('Emulation.setDeviceMetricsOverride', { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
+await send('Page.navigate', { url: PAGE });
+await sleep(6500);
+
+/* 找一个「核心圆点」中心点确实可命中的地点（避开被其它浮层压住的），供 hover 用 */
+var vCoreExpr = `(function(){
+  var ids=['corinth','ephesus','jerusalem','rome','caesarea','antioch','philippi'];
+  for(var i=0;i<ids.length;i++){
+    var el=document.querySelector('.place[data-place="'+ids[i]+'"] .core');
+    if(!el) continue;
+    var r=el.getBoundingClientRect();
+    var x=Math.round(r.x+r.width/2), y=Math.round(r.y+r.height/2);
+    var h=document.elementFromPoint(x,y);
+    if(h&&el.contains(h)) return JSON.stringify({p:ids[i],x:x,y:y,
+      n:GS_APP.events.filter(function(e){return e.place===ids[i];}).length});
+  }
+  return 'NONE';
+})()`;
+/* 找一个可见且中心点可命中的地名标签；全貌下标签是紧凑形态，位置会变，故每次现取 */
+async function vVisibleTip() {
+  var s = await ev(`(function(){
+    var els=document.querySelectorAll('.leaflet-tooltip.city-tip[data-place]');
+    for(var i=0;i<els.length;i++){
+      var el=els[i]; if(el.style.display==='none') continue;
+      var r=el.getBoundingClientRect(); if(r.width<4||r.height<4) continue;
+      var x=Math.round(r.x+r.width/2), y=Math.round(r.y+r.height/2);
+      var h=document.elementFromPoint(x,y);
+      if(h&&el.contains(h)) return JSON.stringify({p:el.getAttribute('data-place'),x:x,y:y});
+    }
+    return 'NONE';
+  })()`);
+  return (s && s !== 'NONE') ? JSON.parse(s) : null;
+}
+
+/* V-1 默认首屏：模态引导可见、五段旅程都在视口内、主按钮真的能点到 */
+var v1 = JSON.parse(await ev(`(function(){
+  var all=document.getElementById('introAll');
+  var r=all.getBoundingClientRect(), x=Math.round(r.x+r.width/2), y=Math.round(r.y+r.height/2);
+  var hit=document.elementFromPoint(x,y), ch=GS_APP.intro.choices(), pl=GS_APP.overview.places();
+  var hittable=!!(hit&&hit.closest&&hit.closest('#introAll'));
+  return JSON.stringify({ visible:GS_APP.intro.visible(),
+    counts:(document.getElementById('introCounts').textContent||'').trim(),
+    choices:ch.length, allInViewport:ch.every(function(c){return c.inViewport;}),
+    hittable:hittable, labels0:pl.labelsVisible, dots0:pl.dotsOn, totalDots:pl.totalDots,
+    overviewBefore:GS_APP.overview.active(),
+    ok:GS_APP.intro.visible()&&ch.length===5&&ch.every(function(c){return c.inViewport;})&&
+       hittable&&!GS_APP.overview.active() });
+})()`));
+console.log('V-1 intro-on-boot:', JSON.stringify(v1));
+await shot('v1_intro.png');
+
+/* V-2 真实点「看全貌」：五段路线整段实线、全部事件点点亮、地点分级放宽、右侧筛选出现 */
+var vAll = await centerOf('#introAll');
+if (vAll) { await realClick(vAll.x, vAll.y); await sleep(1500); }
+console.log('V-2 overview-enter:', await ev(`(function(){
+  var rs=GS_APP.overview.routes(), pl=GS_APP.overview.places(), vf=document.getElementById('viewFilter');
+  /* j4「被捕与受审」只有耶路撒冷、凯撒利亚两站，平滑后路径恰好 2 个点，
+   * 不能要求 full>2。真正的判据是「已画点数 === 完整点数」且实线不透明度 .88：
+   * 常规年份分支在首屏 AD 46 会把 j2…j5 判成 future 只留 1 个点或直接隐藏。 */
+  var full=rs.every(function(r){return r.drawn&&r.full>=2&&r.shown===r.full&&Math.abs(r.opacity-.88)<.01;});
+  return JSON.stringify({ clicked:${vAll ? 'true' : 'false'}, intro:GS_APP.intro.visible(),
+    active:GS_APP.overview.active(), filterVisible:!vf.hidden,
+    filterInViewport:(function(b){return b.top>=0&&b.left>=0&&b.right<=innerWidth&&b.bottom<=innerHeight;})(vf.getBoundingClientRect()),
+    routes:rs.map(function(r){return r.id+':'+r.shown+'/'+r.full;}).join(' '),
+    opacities:rs.map(function(r){return r.id+':'+r.opacity;}).join(' '), full:full,
+    labels:pl.labelsVisible, labels0:${v1.labels0}, dotsOn:pl.dotsOn, totalDots:pl.totalDots,
+    filtered:pl.filtered,
+    ok:${vAll ? 'true' : 'false'}&&!GS_APP.intro.visible()&&GS_APP.overview.active()&&!vf.hidden&&
+       full&&rs.length===5&&pl.dotsOn===pl.totalDots&&pl.labelsVisible>=${v1.labels0}&&pl.filtered===0 });
+})()`));
+await shot('v2_overview.png');
+
+/* V-3 真实悬停地点核心 → 浮出该地事件清单（年份 + 标题，条数等于该地事件数） */
+var vH = await ev(vCoreExpr);
+var vHover = (vH && vH !== 'NONE') ? JSON.parse(vH) : null;
+if (vHover) {
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: vHover.x, y: vHover.y });
+  await sleep(500);
+}
+console.log('V-3 hover-events:', await ev(`(function(){
+  var t=GS_APP.hoverEvents.text(), vis=GS_APP.hoverEvents.visible();
+  var rows=document.querySelectorAll('#hoverEvs .he-row').length;
+  var r=document.getElementById('hoverEvs').getBoundingClientRect();
+  return JSON.stringify({ place:'${vHover ? vHover.p : 'NONE'}', vis:vis, rows:rows,
+    expect:${vHover ? vHover.n : 0}, hasYear:t.indexOf('AD ')>=0, title:t.slice(0,80),
+    inViewport:r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight,
+    ok:${vHover ? 'true' : 'false'}&&vis&&rows===${vHover ? vHover.n : -1}&&t.indexOf('AD ')>=0&&
+       r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight });
+})()`));
+await shot('v3_hover_events.png');
+
+/* V-4 真实点击地名标签 → 地点信息窗（内含该地事件行），且不退出全貌 */
+var vt1 = await vVisibleTip();
+if (vt1) { await realClick(vt1.x, vt1.y); await sleep(1000); }
+console.log('V-4 place-click-keeps-overview:', await ev(`(function(){
+  var g=GS_APP.geo(), rows=document.querySelectorAll('#gcBody .gc-ev').length;
+  /* 全貌右侧多了一条「视图筛选」：贴右边缘的地点（安提阿 / 该撒利亚）弹窗不能压住开关 */
+  var a=document.getElementById('viewFilter').getBoundingClientRect();
+  var b=document.getElementById('geoCard').getBoundingClientRect();
+  var overlap=Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*
+              Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
+  return JSON.stringify({ clicked:'${vt1 ? vt1.p : 'NONE'}', kind:g.kind, id:g.id, shown:g.shown,
+    rows:rows, filterOverlap:Math.round(overlap), overview:GS_APP.overview.active(),
+    hover:GS_APP.hoverEvents.visible(),
+    ok:${vt1 ? 'true' : 'false'}&&g.shown&&g.kind==='place'&&rows>0&&overlap===0&&
+       GS_APP.overview.active()&&!GS_APP.hoverEvents.visible() });
+})()`));
+await shot('v4_place_card.png');
+if (vt1) { await realClick(40, 420); await sleep(500); }   /* 点空白关窗 */
+
+/* V-5 真实点右侧「显示事件」开关 → 地图事件点全收、说明文案切换、悬停不再弹事件 */
+var vCk = await centerOf('#showEventsCk');
+if (vCk) { await realClick(vCk.x, vCk.y); await sleep(500); }
+console.log('V-5 show-events-off:', await ev(`(function(){
+  var dots=document.querySelectorAll('.ev-dot'), hidden=0;
+  for(var i=0;i<dots.length;i++){ if(getComputedStyle(dots[i]).visibility==='hidden') hidden++; }
+  return JSON.stringify({ clicked:${vCk ? 'true' : 'false'}, showEvents:GS_APP.overview.showEvents(),
+    checked:document.getElementById('showEventsCk').checked,
+    noEvents:document.body.classList.contains('no-events'),
+    note:document.getElementById('voNote').textContent.trim(),
+    dotsHidden:hidden, total:dots.length, hover:GS_APP.hoverEvents.visible(),
+    ok:${vCk ? 'true' : 'false'}&&!GS_APP.overview.showEvents()&&!document.getElementById('showEventsCk').checked&&
+       document.body.classList.contains('no-events')&&hidden===dots.length&&dots.length>0&&
+       !GS_APP.hoverEvents.visible() });
+})()`));
+
+/* V-6 关掉之后：悬停不弹事件，但点击地名仍能在信息窗里读到全部事件（需求核心） */
+await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 40, y: 420 });
+await sleep(320);
+if (vHover) {
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: vHover.x, y: vHover.y });
+  await sleep(450);
+}
+console.log('V-6a off-no-hover:', await ev(`JSON.stringify({vis:GS_APP.hoverEvents.visible(),ok:!GS_APP.hoverEvents.visible()})`));
+var vt2 = await vVisibleTip();
+if (vt2) { await realClick(vt2.x, vt2.y); await sleep(1000); }
+console.log('V-6b off-events-in-place-card:', await ev(`(function(){
+  var g=GS_APP.geo(), rows=document.querySelectorAll('#gcBody .gc-ev').length;
+  var dotHidden=Array.from(document.querySelectorAll('.ev-dot')).filter(function(e){return getComputedStyle(e).visibility==='hidden';}).length;
+  return JSON.stringify({ clicked:'${vt2 ? vt2.p : 'NONE'}', kind:g.kind, shown:g.shown, rows:rows,
+    dotHidden:dotHidden, overview:GS_APP.overview.active(),
+    ok:${vt2 ? 'true' : 'false'}&&g.shown&&g.kind==='place'&&rows>0&&dotHidden>0&&GS_APP.overview.active() });
+})()`));
+await shot('v6_no_events_card.png');
+if (vt2) { await realClick(40, 420); await sleep(500); }
+
+/* V-7 再打开开关 → 悬停事件预览恢复 */
+if (vCk) { await realClick(vCk.x, vCk.y); await sleep(450); }
+await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 40, y: 420 });
+await sleep(300);
+if (vHover) {
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: vHover.x, y: vHover.y });
+  await sleep(500);
+}
+console.log('V-7 events-back-on:', await ev(`(function(){
+  var vis=GS_APP.hoverEvents.visible(), rows=document.querySelectorAll('#hoverEvs .he-row').length;
+  return JSON.stringify({ showEvents:GS_APP.overview.showEvents(), vis:vis, rows:rows,
+    noEvents:document.body.classList.contains('no-events'),
+    ok:GS_APP.overview.showEvents()&&vis&&rows>0&&!document.body.classList.contains('no-events') });
+})()`));
+
+/* V-8 「选择视图」召回引导 → 选一段旅程，退出全貌回到时间叙事 */
+var vRe = await centerOf('#introBtn');
+if (vRe) { await realClick(vRe.x, vRe.y); await sleep(400); }
+console.log('V-8a re-open-intro:', await ev(`JSON.stringify({visible:GS_APP.intro.visible(),ok:GS_APP.intro.visible()})`));
+var vJ = await centerOf('.ij[data-j="j2"]');
+if (vJ) { await realClick(vJ.x, vJ.y); await sleep(1200); }
+console.log('V-8b pick-journey-exits-overview:', await ev(`(function(){
+  var vf=document.getElementById('viewFilter');
+  return JSON.stringify({ clicked:${vJ ? 'true' : 'false'}, intro:GS_APP.intro.visible(),
+    overview:GS_APP.overview.active(), route:GS_APP.journey.current(),
+    filterHidden:vf.hidden, noEvents:document.body.classList.contains('no-events'),
+    ok:${vJ ? 'true' : 'false'}&&!GS_APP.intro.visible()&&!GS_APP.overview.active()&&
+       GS_APP.journey.current()==='j2'&&vf.hidden&&!document.body.classList.contains('no-events') });
+})()`));
+
+/* V-9 ?intro=0 跳过引导（旧验收靠它保持原首屏）；V-10 深链自带目标，不弹引导 */
+await send('Page.navigate', { url: PAGE0 });
+await sleep(6000);
+console.log('V-9 intro=0-skip:', await ev(`(function(){
+  return JSON.stringify({ visible:GS_APP.intro.visible(), overview:GS_APP.overview.active(),
+    filterHidden:document.getElementById('viewFilter').hidden,
+    ok:!GS_APP.intro.visible()&&!GS_APP.overview.active()&&document.getElementById('viewFilter').hidden });
+})()`));
+await send('Page.navigate', { url: PAGE + '#p/corinth' });
+await sleep(6500);
+console.log('V-10 deep-link-skip:', await ev(`(function(){
+  var g=GS_APP.geo();
+  return JSON.stringify({ visible:GS_APP.intro.visible(), hash:location.hash,
+    kind:g.kind, id:g.id, shown:g.shown,
+    ok:!GS_APP.intro.visible()&&location.hash==='#p/corinth'&&g.shown&&g.kind==='place'&&g.id==='corinth' });
+})()`));
+await shot('v10_deep_link.png');
+
+/* V-11 430×932 竖屏：引导卡不溢出、主按钮可真实点、全貌后右侧筛选仍在视口内。
+ * 竖屏 5 段旅程改单列，卡片可能内部滚动 —— 只要求主按钮可命中，不要求 5 张卡同屏。 */
+await send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });
+await send('Page.navigate', { url: PAGE });
+await sleep(7500);
+console.log('V-11a mobile-intro:', await ev(`(function(){
+  var card=document.querySelector('.intro-card').getBoundingClientRect();
+  var b=document.getElementById('introAll'), r=b.getBoundingClientRect();
+  var x=Math.round(r.x+r.width/2), y=Math.round(r.y+r.height/2), h=document.elementFromPoint(x,y);
+  var hittable=!!(h&&b.contains(h));
+  return JSON.stringify({ visible:GS_APP.intro.visible(),
+    cardInViewport:card.left>=0&&card.right<=innerWidth&&card.top>=0&&card.bottom<=innerHeight,
+    btnInViewport:r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth,
+    hittable:hittable, choices:GS_APP.intro.choices().length,
+    ok:GS_APP.intro.visible()&&card.left>=0&&card.right<=innerWidth&&
+       r.top>=0&&r.bottom<=innerHeight&&hittable&&GS_APP.intro.choices().length===5 });
+})()`));
+await shot('v11_mobile_intro.png');
+var vmAll = await centerOf('#introAll');
+if (vmAll) { await realClick(vmAll.x, vmAll.y); await sleep(1500); }
+console.log('V-11b mobile-overview:', await ev(`(function(){
+  var vf=document.getElementById('viewFilter'), r=vf.getBoundingClientRect();
+  var rs=GS_APP.overview.routes();
+  return JSON.stringify({ active:GS_APP.overview.active(), filterVisible:!vf.hidden,
+    filterInViewport:r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight,
+    allFull:rs.every(function(x){return x.shown===x.full;}),
+    ok:GS_APP.overview.active()&&!vf.hidden&&r.left>=0&&r.top>=0&&
+       r.right<=innerWidth&&r.bottom<=innerHeight&&rs.every(function(x){return x.shown===x.full;}) });
+})()`));
+await shot('v11_mobile_overview.png');
+
+/* V-12 信息窗重排版（M10.5）：事件卡首行是可点的「地点行」，地点↔事件双向返回栈不丢 */
+await send('Emulation.setDeviceMetricsOverride', { width: 1680, height: 1000, deviceScaleFactor: 1, mobile: false });
+await send('Page.navigate', { url: PAGE0 });
+await sleep(6000);
+await ev(`GS_APP.open('lystra-stoning')`);
+await sleep(900);
+console.log('V-12a event-card-hero:', await ev(`(function(){
+  var g=GS_APP.geo();
+  return JSON.stringify({ shown:g.shown, kind:g.kind, hero:!!document.querySelector('#gcBody .gc-hero'),
+    badges:document.querySelectorAll('#gcBody .badge').length,
+    yr:(document.querySelector('#gcBody .b-yr')||{}).textContent||'NONE',
+    placeRow:!!document.getElementById('gcPlace'),
+    verse:(document.querySelector('#gcBody .d-verse p')||{}).textContent?true:false,
+    ok:g.shown&&g.kind==='event'&&document.querySelector('#gcBody .gc-hero')&&
+       document.querySelectorAll('#gcBody .badge').length>=2&&!!document.getElementById('gcPlace') });
+})()`));
+var vp = await centerOf('#gcPlace');
+if (vp) { await realClick(vp.x, vp.y); await sleep(900); }
+console.log('V-12b place-from-event:', await ev(`(function(){
+  var g=GS_APP.geo();
+  return JSON.stringify({ kind:g.kind, id:g.id, state:GS_APP.state.detail,
+    back:!!document.getElementById('gcBack'), backLabel:(document.getElementById('gcBack')||{}).textContent,
+    counts:document.querySelectorAll('#gcBody .gc-count').length,
+    timeline:document.querySelectorAll('#gcBody .gc-ev').length,
+    ok:g.shown&&g.kind==='place'&&!!document.getElementById('gcBack')&&
+       document.querySelectorAll('#gcBody .gc-ev').length>0 });
+})()`));
+var vb = await centerOf('#gcBack');
+if (vb) { await realClick(vb.x, vb.y); await sleep(900); }
+console.log('V-12c back-to-event:', await ev(`(function(){
+  var g=GS_APP.geo();
+  return JSON.stringify({ kind:g.kind, id:g.id, state:GS_APP.state.detail,
+    back:!!document.getElementById('gcBack'),
+    ok:g.shown&&g.kind==='event'&&g.id==='lystra-stoning' });
+})()`));
+await shot('v12_card_redesign.png');
 
 console.log('JS ERRORS:', errors.length ? errors.join(' | ') : 'NONE');
 ws.close();

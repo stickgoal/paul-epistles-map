@@ -385,34 +385,100 @@ body.tl-open .now{bottom:calc(var(--tlh) + 14px)}
   align-items:center;justify-content:center;color:var(--ink-3);cursor:pointer;z-index:2;
   background:rgba(255,255,255,.9);transition:background .18s,color .18s}
 .gc-x:hover{background:#f1f1ed;color:var(--ink)}
-.gc-body{max-height:min(58vh,430px);overflow-y:auto;overscroll-behavior:contain;padding:16px 18px 16px}
+.gc-body{max-height:min(58vh,440px);overflow-y:auto;overscroll-behavior:contain;padding:0}
 .gc-body::-webkit-scrollbar{width:7px}
 .gc-body::-webkit-scrollbar-thumb{background:#dcdcd4;border-radius:4px;border:2px solid #fff}
-/* 浮窗内的排版沿用详情面板的 .d-* 类，只把标题降一档、间距收紧 */
-.geo-card .d-cn{font-size:17.5px;line-height:1.3;padding-right:22px}
-.geo-card .d-en{font-size:12px;margin-top:2px}
-.geo-card .d-type{margin-bottom:9px;font-size:10.5px;padding:3px 9px}
-.geo-card .d-meta{margin:12px 0 4px}
-.geo-card .d-h{margin:14px 0 6px}
-.geo-card .d-bg{font-size:12.5px;line-height:1.75}
-.geo-card .d-verse{padding:11px 13px;margin-top:8px;font-size:12.5px}
-.geo-card .d-verse p{font-size:12.5px;line-height:1.75}
-.geo-card .d-note{font-size:11.5px;padding:7px 10px;margin-top:9px}
-.geo-card .mrow{font-size:12px}
-/* 浮窗里的事件行：紧凑列表，点击跳到该事件浮窗 */
-.gc-evs{display:flex;flex-direction:column;gap:1px}
-.gc-ev{display:flex;align-items:baseline;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;
-  font-size:12.5px;transition:background .15s}
+/* ---------- 信息窗重排版（M10.5，2026-11-05 用户需求「更高效更视觉化」） ----------
+ * 三条设计约束：
+ *  1) 验收依赖的 DOM 不动：.d-cn / .d-meta>.m-row>span+b / .d-verse>p / .d-h「图 像」/
+ *     .m-fig / .gc-ev[data-ev] —— 全部保留，只重排样式与分区；
+ *  2) 首屏即答案：徽章行（类型 · 年代 · 章节）+ 大标题占住首屏，长文（缘起 / 经文 / 图像）
+ *     依次下沉，滚动只服务想深读的人；
+ *  3) 地点与事件互为入口：事件卡首行是可点的「地点行」，地点卡首行是可点的类型统计，
+ *     返回栈（placeBack）双向保留。 */
+.gc-hero{position:relative;padding:15px 17px 12px;border-bottom:1px solid var(--hair-2)}
+.gc-hero::before{content:'';position:absolute;left:17px;top:0;width:34px;height:3px;
+  border-radius:0 0 2px 2px;background:var(--c,#6f7f74)}
+.gc-badges{display:flex;flex-wrap:wrap;gap:6px;padding-right:26px}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;line-height:1;padding:4px 9px;
+  border-radius:999px;background:#fff;border:1px solid var(--hair);color:var(--ink-2);
+  white-space:nowrap;font-feature-settings:"tnum"}
+.badge svg{color:var(--c,#6f7f74);flex:none}
+.badge b{font-weight:600;color:var(--ink)}
+.b-yr{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700;letter-spacing:.02em}
+.b-sec{background:var(--accent-soft);border-color:transparent;color:var(--accent-deep);font-weight:600}
+.gc-hero .d-cn{font-family:var(--cjk-serif);font-size:19px;font-weight:700;line-height:1.35;
+  margin-top:9px;padding-right:24px;letter-spacing:-.01em}
+.gc-hero .d-en{font-size:11.5px;margin-top:3px;letter-spacing:.01em}
+.gc-flow{padding:12px 17px 6px}
+/* 地点行：事件卡里读者最常问的是「这在哪儿」——做成一行可点入口，不再是静态字段 */
+.gc-place{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:8px 10px;
+  margin-bottom:11px;border:1px solid var(--hair);border-radius:10px;background:#fbfbf8;
+  cursor:pointer;font-family:inherit;transition:border-color .18s,background .18s}
+.gc-place:hover{border-color:var(--ink-3);background:#fff}
+.gc-place svg{flex:none;color:var(--accent-deep)}
+.gc-place .gp-n{font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap}
+.gc-place .gp-m{font-size:11px;color:var(--ink-3);min-width:0;flex:1;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.gc-place em{font-style:normal;font-size:10.5px;color:var(--accent-deep);flex:none;font-weight:600}
+/* 事实网格：行式 .m-row 改两列小卡（标签上、值下）——.m-row>span+b 结构保留（K1 依赖） */
+.gc-facts{display:grid;grid-template-columns:1fr 1fr;gap:6px;border-top:none;margin:0}
+.gc-facts .m-row{display:block;padding:7px 9px;border:1px solid var(--hair-2);border-radius:9px;background:#fff}
+.gc-facts .m-row.wide{grid-column:1/-1}
+.gc-facts .m-row span{display:block;width:auto;font-size:9.5px;letter-spacing:.1em;color:var(--ink-3);margin-bottom:3px}
+.gc-facts .m-row b{display:block;font-size:12px;font-weight:600;line-height:1.5}
+.geo-card .d-type{margin:0 0 9px;font-size:10.5px;padding:3px 9px}
+.geo-card .d-h{display:flex;align-items:center;gap:8px;margin:13px 0 7px;font-size:10px;
+  letter-spacing:.14em;color:var(--ink-3);font-weight:700}
+.geo-card .d-h::after{content:'';flex:1;height:1px;background:var(--hair-2)}
+.geo-card .d-bg{font-size:12.5px;line-height:1.8;color:#33383e}
+.geo-card .d-note{font-size:11.5px;padding:8px 11px;margin-top:9px}
+.geo-card .d-verse{position:relative;margin:8px 0 0;padding:11px 13px 10px 15px;background:#fbfbf8;
+  border:1px solid var(--hair-2);border-left:2px solid var(--c,var(--accent));border-radius:0 10px 10px 0}
+.geo-card .d-verse p{font-family:var(--cjk-serif);font-size:13px;line-height:1.9;color:#2a2e33}
+.geo-card .d-verse cite{margin-top:6px;font-size:10.5px}
+/* 媒体：整宽大图（16:10）逐张纵排 —— 326px 卡里双列每张只剩 141px，看不清遗存细节；
+ * 实测 62% + wrap 会留出 38% 死白，不如索性占满一行。组名保留为分节小标。 */
+.geo-card .d-media{display:block;margin-top:2px}
+.geo-card .d-mgroup{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0 4px}
+.geo-card .d-mgroup h5{flex:0 0 100%;font-size:9.5px;letter-spacing:.12em;color:var(--ink-3);
+  font-weight:700;margin:2px 0 -2px}
+.geo-card .d-mgroup .m-fig{flex:1 1 100%}
+.geo-card .m-fig img{aspect-ratio:16/10}
+.geo-card .m-fig figcaption{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;
+  padding:7px 9px;font-size:10.5px}
+.geo-card .m-fig figcaption span{font-size:9.5px;margin-top:0}
+.geo-card .d-media.empty .m-link{flex-direction:row;align-items:baseline;gap:8px}
+/* 地点卡：类型统计行（点开即知「这里发生过什么」）+ 事件纵向时间线 */
+.gc-counts{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px}
+.gc-count{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;padding:4px 9px;
+  border-radius:999px;background:#fff;border:1px solid var(--hair);color:var(--ink-2)}
+.gc-count svg,.gc-count i{color:var(--c);flex:none}
+.gc-count i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.gc-count b{color:var(--ink);font-feature-settings:"tnum"}
+/* 事件行基础样式（地点卡 / 事件卡共用），再由 .geo-card 作用域加时间线形态 */
+.gc-ev{display:flex;align-items:baseline;gap:8px;cursor:pointer;transition:background .15s}
 .gc-ev:hover{background:#f4f4f0}
-.gc-ev i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c);transform:translateY(-1px)}
-.gc-ev .yr{font-size:10.5px;color:var(--ink-3);font-feature-settings:"tnum";flex:none;min-width:44px}
-.gc-ev .tt{color:var(--ink);line-height:1.35}
+.gc-ev i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c)}
+.gc-ev .yr{font-size:10.5px;color:var(--ink-3);font-feature-settings:"tnum";flex:none}
+.gc-ev .tt{color:var(--ink);line-height:1.4;min-width:0}
 .gc-ev.on{background:var(--accent-soft);color:var(--accent-deep)}
-/* 浮窗底部动作条 */
-.gc-act{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--hair-2)}
-.gc-btn{flex:1;border:1px solid var(--hair);background:#fff;border-radius:9px;padding:7px 8px;
-  font-size:11.5px;color:var(--ink-2);cursor:pointer;transition:.18s;text-align:center;white-space:nowrap}
+.geo-card .gc-evs{position:relative;display:flex;flex-direction:column;gap:1px}
+.geo-card .gc-evs::before{content:'';position:absolute;left:3.5px;top:12px;bottom:12px;width:1px;background:var(--hair-2)}
+.geo-card .gc-ev{position:relative;align-items:baseline;padding:6px 8px 6px 17px;border-radius:8px}
+.geo-card .gc-ev i{position:absolute;left:0;top:13px;width:8px;height:8px;margin:0;
+  box-shadow:0 0 0 2px #fff}
+.geo-card .gc-ev .yr{min-width:52px;font-size:10px}
+.geo-card .gc-ev .tt{font-size:12px}
+/* 动作条：吸底（sticky）——长卡（缘起 + 经文 + 图像）滚动时「放大查看 / 返回」始终可点。
+ * V-12c 实测教训：不吸底时它被压到可视区外，真实点击落在了下面的地图上。 */
+.gc-act{position:sticky;bottom:0;display:flex;gap:8px;margin-top:8px;padding:10px 17px 13px;
+  border-top:1px solid var(--hair-2);background:rgba(255,255,255,.96)}
+.gc-btn{flex:1;border:1px solid var(--hair);background:#fff;border-radius:9px;padding:8px 8px;
+  font-size:11.5px;font-weight:600;color:var(--ink-2);cursor:pointer;transition:.18s;text-align:center;white-space:nowrap}
 .gc-btn:hover{border-color:var(--ink-3);color:var(--ink);background:#fafaf7}
+.geo-card #gcLocate{background:var(--ink);border-color:var(--ink);color:#fff}
+.geo-card #gcLocate:hover{background:#000;border-color:#000;color:#fff}
 .card-more{pointer-events:auto}
 .card-bar{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--ink-3)}
 .card-bar i{width:8px;height:8px;border-radius:50%;flex:none}
@@ -469,6 +535,16 @@ body.playing .leaflet-tooltip.city-tip:not(.cur-ch):not(.pinned){opacity:.18 !im
 .leaflet-tooltip.ctx-tip{background:transparent;border:none;box-shadow:none;padding:0;color:var(--ink-3);font-size:11px;font-weight:500;white-space:nowrap;pointer-events:none}
 .leaflet-tooltip.ctx-tip::before{display:none}
 .hide-labels .leaflet-tooltip{display:none}
+/* 图层开关「事件地点」只收起地点核心与事件点，不再动整个 placeLayer。
+ * 旧实现 map.removeLayer(placeLayer) 把地名标签（同一个 marker 的 tooltip）、
+ * 背景地名、事件点、核心一并从 DOM 拆掉 —— 点一下等于清空整张地图；
+ * 重新 addLayer 时 marker 元素被重建，dotEls / coreEl 里的旧引用、点击监听
+ * 和 .on 状态全丢，再打开开关事件点也点不动了（2026-11-05 用户反馈）。
+ * 地名文字交给「地名」开关单独管，两个 chip 各管一层、互不连坐。
+ * 用 visibility 而非 display：标签避让把事件点当障碍，保留布局可避免地名跳位。 */
+#map.hide-places .place .core,
+#map.hide-places .ev-dot,
+#map.hide-places .place.lit .glow{visibility:hidden;pointer-events:none}
 
 /* 地点标记（核心 + 事件点）
  * 注意：限定在 .place-icon 内，勿用裸 .place —— openEvent/openPlace 会给 #detail 加
@@ -608,6 +684,117 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
    * 贴边越界。真机上开了「减少动态效果」的用户也会撞到同一个问题。 */
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important;scroll-behavior:auto!important}
 }
+
+/* ============ 首屏引导（M10）：先决定「看全貌」还是「走一段旅程」 ============
+ * 2026-11-05 用户需求：进入就引导。旧引导挂在默认收起的侧栏里（H-2），后来退化成
+ * 底部 16px 把手 —— 都只解决「怎么播放」，没解决「从哪里开始」。这一层是【模式选择器】：
+ * 全貌 = 静态总览（全部路线 + 地点 + 悬停看事件），旅程 = 时间叙事（聚焦一段 + 描线重播）。
+ * 两者共用同一份地图，切模式不重建图层。深链（#e/... / #p/...）与 ?intro=0 直接跳过，
+ * 避免打断有明确目标的读者与自动化验收。 */
+.intro-mask{position:absolute;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(26,28,31,.38);
+  -webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);animation:introFade .4s ease-out}
+.intro-mask[hidden]{display:none}
+@keyframes introFade{from{opacity:0}to{opacity:1}}
+.intro-card{position:relative;width:min(570px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;
+  background:var(--panel);border:1px solid rgba(231,231,225,.96);border-radius:20px;
+  box-shadow:0 34px 90px rgba(20,20,18,.30),0 3px 10px rgba(20,20,18,.08);
+  padding:30px 32px 22px;animation:introRise .5s cubic-bezier(.2,.7,.3,1)}
+@keyframes introRise{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.intro-x{position:absolute;right:14px;top:14px;width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;color:var(--ink-3);cursor:pointer;transition:.18s}
+.intro-x:hover{background:#f0f0eb;color:var(--ink)}
+.intro-h2{font-family:var(--cjk-serif);font-size:30px;font-weight:700;letter-spacing:-.01em;line-height:1.25;margin-top:6px}
+.intro-lead{font-size:13px;color:var(--ink-2);line-height:1.75;margin-top:9px;max-width:450px}
+.intro-all{display:flex;align-items:center;gap:14px;width:100%;margin-top:22px;padding:15px 18px;
+  background:var(--ink);border:1px solid var(--ink);border-radius:14px;color:#fff;text-align:left;cursor:pointer;
+  transition:background .2s,transform .2s;box-shadow:0 6px 20px rgba(20,20,18,.16)}
+.intro-all:hover{background:#000;transform:translateY(-1px)}
+.intro-all:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.intro-all .ia-ic{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.13);
+  display:flex;align-items:center;justify-content:center;flex:none}
+.intro-all b{display:block;font-size:16px;font-weight:700;letter-spacing:.01em}
+.intro-all small{display:block;font-size:11.5px;color:rgba(255,255,255,.68);margin-top:3px;line-height:1.5}
+.intro-all .ia-go{margin-left:auto;font-size:18px;color:rgba(255,255,255,.7);flex:none}
+.intro-or{display:flex;align-items:center;gap:12px;margin:20px 0 11px;font-size:11px;color:var(--ink-3);letter-spacing:.06em}
+.intro-or::before,.intro-or::after{content:'';height:1px;background:var(--hair);flex:1}
+.intro-j{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.ij{display:flex;align-items:center;gap:10px;border:1px solid var(--hair);background:#fff;border-radius:12px;
+  padding:10px 12px;text-align:left;cursor:pointer;font-family:inherit;transition:border-color .18s,transform .18s,box-shadow .18s;min-width:0}
+.ij:hover{border-color:var(--ink-3);transform:translateY(-1px);box-shadow:0 4px 14px rgba(20,20,18,.07)}
+.ij:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ij i{width:4px;align-self:stretch;min-height:30px;border-radius:2px;background:var(--c);flex:none}
+.ij .ij-t{min-width:0;flex:1}
+.ij b{display:block;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ij span{display:block;font-size:10.5px;color:var(--ink-3);margin-top:2px;font-feature-settings:"tnum"}
+.ij em{font-style:normal;font-size:10px;color:var(--ink-3);flex:none;white-space:nowrap}
+.intro-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--hair-2)}
+.intro-foot span{font-size:11px;color:var(--ink-3);line-height:1.5}
+.intro-skip{font-size:11.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap;padding:5px 9px;border-radius:7px}
+.intro-skip:hover{background:#f1f1ed;color:var(--ink)}
+@media (max-width:560px){
+  .intro-card{padding:24px 18px 18px}
+  .intro-h2{font-size:24px}
+  .intro-j{grid-template-columns:1fr}
+  .intro-foot{flex-direction:column;align-items:flex-start}
+}
+
+/* ============ 右侧视图筛选（M10）：是否显示事件 ============
+ * 与图例共用一条右竖列，避免两个绝对定位浮层互相压。全貌模式才出现：
+ * 开 = 悬停地点即预览该地事件（地图事件点也全部铺开）；
+ * 关 = 事件只出现在「点击地名 → 地点信息窗」里，地图保持干净。 */
+.right-rail{position:absolute;right:14px;top:58px;z-index:1300;display:flex;flex-direction:column;
+  align-items:flex-end;gap:10px;max-width:248px}
+.right-rail .legend{position:static;right:auto;top:auto;z-index:auto;width:100%}
+.viewopts{width:212px;background:rgba(255,255,255,.95);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  border:1px solid var(--hair);border-radius:14px;padding:11px 14px 12px;box-shadow:var(--shadow)}
+.viewopts[hidden]{display:none}
+.vo-h{font-size:10.5px;color:var(--ink-3);letter-spacing:.12em;font-weight:600;margin-bottom:10px}
+.vo-row{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink)}
+.vo-row input{appearance:none;-webkit-appearance:none;margin:0;flex:none;position:relative;
+  width:32px;height:18px;border-radius:999px;background:#d6d8d1;cursor:pointer;transition:background .2s}
+.vo-row input::after{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(20,20,18,.22);transition:transform .2s}
+.vo-row input:checked{background:var(--ink)}
+.vo-row input:checked::after{transform:translateX(14px)}
+.vo-row input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.vo-note{font-size:10.5px;line-height:1.6;color:var(--ink-3);margin-top:8px}
+.vo-back{display:block;margin-top:10px;padding-top:9px;border-top:1px solid var(--hair-2);
+  font-size:11px;color:var(--accent-deep);cursor:pointer;text-align:left;width:100%}
+.vo-back:hover{text-decoration:underline}
+@media (max-width:767px){.right-rail{right:10px;top:96px}.viewopts{width:184px;padding:9px 11px 10px}}
+
+/* 全貌态：地名切紧凑形态（只留中文名），密集区才不会互相压字。
+ * 与 route-focus 同一套降级，两种聚焦态都不显示英文名（原规则见 .tl-j 附近）。 */
+body.overview .city-tip .en,body.overview .city-tip .cnt{display:none}
+/* 「不显示事件」：只收事件点，地点核心（饼图）与地名留在图上。
+ * 用 visibility 而非 display：标签避让把这些点当障碍，保留布局可避免地名跳位。 */
+body.no-events .ev-dot{visibility:hidden!important;pointer-events:none}
+
+/* ============ 悬停事件预览（M10） ============
+ * 全貌 + 「显示事件」开启时，鼠标停在地点核心 / 地名标签上即在锚点旁浮出该地事件清单。
+ * 与 geo-card 一样贴着地图锚点、跟随平移；可以把鼠标移进卡片点击某条事件。 */
+.hover-evs{position:absolute;left:0;top:0;z-index:1650;width:252px;max-width:calc(100vw - 24px);
+  background:rgba(255,255,255,.975);
+  -webkit-backdrop-filter:blur(16px) saturate(1.08);backdrop-filter:blur(16px) saturate(1.08);
+  border:1px solid rgba(231,231,225,.95);border-radius:12px;padding:11px 12px 10px;
+  box-shadow:0 18px 44px rgba(20,20,18,.19),0 2px 8px rgba(20,20,18,.05);
+  opacity:0;transform:translateY(5px);transition:opacity .16s,transform .16s;pointer-events:none}
+.hover-evs[hidden]{display:none}
+.hover-evs.show{opacity:1;transform:none;pointer-events:auto}
+.he-h{display:flex;align-items:baseline;gap:7px}
+.he-h b{font-size:13px;font-weight:700}
+.he-h span{font-size:10.5px;color:var(--ink-3)}
+.he-list{margin-top:8px;max-height:196px;overflow-y:auto;overscroll-behavior:contain}
+.he-list::-webkit-scrollbar{width:6px}
+.he-list::-webkit-scrollbar-thumb{background:#dcdcd4;border-radius:3px}
+.he-row{display:flex;align-items:baseline;gap:7px;padding:5px 6px;border-radius:7px;cursor:pointer;font-size:11.5px;line-height:1.45;transition:background .15s}
+.he-row:hover{background:#f2f2ee}
+.he-row i{width:6px;height:6px;border-radius:50%;background:var(--c);flex:none;transform:translateY(-1px)}
+.he-row .yr{font-size:10px;color:var(--ink-3);flex:none;font-feature-settings:"tnum";min-width:41px}
+.he-row .tt{color:var(--ink);min-width:0}
+.he-tip{margin-top:7px;padding-top:7px;border-top:1px solid var(--hair-2);font-size:10.5px;color:var(--ink-3)}
 </style>
 </head>
 <body>
@@ -646,6 +833,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
       <button class="chip on" data-layer="places">事件地点</button>
       <button class="chip on" data-layer="labels">地名</button>
       <button class="chip ghost" id="resetBtn">重置视图</button>
+      <button class="chip ghost" id="introBtn" title="重新选择：看全貌或某段旅程">选择视图</button>
     </div>
     <!-- 缩放：自带浮层按钮（Leaflet 角容器在浮层构图下会把控件溢出到时间轴上） -->
     <div class="mapctl" role="group" aria-label="地图缩放">
@@ -656,6 +844,18 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
         <svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true"><path d="M2.4 7h9.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       </button>
     </div>
+    <!-- 右侧竖列（M10）：视图筛选在上、图例在下，两个浮层不再各自绝对定位互相压。 -->
+    <div class="right-rail">
+    <!-- 是否显示事件（M10）：只在「看全貌」时出现。关闭 = 事件只在点击地名后的信息窗里看。 -->
+    <section class="viewopts" id="viewFilter" hidden aria-label="视图筛选">
+      <div class="vo-h">视 图 筛 选</div>
+      <label class="vo-row" for="showEventsCk">
+        <input type="checkbox" id="showEventsCk" checked>
+        <span>显示事件</span>
+      </label>
+      <p class="vo-note" id="voNote">悬停地点即可预览该地事件</p>
+      <button class="vo-back" id="voBack">← 重新选择视图</button>
+    </section>
     <!-- L-1：图例可折叠（旅程信息与统计区/时间轴色带三处重复，默认收起摘要） -->
     <div class="legend" id="legend">
       <button class="lg-toggle" id="lgToggle" aria-expanded="false">
@@ -671,6 +871,7 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
         <div class="lg-hint">点击旅程：只看这段旅程（地点与时间同步筛选，再点取消）</div>
       </div>
     </div>
+    </div><!-- /right-rail -->
     <div class="now" id="now"></div>
 
     <!-- 地点 / 事件浮窗（M9）：内容与位置由 JS 写入，贴着地图锚点 -->
@@ -680,6 +881,9 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
       </button>
       <div class="gc-body" id="gcBody"></div>
     </div>
+
+    <!-- 悬停事件预览（M10）：全貌模式下鼠标停在地点上时贴着锚点浮出该地事件 -->
+    <div class="hover-evs" id="hoverEvs" hidden aria-label="该地点的事件"></div>
 
     <!-- 时间轴热区（M9）：贴底 36px，鼠标进入即展开时间轴 -->
     <div class="tl-hot" id="tlHot" aria-hidden="true"></div>
@@ -724,6 +928,29 @@ body.measuring .ev-dot{transform:scale(1)!important;transition:none!important}
         <div class="attri">地图数据 © Natural Earth · 渲染 Leaflet · 经文引自和合本</div>
       </div>
     </footer>
+  </div>
+
+  <!-- ============ 首屏引导（M10）：进入先选「看全貌」或「探索某段旅程」 ============ -->
+  <div class="intro-mask" id="intro" hidden role="dialog" aria-modal="true" aria-labelledby="introTitle">
+    <div class="intro-card">
+      <button class="intro-x" id="introX" aria-label="关闭引导">
+        <svg viewBox="0 0 12 12" width="11" height="11"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+      <div class="eyebrow">新约 · 使徒行传与保罗书信 · <span id="introYears">AD 46–67</span></div>
+      <h2 class="intro-h2" id="introTitle">想从哪里开始？</h2>
+      <p class="intro-lead"><span id="introCounts"></span>可以先看全貌，把几段旅程一次铺开；也可以挑一段旅程，随时间轴走一遍。</p>
+      <button class="intro-all" id="introAll">
+        <span class="ia-ic"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6zM9 4v14M15 6v14"/></svg></span>
+        <span><b>看 全 貌</b><small>所有线路与地点一次呈现 · 悬停地点看事件，点击地名看详情</small></span>
+        <span class="ia-go" aria-hidden="true">→</span>
+      </button>
+      <div class="intro-or">或 探 索 一 段 旅 程</div>
+      <div class="intro-j" id="introJourneys"></div>
+      <div class="intro-foot">
+        <span>也可以随时用底部时间轴播放完整故事；右上角「选择视图」能回到这里。</span>
+        <button class="intro-skip" id="introSkip">跳过，随意浏览 →</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -818,7 +1045,10 @@ var SEQ = EVENTS.map(function (e, i) { return { e: e, i: i }; })
   .sort(function (a, b) { return a.e.from - b.e.from || a.i - b.i; })
   .map(function (x) { return x.e; });   /* 同年事件保持 events.json 手工叙事顺序（勿按 id 字典序） */
 
-var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, arrivedId: null, chapter: null, route: null, placePin: null, speed: 1, speedIdx: 0 };
+/* M10（2026-11-05）：overview = 静态全貌（所有线路/地点/事件一次铺开，不按年份推进）；
+ * showEvents = 右侧「是否显示事件」开关（关 ⇒ 事件只在点击地名后的信息窗里看）。 */
+var state = { year: D0, playing: false, auto: false, boot: true, filter: null, detail: null, focus: null, arrivedId: null, chapter: null, route: null, placePin: null, speed: 1, speedIdx: 0,
+              overview: false, showEvents: true };
 
 /* 初始视野：由「有事件的地方」自动聚合，而非写死整个地中海。
    随章节数据增加自动扩展（耶路撒冷 / 罗马 / 马耳他纳入后自然变宽）。
@@ -1012,6 +1242,10 @@ function syncSoftLabels() {
   var m = {};
   Object.keys(chapterPins || {}).forEach(function (k) { m[k] = 1; });
   Object.keys(routePins || {}).forEach(function (k) { m[k] = 1; });
+  /* 全貌：所有地点都豁免分级（首屏原本只有 6 个 L1）。仍走 softSet 而不是 hard force，
+   * 让引擎在放不下时按事件数取舍 —— 430px 竖屏硬显示 28 个名字只会叠成一团。
+   * 地点核心（饼图）本身始终在图上，放大后地名会逐级补齐。 */
+  if (state.overview) PLACES.forEach(function (p) { if (!p.ctx) m[p.id] = 1; });
   mapCore.setSoftLabels(m);
 }
 function tipElOf(pid) {
@@ -1040,6 +1274,9 @@ function pinLabel(pid, on) {
  * 名字，每经过一个都要跑一次 28 标签 × 9 方位 × 3 形态的全量重算，肉眼可见发涩。 */
 var hoverCount = {}, hoverPin = {}, hoverRestore = {};
 function hoverEnter(pid) {
+  /* 全貌 + 「显示事件」开启时浮出该地事件清单。放在计数提前返回之前：
+   * 圆点 → 名字这一跳会再进一次 enter，必须清掉上一条 leave 排的隐藏计时。 */
+  showHoverEvents(pid);
   if (hoverCount[pid]) { hoverCount[pid]++; return; }
   hoverCount[pid] = 1;
   var el = tipElOf(pid);
@@ -1052,6 +1289,7 @@ function hoverLeave(pid) {
   hoverCount[pid]--;
   if (hoverCount[pid]) return;
   if (hoverPin[pid]) { hoverPin[pid] = 0; pinLabel(pid, false); }
+  scheduleHideHover();            /* 指针移进事件浮层时由浮层自己取消，见 hover-evs 的 mouseenter */
   if (!hoverRestore[pid]) return;
   setTimeout(function () {
     /* 这一拍里指针可能又落回名字上（或详情窗正开着），那就别把名字收回去 ——
@@ -1287,7 +1525,7 @@ function setFilter(pid) {
 }
 
 /* ================= 详情 ================= */
-function mrow(k, v) { return '<div class="m-row"><span>' + k + '</span><b>' + v + '</b></div>'; }
+function mrow(k, v, wide) { return '<div class="m-row' + (wide ? ' wide' : '') + '"><span>' + k + '</span><b>' + v + '</b></div>'; }
 /* 图像区块：按 kind 分类小标题（今日遗存 / 历史艺术），无图时给出降级说明
  * 避免「整块消失」被误读为「该事件没有资料」。 */
 function renderMedia(media) {
@@ -1356,8 +1594,17 @@ function placeGeo() {
   var top = below ? pt.y + GAP : pt.y - H - GAP;
   /* 上下都放不下时（锚点在视口正中、卡片很高）贴着视口夹住，宁可盖住一点也不跑出屏幕 */
   top = Math.max(PAD, Math.min(vh - H - PAD, top));
-  var left = Math.max(PAD, Math.min(vw - W - PAD, pt.x - W / 2));
-  el.style.setProperty('--ax', Math.round(pt.x - left) + 'px');
+  /* M10：全貌下右侧多了一条「视图筛选」。安提阿 / 该撒利亚这类贴右边缘的地点，
+   * 居中卡片会正好压住开关与「重新选择视图」。把可用右边界收到浮层左侧，
+   * 并把 --ax 夹在卡内 —— 卡片左移后指向三角才不会跑出卡片。非全貌态完全不变。 */
+  var rightPad = PAD;
+  var vf = $('viewFilter');
+  if (state.overview && vf && !vf.hidden) {
+    var mr = map.getContainer().getBoundingClientRect();
+    rightPad = Math.max(PAD, Math.min(vw * .45, vw - (vf.getBoundingClientRect().left - mr.left) + 12));
+  }
+  var left = Math.max(PAD, Math.min(vw - W - rightPad, pt.x - W / 2));
+  el.style.setProperty('--ax', Math.round(Math.max(16, Math.min(W - 16, pt.x - left))) + 'px');
   el.style.left = Math.round(left) + 'px';
   el.style.top = Math.round(top) + 'px';
   el.classList.toggle('below', below);
@@ -1368,6 +1615,10 @@ function showGeo(html, ll, opts) {
   $('gcBody').innerHTML = html;
   $('gcBody').scrollTop = 0;
   GEO.ll = ll || null; GEO.kind = opts.kind || null; GEO.id = opts.id || null;
+  /* 卡片级主题色：顶栏色条 / 经文左边线 / 徽章图标都取 var(--c)，
+   * 挂在卡片根上，hero 与正文两个分区都能继承到。 */
+  if (opts.color) el.style.setProperty('--c', opts.color);
+  else el.style.removeProperty('--c');
   el.hidden = false;
   el.classList.remove('show');
   measureGeo();          /* 量一次：此后拖拽/缩放只用缓存尺寸 */
@@ -1398,40 +1649,61 @@ map.on('click', function () { if (state.detail) closeEvent(); });
 function openEvent(id) {
   var ev = EV_BY[id];
   if (!ev) return;
+  hideHoverEvents();
+  if (state.overview) exitOverview();   /* 打开具体事件 = 进入时间叙事，退出静态总览 */
   /* 从地点浮窗进入：记住来源，浮窗底部给「← 返回地点」（placeBack 仅一层） */
   placeBack = (state.detail && state.detail.indexOf('place:') === 0) ? state.detail.slice(6) : null;
   state.detail = id;
   setStoryEnd(false);
   pause();
-  timeline.setYear(ev.from);
+  /* 时间轴只往前推，绝不往回拉（2026-11-05 用户反馈「点击事件会隐藏所有信息」）：
+   * 旧实现无条件 setYear(ev.from)，读者把时间轴拖到 AD 60（91 个事件点已点亮）后
+   * 点开一个 AD 46 的事件，年份被拉回 46，applyReveal 立刻熄掉 88 个点，
+   * 地图几乎清空。浮窗本身写着年款，时间轴不必跟着回退；点开一个更晚的事件
+   * 仍要把年份推到它，否则该点尚未「上线」，高亮与时间轴对不上。 */
+  if (ev.from > state.year + 1e-9) timeline.setYear(ev.from);
   var p = PLACE_BY[ev.place], c = CH_BY[ev.ch];
   var verses = ev.verses.map(function (v) {
     return '<blockquote class="d-verse"><p>“' + esc(v.text) + '”</p><cite>' + esc(v.ref) + '</cite></blockquote>';
   }).join('');
   var media = renderMedia(ev.media);
   var html =
-    '<div class="d-type" style="--c:' + ev.typeMeta.color + '">' + typeIcon(ev.type, 12) + esc(ev.typeMeta.cn) + ' · ' + esc(c.name) + '</div>' +
-    '<div class="d-cn">' + esc(ev.title) + '</div>' +
-    '<div class="d-en">' + esc(ev.en) + '</div>' +
-    '<div class="d-meta">' +
-      mrow('年代', 'AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '')) +
-      mrow('地点', p.cn + ' · ' + p.en) +
-      mrow('今天所在', p.modern) +
-      /* M-2：场所释义随 places.json 的 gloss 字段配置化，不硬编码在模板里 */
-      (p.gloss ? mrow('场所说明', p.gloss) : '') +
-      (c.area ? mrow('本章区域', c.area) : '') +
+    /* 首屏即答案：类型 · 年代 · 章节三枚徽章 + 大标题。--c 驱动顶栏色与经文左边线。 */
+    '<div class="gc-hero">' +
+      '<div class="gc-badges">' +
+        '<span class="badge" style="--c:' + ev.typeMeta.color + '">' + typeIcon(ev.type, 11) + esc(ev.typeMeta.cn) + '</span>' +
+        '<span class="badge b-yr">AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '') + '</span>' +
+        (c.name ? '<span class="badge b-sec">' + esc(c.name) + '</span>' : '') +
+      '</div>' +
+      '<div class="d-cn">' + esc(ev.title) + '</div>' +
+      '<div class="d-en">' + esc(ev.en) + '</div>' +
     '</div>' +
-    '<div class="d-h">缘 起</div><p class="d-bg">' + esc(ev.narrative) + '</p>' +
-    (ev.note ? '<div class="d-note">※ ' + esc(ev.note) + '</div>' : '') +
-    (verses ? '<div class="d-h">经 文 · 和合本</div>' + verses : '') +
-    /* renderMedia 已自带「图 像」标题与 .d-media 容器：此处直接拼接，
-       否则会出现重复标题 + 网格套网格（图组标题被挤成网格项）。 */
-    media +
+    '<div class="gc-flow">' +
+      /* 地点行：可点进地点介绍窗（placeBack 双向保留，能再返回本事件） */
+      '<button class="gc-place" id="gcPlace" data-place="' + p.id + '" title="查看地点介绍">' +
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.4-6.5-10a6.5 6.5 0 1 1 13 0c0 4.6-6.5 10-6.5 10Z"/><circle cx="12" cy="10.5" r="2.3"/></svg>' +
+        '<span class="gp-n">' + esc(p.cn) + '</span>' +
+        '<span class="gp-m">' + esc(p.modern) + '</span>' +
+        '<em>地点 ›</em>' +
+      '</button>' +
+      '<div class="d-meta gc-facts">' +
+        /* 今天所在已在地点行里，不重复；只放长说明（宽卡跨两列） */
+        (p.gloss ? mrow('场所说明', p.gloss, true) : '') +
+        (c.area ? mrow('本章区域', c.area, true) : '') +
+      '</div>' +
+      '<div class="d-h">缘 起</div><p class="d-bg">' + esc(ev.narrative) + '</p>' +
+      (ev.note ? '<div class="d-note">※ ' + esc(ev.note) + '</div>' : '') +
+      (verses ? '<div class="d-h">经 文 · 和合本</div>' + verses : '') +
+      /* renderMedia 已自带「图 像」标题与 .d-media 容器：此处直接拼接，
+         否则会出现重复标题 + 网格套网格（图组标题被挤成网格项）。 */
+      media +
+    '</div>' +
+    /* 动作条放在 .gc-flow 外：作为 #gcBody 的直接子级才能 sticky 吸底 */
     '<div class="gc-act">' +
       (placeBack ? '<button class="gc-btn" id="gcBack">← 返回地点</button>' : '') +
       '<button class="gc-btn" id="gcLocate">放大查看</button>' +
     '</div>';
-  showGeo(html, ev.ll, { kind: 'event', id: id });
+  showGeo(html, ev.ll, { kind: 'event', id: id, color: ev.typeMeta.color });
   /* 地图侧：事件点亮为当前 + 标记状态交由 applyReveal 统一收口。
    * 不再 flyTo —— 浮窗已经贴着这个点出现，镜头再推近会把它挤出视野；
    * 需要定位时读者自己点「放大查看」。 */
@@ -1440,6 +1712,7 @@ function openEvent(id) {
   applyReveal(state.year);
   mapCore.lit(ev.ll, ev.typeMeta.color, true);
   if (placeBack) $('gcBack').addEventListener('click', function () { openPlace(placeBack); });
+  $('gcPlace').addEventListener('click', function () { openPlace(p.id); });
   $('gcLocate').addEventListener('click', function () {
     mapCore.lit(ev.ll, ev.typeMeta.color, true);
     mapCore.flyTo(ev.ll, CAM.zEvent + .4, ARRIVE_MS);
@@ -1449,6 +1722,7 @@ function openEvent(id) {
 }
 function closeEvent() {
   if (!state.detail) return;
+  hideHoverEvents();
   state.detail = null;
   placeBack = null;
   /* 释放 openPlace 对标签的临时提升（M8） */
@@ -1473,7 +1747,12 @@ var placeBack = null;
 function openPlace(id) {
   var p = PLACE_BY[id];
   if (!p || p.ctx) return;
-  placeBack = null;
+  hideHoverEvents();
+  /* 不退出全貌：点地名看信息窗正是「不显示事件」时读事件的主路径，
+   * 关窗后应当还留在同一张总览图上。
+   * 返回栈（placeBack 仅一层）：从事件卡点「地点行」进来时记住来源事件，
+   * 点地名直接进来的（点核心 / 点名字 / 深链）没有来源，置空。 */
+  placeBack = (state.detail && state.detail.indexOf('place:') !== 0) ? state.detail : null;
   state.detail = 'place:' + id;
   setStoryEnd(false);
   pause();
@@ -1484,6 +1763,13 @@ function openPlace(id) {
   pinLabel(id, true);
   mapCore.placeLabels(labelItems);
   var evs = EVENTS.filter(function (e) { return e.place === id; });
+  /* 类型统计行：一眼看出「这里发生过什么」，替代原「地点 · N 个事件」的单色胶囊 */
+  var tc = {}, tcOrder = [];
+  evs.forEach(function (e) { if (!tc[e.type]) { tc[e.type] = 0; tcOrder.push(e.type); } tc[e.type]++; });
+  var counts = tcOrder.map(function (t) {
+    var m = TYPE_META[t] || TYPE_META.preach;
+    return '<span class="gc-count" style="--c:' + m.color + '">' + typeIcon(t, 11) + m.cn + '<b>' + tc[t] + '</b></span>';
+  }).join('');
   /* 浮窗里的事件行用紧凑版式（.gc-ev）：一行「年代 · 标题」，点击进事件浮窗。
    * 原来的侧栏行带英文名与地点名，在 326px 宽的卡片里会挤成两行。 */
   var rows = evs.map(function (ev) {
@@ -1492,25 +1778,36 @@ function openPlace(id) {
       '<span class="tt">' + esc(ev.title) + '</span></div>';
   }).join('');
   var html =
-    '<div class="d-type">地点 · ' + evs.length + ' 个事件</div>' +
-    '<div class="d-cn">' + esc(p.cn) + '</div>' +
-    '<div class="d-en">' + esc(p.en) + '</div>' +
-    '<div class="d-meta">' +
-      mrow('今天所在', p.modern) +
-      /* 浮窗只有 326px 宽，完整精度说明会占 4 行把卡片撑到半屏；
-       * 这里只给结论词，完整说明放 title（悬停可读）。 */
-      mrow('定位精度', precisionShort(p)) +
-      (p.gloss ? mrow('场所说明', p.gloss) : '') +
+    /* 首屏即答案：地点徽章 + 类型统计 + 大标题。地点卡整体走暖棕高亮色 */
+    '<div class="gc-hero">' +
+      '<div class="gc-badges">' +
+        '<span class="badge b-sec">地 点</span>' +
+        (evs.length ? '<span class="badge">' + typeIcon(evs[0].type, 11) + evs.length + ' 个事件</span>' : '<span class="badge">暂无已上线事件</span>') +
+      '</div>' +
+      '<div class="d-cn">' + esc(p.cn) + '</div>' +
+      '<div class="d-en">' + esc(p.en) + '</div>' +
     '</div>' +
-    '<p class="d-bg">' + esc(p.note) + '</p>' +
-    (evs.length
-      ? '<div class="d-h">该 地 事 件</div><div class="gc-evs">' + rows + '</div>'
-      : '<div class="d-mnote">该地点暂无已上线事件</div>') +
+    '<div class="gc-flow">' +
+      (counts ? '<div class="gc-counts">' + counts + '</div>' : '') +
+      '<div class="d-meta gc-facts">' +
+        mrow('今天所在', p.modern) +
+        /* 浮窗只有 326px 宽，完整精度说明会占 4 行把卡片撑到半屏；
+         * 这里只给结论词，完整说明放 title（悬停可读）。 */
+        mrow('定位精度', precisionShort(p)) +
+        (p.gloss ? mrow('场所说明', p.gloss, true) : '') +
+      '</div>' +
+      '<div class="d-h">缘 起</div><p class="d-bg">' + esc(p.note) + '</p>' +
+      (evs.length
+        ? '<div class="d-h">该 地 事 件</div><div class="gc-evs">' + rows + '</div>'
+        : '<div class="d-mnote">该地点暂无已上线事件</div>') +
+    '</div>' +
+    /* 动作条放在 .gc-flow 外：作为 #gcBody 的直接子级才能 sticky 吸底 */
     '<div class="gc-act">' +
+      (placeBack ? '<button class="gc-btn" id="gcBack">← 返回事件</button>' : '') +
       '<button class="gc-btn" id="gcLocate">放大查看</button>' +
       (evs.length ? '<button class="gc-btn" id="gcFilter">仅看此地</button>' : '') +
     '</div>';
-  showGeo(html, p.ll, { kind: 'place', id: id });
+  showGeo(html, p.ll, { kind: 'place', id: id, color: '#c2593f' });
   applyReveal(state.year);
   mapCore.lit(p.ll, '#c2593f', true);
   /* 不 flyTo：浮窗贴在该点上方，推近镜头会把它挤出视野 */
@@ -1520,6 +1817,7 @@ function openPlace(id) {
     r.addEventListener('mouseenter', function () { hlRow(eid, true); });
     r.addEventListener('mouseleave', function () { hlRow(eid, false); });
   });
+  if (placeBack) $('gcBack').addEventListener('click', function () { openEvent(placeBack); });
   $('gcLocate').addEventListener('click', function () { mapCore.lit(p.ll, '#c2593f', true); mapCore.flyTo(p.ll, CAM.zEvent + .4, ARRIVE_MS); });
   if (evs.length) $('gcFilter').addEventListener('click', function () { closeEvent(); setFilter(id); });
   try { history.replaceState(null, '', '#p/' + id); } catch (err) { /* file:// 下某些环境受限，忽略 */ }
@@ -1589,7 +1887,9 @@ function applyReveal(y) {
   EVENTS.forEach(function (ev) {
     var inScope = inRouteScope(ev);
     if (inScope) total++;
-    var on = inScope && y >= ev.from - 1e-9;
+    /* 全貌是静态总览：事件点不按「当前年份」逐个点亮，一次全部铺开。
+     * 路线侧的年份驱动由 route-engine 的 overview 分支同步接管（见 setOverview）。 */
+    var on = inScope && (state.overview || y >= ev.from - 1e-9);
     if (on) n++;
     var cur = ev.id === state.focus && state.arrivedId === ev.id;
     var traveling = state.playing && ev.id === state.focus && state.arrivedId !== ev.id;
@@ -1606,13 +1906,13 @@ function applyReveal(y) {
     if (ev.dotEl) ev.dotEl.classList.toggle('on', on);
   });
   /* 计数分母随路线筛选收缩（「12 / 97」在只看一段旅程时是误导） */
-  var cnt = n + ' / ' + total + ' 事件';
+  var cnt = n + ' / ' + total + ' 事件' + (state.overview ? ' · 全貌' : '');
   if ($('tlCount').textContent !== cnt) $('tlCount').textContent = cnt;
   /* 把手读数（M9）：时间轴收起时它是唯一可见的进度信息 */
   var hd = $('tlHandle');
   if (hd) {
     var hy = 'AD ' + Math.round(y);
-    var txt = '▲ ' + hy + ' · ' + n + '/' + total;
+    var txt = state.overview ? ('▲ 全貌 · ' + n + '/' + total) : ('▲ ' + hy + ' · ' + n + '/' + total);
     if (hd.textContent !== txt) hd.textContent = txt;
   }
   routes.applyTime(y);
@@ -1732,6 +2032,7 @@ function arriveEvent(ev) {
 }
 function startPlay() {
   if (state.playing) return;
+  if (state.overview) exitOverview();   /* 播放是时间叙事，先退出静态总览 */
   if (state.detail) closeEvent();
   hideCard();
   setStoryEnd(false);
@@ -1805,6 +2106,7 @@ function pause() {
 function togglePlay() { state.playing ? pause() : startPlay(); }
 function stepEvent(dir) {
   pause();
+  if (state.overview) exitOverview();
   /* 步进只在当前筛选范围内走（选中某段旅程时不会「跳到别的旅程去」） */
   var scoped = SEQ.filter(inRouteScope);
   if (!scoped.length) scoped = SEQ;
@@ -1825,6 +2127,7 @@ function stepEvent(dir) {
 }
 function jumpChapter(id) {
   pause();
+  if (state.overview) exitOverview();
   state.chapter = state.chapter === id ? null : id;
   syncChapterChips(); renderList();
   var c = CH_BY[id];
@@ -2008,6 +2311,7 @@ function playJourney(rid) {
 function selectRoute(rid) {
   if (!rid || !R_BY[rid] || state.route === rid) { clearRoute(); return; }
   pause();
+  if (state.overview) exitOverview();   /* 选一段旅程 = 从全貌切回时间叙事 */
   state.route = rid;
   var j = R_BY[rid];
   syncJourneyUI();
@@ -2042,12 +2346,15 @@ document.querySelectorAll('.chip[data-layer]').forEach(function (chip) {
     var on = chip.classList.toggle('on');
     var layer = chip.getAttribute('data-layer');
     if (layer === 'routes') { on ? map.addLayer(routesLayer) : map.removeLayer(routesLayer); }
-    if (layer === 'places') { on ? map.addLayer(placeLayer) : map.removeLayer(placeLayer); }
+    /* 不再 removeLayer：地名标签是 placeLayer 里 marker 的 tooltip，拆图层会把
+     * 地名一起带走（「点一下隐藏所有信息」），重建后事件点的监听与状态也会丢。 */
+    if (layer === 'places') { map.getContainer().classList.toggle('hide-places', !on); }
     if (layer === 'labels') { mapCore.setLabelsVisible(on); }
   });
 });
 $('resetBtn').addEventListener('click', function () {
   pause();
+  if (state.overview) exitOverview();
   routes.cancelTravel();
   clearRoute(true);            /* 先退出路线筛选（含视野复原），再做其余重置 */
   setFilter(null);
@@ -2062,6 +2369,12 @@ $('zoomOut').addEventListener('click', function () { map.zoomOut(1); });
 
 /* ================= 键盘 ================= */
 document.addEventListener('keydown', function (e) {
+  /* 引导层是模态：Esc 关闭，其余快捷键（空格播放 / ← → 步进）暂时让位。
+   * 必须放在下面的 BUTTON 早退之前 —— 焦点此刻正在「看全貌」按钮上。 */
+  if ($('intro') && !$('intro').hidden) {
+    if (e.key === 'Escape') { e.preventDefault(); dismissIntro(); }
+    return;
+  }
   var t = e.target;
   if (t && (t.tagName === 'BUTTON' || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
@@ -2170,6 +2483,201 @@ window.addEventListener('hashchange', handleHash);
 map.getContainer().addEventListener('pointerdown', function () { setStoryEnd(false); }, true);
 map.on('zoomstart', function () { setStoryEnd(false); });
 
+/* ================= 首屏引导 / 全貌视图 / 悬停事件（M10，2026-11-05） =================
+ * 用户需求：「进入就引导探索哪个旅程或者看全貌；如果是看全貌，就直接显示所有线路及
+ * 地点，地点支持点击，鼠标悬浮则显示事件；右侧增加筛选『是否显示事件』（如果不显示
+ * 事件，就是在点击地名后弹出信息窗中显示）」。
+ *
+ * 三个状态在这里收口：
+ *   state.overview   —— 静态总览：路线整段、地点豁免分级、事件点全亮；
+ *   state.showEvents —— 右侧开关：关 ⇒ 不悬停预览、事件点收起，事件只在地点信息窗里看；
+ *   intro 层         —— 模式选择器，选完退场，右上角「选择视图」随时召回。
+ * 与播放 / 步进 / 选旅程 / 拖时间轴的交界一律走 exitOverview()，不各写一套。 */
+
+/* ---------- 引导：模式选择器 ---------- */
+function introSkipped() {
+  /* ?intro=0 供嵌入与自动化验收使用；深链（#e/... / #p/...）已有明确目标，不打断 */
+  if (/(?:^|[?&])intro=0(?:&|$)/.test(location.search)) return true;
+  return (location.hash || '').length > 1;
+}
+function renderIntro() {
+  var pn = {};
+  EVENTS.forEach(function (e) { pn[e.place] = 1; });
+  $('introCounts').textContent = EVENTS.length + ' 个事件、' + LIVE_CHAPTERS.length + ' 幕故事、' +
+    Object.keys(pn).length + ' 处地点。';
+  $('introYears').textContent = 'AD ' + EV_LO + '–' + EV_HI;
+  $('introJourneys').innerHTML = ROUTES.map(function (j) {
+    var c = CH_BY[j.ch] || {};
+    return '<button class="ij" data-j="' + j.id + '" style="--c:' + j.color + '"' +
+      ' title="' + esc(j.name + ' · ' + j.years + (c.area ? ' · ' + c.area : '')) + '">' +
+      '<i></i><span class="ij-t"><b>' + esc(j.name) + '</b><span>' + esc(j.years) +
+      (c.area ? ' · ' + esc(c.area) : '') + '</span></span><em>' + routeEventCount(j.id) + ' 事件</em></button>';
+  }).join('');
+}
+function showIntro() {
+  renderIntro();
+  hideHoverEvents();
+  if (state.detail) closeEvent();     /* 重新选择视图前先收掉上一张信息卡 */
+  $('intro').hidden = false;
+  /* 焦点落到主按钮：键盘一进来回车即可选全貌，不必先 Tab 过五段旅程 */
+  setTimeout(function () {
+    if ($('intro').hidden) return;
+    try { $('introAll').focus({ preventScroll: true }); } catch (e) {}
+  }, 0);
+}
+/* skipDemo：读者已经选了模式，就不再演示「时间轴藏在哪」——那会打断他刚做的选择。 */
+function dismissIntro(skipDemo) {
+  var el = $('intro');
+  if (el.hidden) return;
+  el.hidden = true;
+  maybeFirstRunTl(!!skipDemo);
+}
+function pickOverview() { dismissIntro(true); enterOverview(); }
+function pickJourney(rid) {
+  dismissIntro(true);
+  if (state.overview) exitOverview();
+  if (state.route === rid) playJourney(rid);   /* 已选中：再点＝重播 */
+  else selectRoute(rid);
+}
+function bindIntro() {
+  $('introAll').addEventListener('click', pickOverview);
+  $('introX').addEventListener('click', function () { dismissIntro(); });
+  $('introSkip').addEventListener('click', function () { dismissIntro(); });
+  $('introBtn').addEventListener('click', showIntro);
+  $('voBack').addEventListener('click', showIntro);
+  $('introJourneys').addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('.ij') : null;
+    if (b) pickJourney(b.getAttribute('data-j'));
+  });
+  $('intro').addEventListener('click', function (e) { if (e.target === this) dismissIntro(); });
+}
+
+/* ---------- 全貌：所有线路 / 地点 / 事件一次铺开 ---------- */
+function enterOverview() {
+  if (state.detail) closeEvent();  /* 从「选择视图」召回时可能还开着上一张卡 */
+  if (state.route) clearRoute(true);
+  /* 全貌 = 全部。章节 / 地点筛选只作用于侧栏列表，但不清掉的话读者会看到
+   * 「地图是全的、列表却只剩一章」这种自相矛盾的状态。 */
+  if (state.filter) setFilter(null);
+  if (state.chapter) { state.chapter = null; syncChapterChips(); renderList(); }
+  if (state.playing) pause();
+  state.overview = true;
+  document.body.classList.add('overview');
+  hideHoverEvents();
+  hideCard();
+  routes.setOverview(true);        /* 五段旅程整段实线，无视当前年份 */
+  routes.focus(null);
+  setStoryEnd(false);
+  syncSoftLabels();               /* 全部地点豁免分级，紧凑形态由 CSS 负责 */
+  mapCore.placeLabels(labelItems);
+  applyReveal(state.year);        /* 事件点与计数按「全部已展开」重算 */
+  $('viewFilter').hidden = false;
+  setShowEvents(state.showEvents);
+  toast('全 貌', '所有线路与地点已铺开 · 悬停看事件，点击地名看详情');
+}
+function exitOverview() {
+  if (!state.overview) return;
+  state.overview = false;
+  document.body.classList.remove('overview');
+  hideHoverEvents();
+  $('viewFilter').hidden = true;
+  document.body.classList.remove('no-events');
+  routes.setOverview(false);      /* 交还年份驱动，sig 全清强制重算 */
+  routes.focus(state.route);
+  syncSoftLabels();
+  mapCore.placeLabels(labelItems);
+  applyReveal(state.year);
+}
+/* 右侧「是否显示事件」：关掉后地图只留线路与地点，事件信息退到地点信息窗里。 */
+function setShowEvents(on) {
+  state.showEvents = !!on;
+  $('showEventsCk').checked = state.showEvents;
+  document.body.classList.toggle('no-events', !state.showEvents && state.overview);
+  $('voNote').textContent = state.showEvents
+    ? '悬停地点即可预览该地事件'
+    : '事件只在点击地名后的信息窗中显示';
+  if (!state.showEvents) hideHoverEvents();
+  applyReveal(state.year);
+}
+function bindViewFilter() {
+  $('showEventsCk').addEventListener('change', function () { setShowEvents(this.checked); });
+  /* 拖时间轴 = 回到「随时间看故事」，静态总览让位。捕获阶段先退出，
+   * timeline 自己的 pointerdown 随后拿到的是已恢复年份驱动的状态。 */
+  $('tlTrack').addEventListener('pointerdown', function () {
+    if (state.overview) exitOverview();
+  }, true);
+}
+
+/* ---------- 悬停事件预览 ---------- */
+/* 卡片默认放在锚点右侧 22px，中间那段空隙读者要花一两百毫秒走过去。
+ * 隐藏计时太短（170ms）会在指针还没落到卡片上时就把它抽走，故留足 260ms；
+ * 指针一旦进入卡片，mouseenter 立刻清掉这个计时。 */
+var HOVER_HIDE_MS = 260;
+var hoverPid = null, hoverLl = null, hoverHideTimer = 0;
+function placeHoverEvs() {
+  var el = $('hoverEvs');
+  if (el.hidden || !hoverLl) return;
+  var pt = map.latLngToContainerPoint(hoverLl);
+  var w = el.offsetWidth, h = el.offsetHeight;
+  var vw = map.getSize().x, vh = map.getSize().y;
+  var x = pt.x + 22;                                     /* 默认放在锚点右侧 */
+  if (x + w + 10 > vw) x = pt.x - w - 22;                /* 右边放不下翻到左侧 */
+  x = Math.max(10, Math.min(vw - w - 10, x));
+  var y = Math.max(10, Math.min(vh - h - 10, pt.y - h / 2));
+  el.style.left = Math.round(x) + 'px';
+  el.style.top = Math.round(y) + 'px';
+}
+function hideHoverEvents() {
+  clearTimeout(hoverHideTimer);
+  var el = $('hoverEvs');
+  if (!el) return;
+  el.classList.remove('show');
+  hoverPid = null; hoverLl = null;
+  setTimeout(function () { if (!el.classList.contains('show')) el.hidden = true; }, HOVER_HIDE_MS);
+}
+function scheduleHideHover() {
+  clearTimeout(hoverHideTimer);
+  var el = $('hoverEvs');
+  if (!el || el.hidden) return;
+  hoverHideTimer = setTimeout(function () {
+    if (el.matches(':hover')) return;      /* 指针已经移进卡片，别把卡片抽走 */
+    hideHoverEvents();
+  }, HOVER_HIDE_MS);
+}
+function showHoverEvents(pid) {
+  if (!state.overview || !state.showEvents || state.detail) return;
+  var p = PLACE_BY[pid];
+  if (!p || p.ctx) return;
+  var evs = EVENTS.filter(function (e) { return e.place === pid; });
+  if (!evs.length) return;
+  clearTimeout(hoverHideTimer);
+  if (hoverPid === pid) { placeHoverEvs(); return; }   /* 同一地点：只跟随锚点重定位 */
+  hoverPid = pid; hoverLl = p.ll;
+  var rows = evs.map(function (ev) {
+    return '<div class="he-row" data-ev="' + ev.id + '" style="--c:' + ev.typeMeta.color + '">' +
+      '<i></i><span class="yr">AD ' + ev.from + (ev.to !== ev.from ? '–' + ev.to : '') + '</span>' +
+      '<span class="tt">' + esc(ev.title) + '</span></div>';
+  }).join('');
+  var el = $('hoverEvs');
+  el.innerHTML = '<div class="he-h"><b>' + esc(p.cn) + '</b><span>该地 ' + evs.length + ' 个事件</span></div>' +
+    '<div class="he-list">' + rows + '</div>' +
+    '<div class="he-tip">点击任一事件看详情 · 点击地名看地点介绍</div>';
+  el.hidden = false;
+  el.classList.remove('show');
+  placeHoverEvs();
+  requestAnimationFrame(function () { if (hoverPid === pid) el.classList.add('show'); });
+}
+function bindHoverEvs() {
+  var el = $('hoverEvs');
+  el.addEventListener('click', function (e) {
+    var r = e.target && e.target.closest ? e.target.closest('.he-row') : null;
+    if (r) { e.stopPropagation(); openEvent(r.getAttribute('data-ev')); }
+  });
+  el.addEventListener('mouseenter', function () { clearTimeout(hoverHideTimer); });
+  el.addEventListener('mouseleave', function () { scheduleHideHover(); });
+  map.on('move zoom viewreset', function () { if (hoverLl) placeHoverEvs(); });
+}
+
 /* ================= 启动 ================= */
 renderStats();
 renderChapters();
@@ -2180,10 +2688,13 @@ $('auditBtn').addEventListener('click', openAudit);
 mapCore.placeLabels(labelItems);   /* 兜底初始调用；尺寸稳定后 onReady 会重算 */
 timeline.setYear(D0);
 routes.drawAll(170);
-setTimeout(function () {
-  toast('AD ' + D0 + '–' + Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); })),
-    '按 <b>空格</b> 播放故事 · 点击事件标记查看详情');
-}, 1300);
+/* M10：先分流（看全貌 / 走一段旅程）。深链与 ?intro=0 直接进原首屏，
+ * 首屏 toast 与时间轴演示统一延后到引导退场之后，不会白演一遍在遮罩底下。 */
+bindIntro();
+bindViewFilter();
+bindHoverEvs();
+if (introSkipped()) maybeFirstRunTl();
+else showIntro();
 GS.fx.emit('app:ready');
 handleHash();
 
@@ -2238,17 +2749,76 @@ window.GS_APP = {
       return out;
     }
   },
-  timing: { TRAVEL: TRAVEL, SEEK_LEAD: SEEK_LEAD, CRUISE_MS: CRUISE_MS, ARRIVE_MS: ARRIVE_MS, DWELL: DWELL, CAM: CAM }
+  timing: { TRAVEL: TRAVEL, SEEK_LEAD: SEEK_LEAD, CRUISE_MS: CRUISE_MS, ARRIVE_MS: ARRIVE_MS, DWELL: DWELL, CAM: CAM },
+  /* M10：引导 / 全貌 / 悬停事件（验收用只读快照，改动一律走真实输入） */
+  intro: {
+    visible: function () { return !$('intro').hidden; },
+    open: showIntro,
+    dismiss: dismissIntro,
+    pick: function (m) { if (m === 'overview') pickOverview(); else pickJourney(m); },
+    choices: function () {
+      var out = [];
+      document.querySelectorAll('#introJourneys .ij').forEach(function (b) {
+        var r = b.getBoundingClientRect();
+        out.push({ j: b.getAttribute('data-j'), label: (b.textContent || '').replace(/\s+/g, ' ').trim(),
+                   inViewport: r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth });
+      });
+      return out;
+    }
+  },
+  overview: {
+    active: function () { return !!state.overview; },
+    enter: pickOverview,
+    exit: exitOverview,
+    showEvents: function () { return state.showEvents; },
+    setShowEvents: setShowEvents,
+    /* 每段路线「已画点数 / 完整点数」：全貌下必须相等，否则线没铺满 */
+    routes: function () {
+      return GS.routeEngine.api.all().map(function (j) {
+        return { id: j.id, drawn: !!j.drawn,
+                 shown: j.base ? j.base.getLatLngs().length : 0,
+                 full: j.path ? j.path.length : 0,
+                 opacity: j.baseEl ? Number(j.baseEl.style.opacity) : 0 };
+      });
+    },
+    places: function () {
+      var labels = 0;
+      document.querySelectorAll('.leaflet-tooltip.city-tip').forEach(function (el) {
+        if (el.style.display !== 'none') labels++;
+      });
+      return { markers: document.querySelectorAll('.place-icon').length,
+               filtered: document.querySelectorAll('.place-icon.route-off').length,
+               labelsVisible: labels,
+               dotsOn: document.querySelectorAll('.ev-dot.on').length,
+               totalDots: document.querySelectorAll('.ev-dot').length };
+    }
+  },
+  hoverEvents: {
+    visible: function () { var el = $('hoverEvs'); return !!el && !el.hidden && el.classList.contains('show'); },
+    text: function () { return ($('hoverEvs').textContent || '').replace(/\s+/g, ' ').trim(); },
+    hide: hideHoverEvents
+  }
 };
 
-/* ================= 首屏引导（M9） =================
- * 时间轴平时藏在底部 16px 里。首屏截图实测：整个界面找不到「开始播放」。
- * 加载后自动展开 2.6s 再收回 —— 既指出「播放在这里」，也演示「它会自己让位」。
- * 它取代了 H-2 的引导横幅（横幅在侧栏里，而侧栏现在默认收起，等于没有）。
+/* ================= 首屏提示（M9 时间轴演示 + M10 引导衔接） =================
+ * 时间轴平时藏在底部 16px 里。加载后自动展开 2.6s 再收回 —— 既指出「播放在这里」，
+ * 也演示「它会自己让位」。M10 起它不再独立启动：引导层是模态，若这时演示，
+ * 读者全程只看见一层半透明遮罩，等于白演。故统一由 maybeFirstRunTl() 在
+ * 「引导被跳过」或「引导退场」之后触发；读者主动选了模式（skipDemo）就不再演示。
  * 三条退出条件，任一成立都不打扰：sessionStorage 已看过 / 深链进入 / 读者已动手。 */
-(function firstRunTl() {
+var firstRunDone = false;
+function maybeFirstRunTl(skipDemo) {
+  if (firstRunDone) return;
+  firstRunDone = true;
+  /* 首屏 toast 原先在启动块里，一并搬来：引导遮罩下写 #now 没人看得见 */
+  setTimeout(function () {
+    if (state.overview) return;    /* 全貌已由 enterOverview 给过提示，不覆盖 */
+    toast('AD ' + D0 + '–' + Math.max.apply(null, EVENTS.map(function (e) { return Math.max(e.from, e.to); })),
+      '按 <b>空格</b> 播放故事 · 点击事件标记查看详情');
+  }, 1300);
+  if (skipDemo) return;
   try { if (sessionStorage.getItem('gs-tl-seen')) return; } catch (e) { /* 隐私模式：照常引导 */ }
-  if ((location.hash || '').length > 1) return;   /* 深链：读者已经有明确目标 */
+  if ((location.hash || '').length > 1) return;
   var touched = false;
   function touch() { touched = true; }
   ['pointerdown', 'wheel', 'keydown'].forEach(function (t) {
@@ -2262,7 +2832,7 @@ window.GS_APP = {
       closeTl(0);   /* 默认守卫仍生效：播放中 / 指针还在轴上则保持展开 */
     }, 2600);
   }, 1600);
-})();
+}
 
 })();
 </script>

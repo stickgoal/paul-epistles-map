@@ -5,3 +5,5 @@
 .verify-last.txt
 target/
 .tools/
+/.cdp-profile-smoke
+*.log
